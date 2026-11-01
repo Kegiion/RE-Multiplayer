@@ -1,0 +1,12 @@
+# Build-Ausgaben
+/build*/
+/dist/
+/out/
+CMakeUserPresets.json
+.vs/
+.vscode/
+*.user
+
+# Niemals Spieldateien einchecken (Urheberrecht)!
+*.pak
+*.exe

@@ -1,0 +1,274 @@
+-- RE2 Remake Koop (REMods) - Einstiegspunkt
+--
+-- Wird von REFramework automatisch geladen (reframework/autorun/).
+-- Menue: REFramework-Overlay (Taste Einfg/Insert) -> Script Generated UI -> "RE2 Koop".
+--
+-- Aufbau:
+--   remods_coop/*      gemeinsame Lua-Bibliothek fuer alle RE-Engine-Spiele
+--   re2r_coop/game.lua RE2-spezifischer Zugriff auf Spieldaten
+--   re2r_coop/ghost.lua Anzeige des Mitspielers
+--   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
+
+local MOD_VERSION = "0.1.0"
+local CONFIG_FILE = "re2r_coop_config.json"
+local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
+
+-- Ohne Plugin geht nichts: nur eine Hilfe im Menue anzeigen.
+if coopnet == nil then
+    re.on_draw_ui(function()
+        if imgui.tree_node("RE2 Koop") then
+            imgui.text_colored("Plugin remods_coopnet.dll nicht gefunden!", 0xFF4040FF)
+            imgui.text("Es gehoert nach: <RE2-Ordner>/reframework/plugins/")
+            imgui.text("Danach das Spiel neu starten.")
+            imgui.tree_pop()
+        end
+    end)
+    return
+end
+
+local Session = require("remods_coop.session")
+local game = require("re2r_coop.game")
+local ghost = require("re2r_coop.ghost")
+local diag = require("re2r_coop.diag")
+
+-- --- Einstellungen ---------------------------------------------------------
+
+local config = {
+    name = "Spieler",
+    address = "127.0.0.1",
+    port = 27350,
+    show_ghosts = true,
+    show_debug = false,
+}
+
+local function load_config()
+    local ok, data = pcall(json.load_file, CONFIG_FILE)
+    if ok and type(data) == "table" then
+        for k, v in pairs(data) do
+            if config[k] ~= nil and type(v) == type(config[k]) then
+                config[k] = v
+            end
+        end
+    end
+end
+
+local function save_config()
+    pcall(json.dump_file, CONFIG_FILE, config)
+end
+
+load_config()
+
+-- --- Sitzung -----------------------------------------------------------
+
+local session = Session.new({
+    net = coopnet,
+    game = game.ID,
+    mod_version = MOD_VERSION,
+    name = config.name,
+    max_peers = 1, -- Story-Koop: zwei Spieler
+})
+
+session:on("PLAYER_STATE", function(s, peer, msg)
+    ghost.on_state(peer, msg, s:time())
+end)
+
+session:on("CHAT", function(s, peer, msg)
+    s:log("%s: %s", peer.name or "?", msg.text)
+end)
+
+session:subscribe("peer_left", function(_, peer)
+    ghost.remove(peer.id)
+end)
+
+-- --- Pro Frame -----------------------------------------------------------
+
+local state = {
+    seq = 0,
+    last_send = 0,
+    last_frame = nil,
+    local_state = nil,
+    last_error = nil,
+}
+
+local function report_error(where, err)
+    local text = where .. ": " .. tostring(err)
+    if text ~= state.last_error then -- jede Meldung nur einmal loggen
+        state.last_error = text
+        session:log("FEHLER %s", text)
+    end
+end
+
+local function frame()
+    local now = session:time()
+    local dt = state.last_frame and (now - state.last_frame) or 0
+    state.last_frame = now
+
+    session:update()
+
+    state.local_state = game.get_local_state()
+
+    if state.local_state ~= nil and session:is_active() and #session:ready_peers() > 0
+        and now - state.last_send >= SEND_INTERVAL then
+        state.last_send = now
+        state.seq = (state.seq + 1) % 4294967296
+        local msg = state.local_state
+        msg.seq = state.seq
+        session:send("PLAYER_STATE", msg, false)
+    end
+
+    ghost.update(dt)
+    if config.show_ghosts then
+        ghost.draw(state.local_state, now)
+    end
+end
+
+re.on_frame(function()
+    local ok, err = pcall(frame)
+    if not ok then
+        report_error("frame", err)
+    end
+end)
+
+-- --- Menue ---------------------------------------------------------------
+
+local ui = {
+    chat = "",
+    diag_result = nil,
+}
+
+local MODE_TEXT = {
+    idle = "Nicht verbunden",
+    hosting = "Host - warte auf Mitspieler",
+    connecting = "Verbinde ...",
+    connected = "Verbunden",
+}
+
+local function draw_connection_ui(status)
+    local changed
+    changed, config.name = imgui.input_text("Dein Name", config.name)
+    if changed then
+        session.name = config.name
+        save_config()
+    end
+
+    if status.mode == "idle" then
+        changed, config.address = imgui.input_text("IP des Hosts", config.address)
+        if changed then save_config() end
+
+        local port_text
+        changed, port_text = imgui.input_text("Port", tostring(config.port))
+        if changed then
+            local port = tonumber(port_text)
+            if port and port >= 1 and port <= 65535 then
+                config.port = math.floor(port)
+                save_config()
+            end
+        end
+
+        if imgui.button("Hosten") then
+            session:host(config.port)
+        end
+        imgui.same_line()
+        if imgui.button("Beitreten") then
+            session:join(config.address, config.port)
+        end
+    else
+        if imgui.button("Trennen") then
+            session:leave()
+            ghost.clear()
+        end
+    end
+end
+
+local function draw_status_ui(status)
+    local text = MODE_TEXT[status.mode] or status.mode
+    if status.mode == "hosting" then
+        text = text .. string.format(" (Port %d)", config.port)
+    end
+    imgui.text("Status: " .. text)
+    if status.error then
+        imgui.text_colored("Letzter Fehler: " .. status.error, 0xFF4040FF)
+    end
+
+    for _, peer in ipairs(status.peers or {}) do
+        local p = session.peers[peer.id]
+        local name = p and p.name or "(Handshake ...)"
+        if p and p.incompatible then
+            name = name .. " - INKOMPATIBEL, siehe Log"
+        end
+        imgui.text(string.format("  Mitspieler: %s  [%s]  Ping %d ms", name, peer.address, peer.rtt))
+    end
+
+    if session:is_active() then
+        local changed
+        changed, ui.chat = imgui.input_text("Nachricht", ui.chat)
+        imgui.same_line()
+        if imgui.button("Senden") and ui.chat ~= "" then
+            session:send("CHAT", { text = ui.chat }, true)
+            session:log("Du: %s", ui.chat)
+            ui.chat = ""
+        end
+    end
+end
+
+local function draw_debug_ui(status)
+    local changed
+    changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
+    if changed then save_config() end
+    changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
+    if changed then save_config() end
+
+    if imgui.button("Diagnose speichern") then
+        local ok, result = diag.write({ coop_status = status, mod_version = MOD_VERSION })
+        ui.diag_result = ok and ("Gespeichert: " .. result) or ("Fehler: " .. result)
+    end
+    if ui.diag_result then
+        imgui.text(ui.diag_result)
+    end
+
+    if config.show_debug then
+        local ls = state.local_state
+        if ls then
+            imgui.text(string.format("Spieler: %s  via %s", tostring(ls.object_name), tostring(game.player_source)))
+            imgui.text(string.format("Position: %.2f  %.2f  %.2f", ls.x, ls.y, ls.z))
+            imgui.text(string.format("Rotation: %.3f  %.3f  %.3f  %.3f", ls.qx, ls.qy, ls.qz, ls.qw))
+        else
+            imgui.text("Spieler: nicht gefunden (Menue/Ladebildschirm?)")
+        end
+        for id, r in pairs(ghost.remote) do
+            imgui.text(string.format("Remote %d (%s): %.2f %.2f %.2f  seq %d",
+                id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0))
+        end
+        local st = status.stats or {}
+        imgui.text(string.format("Gesendet: %d Nachr. / %d B   Empfangen: %d Nachr. / %d B",
+            st.messages_sent or 0, st.bytes_sent or 0, st.messages_received or 0, st.bytes_received or 0))
+        imgui.text("coopnet " .. coopnet.version() .. "   Mod " .. MOD_VERSION)
+    end
+end
+
+re.on_draw_ui(function()
+    if not imgui.tree_node("RE2 Koop") then
+        return
+    end
+    local ok, err = pcall(function()
+        local status = session:status()
+        draw_connection_ui(status)
+        imgui.separator()
+        draw_status_ui(status)
+        imgui.separator()
+        draw_debug_ui(status)
+
+        if imgui.tree_node("Log") then
+            for i = math.max(1, #session.log_lines - 25), #session.log_lines do
+                imgui.text(session.log_lines[i])
+            end
+            imgui.tree_pop()
+        end
+    end)
+    if not ok then
+        imgui.text_colored("UI-Fehler: " .. tostring(err), 0xFF4040FF)
+    end
+    imgui.tree_pop()
+end)
+
+session:log("RE2 Koop %s geladen (coopnet %s)", MOD_VERSION, coopnet.version())

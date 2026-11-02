@@ -9,7 +9,7 @@
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 
-local MOD_VERSION = "0.2.0"
+local MOD_VERSION = "0.2.1"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then

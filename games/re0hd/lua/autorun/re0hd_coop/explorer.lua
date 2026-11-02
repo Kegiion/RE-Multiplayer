@@ -1,7 +1,7 @@
 -- re0hd_coop/explorer.lua - Oberflaeche fuer den MT-Explorer (Forschung).
 --
 -- Ablauf im Spiel:
---   1. "Speicher durchsuchen" (dauert etwa eine Sekunde, das Spiel stockt kurz)
+--   1. "Speicher durchsuchen" (laeuft ueber einige Sekunden verteilt, das Spiel bleibt fluessig)
 --   2. Klasse suchen, z. B. "uPlayer", und ein Objekt anklicken
 --   3. Objekt-Ansicht: Werte live, geaenderte Werte gelb, Zeigern folgen mit ">"
 --   4. "Schnappschuss speichern" mit kurzer Beschreibung, was gerade passiert
@@ -13,6 +13,7 @@ local M = {}
 local QUICK = { "uPlayerRebecca", "uPlayerBilly", "sPlayer", "sGameArea", "sFlagManager", "sItem", "sUnit" }
 local VIEW_SIZE = 0x300   -- angezeigte Bytes pro Objekt
 local CHANGE_HIGHLIGHT = 1.0 -- Sekunden
+local SCAN_BUDGET_MS = 8      -- Rechenzeit pro Frame fuer die Speichersuche
 
 local state = {
     scan_result = nil,
@@ -71,10 +72,21 @@ local function safe_label(text)
     return label ~= "" and label or "ohne_name"
 end
 
+-- Laufende Speichersuche Stueck fuer Stueck weiterfuehren (auch bei geschlossenem Menue)
+re.on_frame(function()
+    if state.scan_result and state.scan_result.active then
+        state.scan_result = mt.scan_step(SCAN_BUDGET_MS)
+    end
+end)
+
 -- ---- Teile der Oberflaeche ------------------------------------------------
 
 local function draw_scan()
-    if imgui.button("Speicher durchsuchen") then
+    local r = state.scan_result
+    if r and r.active then
+        imgui.text(string.format("Suche laeuft: %d %%  (%.0f MB, %d Objekte bisher)",
+            math.floor(r.progress * 100), r.scanned_mb, r.instances))
+    elseif imgui.button("Speicher durchsuchen") then
         state.scan_result = mt.scan()
     end
     imgui.same_line()
@@ -87,11 +99,10 @@ local function draw_scan()
             classes = mt.classes(""),
         })
     end
-    local r = state.scan_result
-    if r then
-        imgui.text(string.format("%d Klassen (DTI), %d Objekte in %d Klassen, %.0f MB in %.0f ms",
-            r.dti, r.instances, r.classes_with_instances, r.scanned_mb, r.ms))
-    else
+    if r and r.finished then
+        imgui.text(string.format("%d Klassen (DTI), %d Objekte in %d Klassen, %.0f MB in %.0f ms (%.0f MB uebersprungen)",
+            r.dti, r.instances, r.classes_with_instances, r.scanned_mb, r.ms, r.skipped_mb))
+    elseif not r then
         imgui.text("Noch nicht durchsucht.")
     end
 end

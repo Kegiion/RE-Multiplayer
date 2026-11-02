@@ -167,7 +167,8 @@ memory[0x5008] = 0x3F800000          -- 1.0 als float
 mem.read_f32 = function(a) return memory[a] == 0x3F800000 and 1.0 or 0.0 end
 memory[0x16000] = 0x00C00010
 mt = {
-    scan = function() return { dti = 2, instances = 2, classes_with_instances = 2, ms = 1, scanned_mb = 1 } end,
+    scan = function() return { active = true, progress = 0, dti = 2, instances = 0, classes_with_instances = 0, ms = 0, scanned_mb = 0, skipped_mb = 0 } end,
+    scan_step = function() return { active = false, finished = true, progress = 1, dti = 2, instances = 2, classes_with_instances = 2, ms = 1, scanned_mb = 1, skipped_mb = 0 } end,
     classes = function(filter)
         local all = { { name = "uPlayerRebecca", dti = 0x100, count = 1, size = 0x400 }, { name = "uCoord", dti = 0x200, count = 1, size = 0x40 } }
         local out = {}
@@ -181,12 +182,18 @@ mt = {
     dti_raw = function() return { addr = 0x100, words = {}, parent = "uPlayerBase" } end,
     info = function() return { dti_count = 2 } end,
 }
+local frames_before = #callbacks.frame
 local explorer = require("re0hd_coop.explorer")
+assert(#callbacks.frame == frames_before + 1, "Explorer hat keinen on_frame-Callback")
 local function run_explorer()
     ui_texts = {}
     explorer.draw()
 end
 pending_clicks["Speicher durchsuchen"] = true
+run_explorer()
+run_explorer()
+assert(find_text("Suche laeuft: 0 %%"), "Fortschritt fehlt")
+callbacks.frame[#callbacks.frame]() -- ein Frame: Suche wird fertig
 run_explorer()
 assert(find_text("2 Klassen %(DTI%)"), "Scan-Ergebnis fehlt")
 pending_clicks["uPlayerRebecca  (1)##cls"] = true

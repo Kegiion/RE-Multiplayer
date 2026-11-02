@@ -97,18 +97,21 @@ std::string read_identifier(uintptr_t addr) {
 }
 
 // Liest einen Speicherbereich blockweise (fehlerhafte Bloecke werden uebersprungen).
+// Gerechnet wird mit 64 Bit: Am oberen Ende des 32-Bit-Adressraums wuerde
+// p + Blockgroesse sonst auf 0 ueberlaufen (Endlosschleife, Version 0.2.0).
 template <typename Fn>
-void for_each_block(uintptr_t begin, uintptr_t end, std::vector<uint32_t>& buffer, Fn&& fn) {
-    constexpr size_t kBlock = 1 << 20;  // 1 MB
-    for (uintptr_t p = begin; p < end; p += kBlock) {
-        const size_t n = std::min<size_t>(kBlock, end - p) & ~size_t{3};
+void for_each_block(uint64_t begin, uint64_t end, std::vector<uint32_t>& buffer, Fn&& fn) {
+    constexpr uint64_t kBlock = 1 << 20;  // 1 MB
+    for (uint64_t p = begin; p < end;) {
+        const auto n = static_cast<size_t>(std::min<uint64_t>(kBlock, end - p) & ~uint64_t{3});
         if (n == 0) {
             break;
         }
         buffer.resize(n / 4);
-        if (safe_read(buffer.data(), p, n)) {
-            fn(p, buffer);
+        if (safe_read(buffer.data(), static_cast<uintptr_t>(p), n)) {
+            fn(static_cast<uintptr_t>(p), buffer);
         }
+        p += n;
     }
 }
 
@@ -226,53 +229,120 @@ void scan_block(uintptr_t block, const std::vector<uint32_t>& words) {
     }
 }
 
-struct ScanResult {
-    double ms = 0;
-    double scanned_mb = 0;
+// ---- Speichersuche, verteilt auf mehrere Frames ------------------------------
+// Ein Durchlauf ueber den ganzen Speicher dauert zu lange fuer einen Frame
+// (Version 0.2.0 hat das Bild eingefroren). Deshalb arbeitet scan_step()
+// pro Frame nur ein Zeitbudget ab.
+
+double now_ms() {
+    static LARGE_INTEGER freq{};
+    if (freq.QuadPart == 0) {
+        QueryPerformanceFrequency(&freq);
+    }
+    LARGE_INTEGER t{};
+    QueryPerformanceCounter(&t);
+    return static_cast<double>(t.QuadPart) * 1000.0 / static_cast<double>(freq.QuadPart);
+}
+
+struct ScanJob {
+    bool active = false;
+    bool finished = false;
+    std::vector<std::pair<uint64_t, uint64_t>> regions;  // [Anfang, Ende)
+    size_t index = 0;
+    uint64_t pos = 0;
+    uint64_t total = 0;
+    uint64_t done = 0;
+    uint64_t skipped = 0;
+    double ms = 0;  // reine Rechenzeit
+    int slow_logged = 0;
 };
+ScanJob g_job;
+std::vector<uint32_t> g_scan_buffer;
 
-ScanResult scan_all() {
-    LARGE_INTEGER freq{}, t0{}, t1{};
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&t0);
+constexpr uint64_t kScanBlock = 256 * 1024;
+constexpr double kSlowBlockMs = 5.0;  // normal: deutlich unter 0,1 ms pro Block
 
+void scan_start() {
     if (g_dti.empty()) {
         find_dtis();
     }
     g_instances.clear();
     g_instance_total = 0;
+    g_job = ScanJob{};
 
-    std::vector<uint32_t> buf;
-    size_t scanned = 0;
-    for_each_block(g_data.begin, g_data.end, buf, scan_block);  // statische Objekte
-    scanned += g_data.end - g_data.begin;
-
-    // Heap: privater, beschreibbarer Speicher
-    uintptr_t addr = 0x10000;
-    while (addr < 0xFFFF0000u) {
+    g_job.regions.emplace_back(g_data.begin, g_data.end);  // statische Objekte in der exe
+    uint64_t addr = 0x10000;
+    while (addr < 0x100000000ull) {
         MEMORY_BASIC_INFORMATION mbi{};
-        if (VirtualQuery(reinterpret_cast<const void*>(addr), &mbi, sizeof(mbi)) == 0) {
+        if (VirtualQuery(reinterpret_cast<const void*>(static_cast<uintptr_t>(addr)), &mbi, sizeof(mbi)) == 0) {
             break;
         }
-        const uintptr_t region = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
-        const uintptr_t next = region + mbi.RegionSize;
+        const uint64_t base = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+        const uint64_t end = base + mbi.RegionSize;
+        // Heap: privater, beschreibbarer Speicher (ohne Guard-, Nocache- und Write-Combine-Seiten)
         if (mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE && mbi.Protect == PAGE_READWRITE) {
-            for_each_block(region, next, buf, scan_block);
-            scanned += mbi.RegionSize;
+            g_job.regions.emplace_back(base, end);
+            g_job.total += end - base;
         }
-        if (next <= addr) {
+        if (end <= addr) {
             break;
         }
-        addr = next;
+        addr = end;
     }
+    g_job.total += g_data.end - g_data.begin;
+    g_job.active = true;
+    LOG_INFO("MT: Speichersuche gestartet: %u Bereiche, %.0f MB", static_cast<unsigned>(g_job.regions.size()),
+             static_cast<double>(g_job.total) / (1024.0 * 1024.0));
+}
 
-    QueryPerformanceCounter(&t1);
-    ScanResult r;
-    r.ms = static_cast<double>(t1.QuadPart - t0.QuadPart) * 1000.0 / static_cast<double>(freq.QuadPart);
-    r.scanned_mb = static_cast<double>(scanned) / (1024.0 * 1024.0);
-    LOG_INFO("MT: Speicher durchsucht (%.0f MB in %.0f ms): %u Objekte in %u Klassen", r.scanned_mb, r.ms,
-             static_cast<unsigned>(g_instance_total), static_cast<unsigned>(g_instances.size()));
-    return r;
+void scan_step(double budget_ms) {
+    if (!g_job.active) {
+        return;
+    }
+    const double t0 = now_ms();
+    while (g_job.index < g_job.regions.size()) {
+        const auto [begin, end] = g_job.regions[g_job.index];
+        if (g_job.pos < begin) {
+            g_job.pos = begin;
+        }
+        const auto n = static_cast<size_t>(std::min<uint64_t>(kScanBlock, end - g_job.pos) & ~uint64_t{3});
+        if (g_job.pos >= end || n == 0) {
+            ++g_job.index;
+            continue;
+        }
+        g_scan_buffer.resize(n / 4);
+        const double tb = now_ms();
+        const bool ok = safe_read(g_scan_buffer.data(), static_cast<uintptr_t>(g_job.pos), n);
+        const double read_ms = now_ms() - tb;
+        if (ok) {
+            scan_block(static_cast<uintptr_t>(g_job.pos), g_scan_buffer);
+        }
+        g_job.pos += n;
+        g_job.done += n;
+        if (read_ms > kSlowBlockMs) {
+            // Sehr langsam lesbarer Speicher (vermutlich von der Grafikkarte): Rest ueberspringen
+            const uint64_t rest = end - g_job.pos;
+            g_job.skipped += rest;
+            g_job.done += rest;
+            if (g_job.slow_logged++ < 10) {
+                LOG_WARN("MT: langsamer Bereich %08X-%08X (%.1f ms pro 256 KB) wird uebersprungen",
+                         static_cast<unsigned>(begin), static_cast<unsigned>(end - 1), read_ms);
+            }
+            ++g_job.index;
+        }
+        if (now_ms() - t0 >= budget_ms) {
+            break;
+        }
+    }
+    g_job.ms += now_ms() - t0;
+    if (g_job.index >= g_job.regions.size()) {
+        g_job.active = false;
+        g_job.finished = true;
+        LOG_INFO("MT: Speicher durchsucht (%.0f MB, davon %.0f MB uebersprungen, %.0f ms): %u Objekte in %u Klassen",
+                 static_cast<double>(g_job.done) / (1024.0 * 1024.0),
+                 static_cast<double>(g_job.skipped) / (1024.0 * 1024.0), g_job.ms,
+                 static_cast<unsigned>(g_instance_total), static_cast<unsigned>(g_instances.size()));
+    }
 }
 
 std::string lower(std::string s) {
@@ -290,19 +360,45 @@ void push_addr_list(lua_State* L, const std::vector<uintptr_t>& list) {
     }
 }
 
-int l_scan(lua_State* L) {
-    const ScanResult r = scan_all();
-    lua_createtable(L, 0, 5);
+void push_scan_status(lua_State* L) {
+    lua_createtable(L, 0, 10);
+    lua_pushboolean(L, g_job.active);
+    lua_setfield(L, -2, "active");
+    lua_pushboolean(L, g_job.finished);
+    lua_setfield(L, -2, "finished");
+    lua_pushnumber(L, g_job.total > 0 ? static_cast<double>(g_job.done) / static_cast<double>(g_job.total) : 0.0);
+    lua_setfield(L, -2, "progress");
     lua_pushinteger(L, static_cast<lua_Integer>(g_dti.size()));
     lua_setfield(L, -2, "dti");
     lua_pushinteger(L, static_cast<lua_Integer>(g_instance_total));
     lua_setfield(L, -2, "instances");
     lua_pushinteger(L, static_cast<lua_Integer>(g_instances.size()));
     lua_setfield(L, -2, "classes_with_instances");
-    lua_pushnumber(L, r.ms);
+    lua_pushnumber(L, g_job.ms);
     lua_setfield(L, -2, "ms");
-    lua_pushnumber(L, r.scanned_mb);
+    lua_pushnumber(L, static_cast<double>(g_job.done) / (1024.0 * 1024.0));
     lua_setfield(L, -2, "scanned_mb");
+    lua_pushnumber(L, static_cast<double>(g_job.skipped) / (1024.0 * 1024.0));
+    lua_setfield(L, -2, "skipped_mb");
+}
+
+// mt.scan() startet die Suche, mt.scan_step([ms=8]) arbeitet ein Stueck ab
+// (jeden Frame aufrufen), beide liefern den Stand.
+int l_scan(lua_State* L) {
+    scan_start();
+    push_scan_status(L);
+    return 1;
+}
+
+int l_scan_step(lua_State* L) {
+    const double budget = luaL_optnumber(L, 1, 8.0);
+    scan_step(budget);
+    push_scan_status(L);
+    return 1;
+}
+
+int l_scan_status(lua_State* L) {
+    push_scan_status(L);
     return 1;
 }
 
@@ -464,6 +560,8 @@ int l_info(lua_State* L) {
 void register_lua(lua_State* L) {
     static const luaL_Reg funcs[] = {
         {"scan", l_scan},
+        {"scan_step", l_scan_step},
+        {"scan_status", l_scan_status},
         {"classes", l_classes},
         {"instances", l_instances},
         {"class_of", l_class_of},

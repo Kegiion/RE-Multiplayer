@@ -6,7 +6,9 @@
 // Daran erkennen wir zu jedem Objekt im Speicher seine Klasse.
 //
 // Lua-API (globale Tabelle `mt`):
-//   mt.scan()             -> { dti=, instances=, ms=, scanned_mb= }   DTI suchen + Speicher nach Objekten durchsuchen
+//   mt.scan()             -> Stand        startet die Speichersuche (DTI suchen + Objekte zuordnen)
+//   mt.scan_step([ms=8])  -> Stand        arbeitet pro Aufruf hoechstens ms Millisekunden ab (jeden Frame)
+//   mt.scan_status()      -> Stand        { active=, finished=, progress=0..1, dti=, instances=, ms=, scanned_mb=, skipped_mb= }
 //   mt.classes([filter])  -> { {name=, dti=, count=, size=}, ... }  bekannte Klassen (Filter: Teil des Namens)
 //   mt.instances(name)    -> { addr, ... }                          Objekte dieser Klasse (Stand des letzten scan)
 //   mt.class_of(addr)     -> name | nil                             Klasse des Objekts an addr

@@ -216,6 +216,31 @@ coopnet.find_types, coopnet.list_singletons = nil, nil
 
 assert(find_text("Mitspieler: Claire"), "Mitspieler nicht in der UI")
 
+-- Entwickler-Konsole: aus -> Befehl wird ignoriert
+local devconsole = require("re2r_coop.devconsole")
+assert(find_text("%(aus%)"), "Konsolen-Status fehlt")
+files["claude_cmd.json"] = { id = 5, code = "out(game.ID, 1 + 1); return { a = 1 }" }
+run_frame()
+assert(files["claude_out.json"] == nil, "Konsole lief, obwohl aus")
+devconsole.enabled = true
+run_frame()
+local res = files["claude_out.json"]
+assert(res and res.ok and res.id == 5, "Befehl nicht ausgefuehrt")
+assert(res.output[1] == "re2r" and res.output[2] == 2 and res.returned.a == 1)
+-- gleiche id -> nicht noch einmal
+files["claude_out.json"] = nil
+sleep_ms(600); run_frame()
+assert(files["claude_out.json"] == nil, "Befehl doppelt ausgefuehrt")
+-- Fehler, Store, Task und gemischte Schluessel
+files["claude_cmd.json"] = { id = 6, code = "console.store.n = 0; task(function() console.store.n = console.store.n + 1; return console.store.n < 3 end); out({ [1] = 'x', [5] = 'y' }); error('absicht')" }
+sleep_ms(600); run_frame()
+res = files["claude_out.json"]
+assert(res.id == 6 and res.ok == false and res.error:find("absicht"), "Fehler nicht gemeldet")
+assert(res.output[1]["5"] == "y", "gemischte Schluessel nicht umgewandelt")
+run_frame(); run_frame(); run_frame()
+assert(devconsole.store.n == 3, "Task lief nicht bis zum Ende: " .. tostring(devconsole.store.n))
+devconsole.enabled = false
+
 -- Fehler im Spielzugriff duerfen das Skript nicht abschiessen
 sdk.get_managed_singleton = function() error("kaputt") end
 run_frame()

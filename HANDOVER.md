@@ -32,6 +32,7 @@
 
 1. ✅ Erster Test im Spiel (2. November 2026). Die Diagnose-Dateien liegen in `games/re2r/research/`, die Auswertung steht in `games/re2r/research/README.md`.
 2. **Mod 0.2.0 prüfen:** Figur (`PlayerCondition.get_SurvivorType`) und Bereich (`get_StaySceneAreaID` / `get_StaySpaceAreaID`) stehen unter „Debug-Infos“. Prüfen, ob die Figur stimmt und welche Bereichs-ID beim Gang durch eine Tür wechselt. Danach in `game.lua` die richtige Quelle festlegen und als bestätigt markieren. Die neue Diagnose enthält zusätzlich die Enum-Listen (`enums`).
+   Seit Mod 0.3.0 gibt es dafür die **Entwickler-Konsole**: Ist sie im Menü angehakt, führt `python tools/re2r_console.py "<lua>"` Code im laufenden Spiel aus (Details in `games/re2r/research/README.md`).
 3. Danach kommt **Meilenstein 2**, die sichtbare zweite Spielfigur (siehe `docs/ROADMAP.md`). Ausgangspunkt ist `player.components` aus der Diagnose sowie die Kandidaten in `games/re2r/research/README.md`.
 
 ## Wichtige technische Fakten (nicht neu herausfinden)

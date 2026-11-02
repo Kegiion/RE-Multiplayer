@@ -8,8 +8,9 @@
 --   re2r_coop/game.lua RE2-spezifischer Zugriff auf Spieldaten
 --   re2r_coop/ghost.lua Anzeige des Mitspielers
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
+--   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.2.0"
+local MOD_VERSION = "0.3.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -30,6 +31,7 @@ local Session = require("remods_coop.session")
 local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
 local diag = require("re2r_coop.diag")
+local devconsole = require("re2r_coop.devconsole")
 
 ghost.character_name = game.character_name
 
@@ -41,9 +43,11 @@ local config = {
     port = 27350,
     show_ghosts = true,
     show_debug = false,
+    devconsole = false, -- Entwickler-Konsole fuer Claude
 }
 
 local function load_config()
+devconsole.enabled = config.devconsole
     local ok, data = pcall(json.load_file, CONFIG_FILE)
     if ok and type(data) == "table" then
         for k, v in pairs(data) do
@@ -125,7 +129,11 @@ local function frame()
 end
 
 re.on_frame(function()
-    local ok, err = pcall(frame)
+    local ok, err = pcall(devconsole.update, session:time())
+    if not ok then
+        report_error("devconsole", err)
+    end
+    ok, err = pcall(frame)
     if not ok then
         report_error("frame", err)
     end
@@ -220,6 +228,14 @@ local function draw_debug_ui(status)
     if changed then save_config() end
     changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
     if changed then save_config() end
+
+    changed, config.devconsole = imgui.checkbox("Entwickler-Konsole fuer Claude", config.devconsole)
+    if changed then
+        devconsole.enabled = config.devconsole
+        save_config()
+    end
+    imgui.same_line()
+    imgui.text("(" .. devconsole.status_text() .. ")")
 
     changed, ui.diag_label = imgui.input_text("Situation (z. B. hauptmenue)", ui.diag_label)
     if imgui.button("Diagnose speichern") then

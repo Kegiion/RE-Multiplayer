@@ -209,6 +209,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Move(file, target);
             }
+            DeleteEmptyTree(from);
         }
         var loader = Game.Loader;
         if (loader == null)
@@ -244,7 +245,25 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
         PruneDirectories(files);
         foreach (var dir in Game.ObsoleteDirs)
         {
+            DeleteEmptyTree(Full(dir));
             PruneDirectory(Full(dir));
+        }
+    }
+
+    /// <summary>Loescht leere Unterordner (von unten nach oben) und zuletzt dir selbst, falls leer.</summary>
+    private static void DeleteEmptyTree(string dir)
+    {
+        if (!Directory.Exists(dir))
+        {
+            return;
+        }
+        foreach (var sub in Directory.EnumerateDirectories(dir).ToList())
+        {
+            DeleteEmptyTree(sub);
+        }
+        if (!Directory.EnumerateFileSystemEntries(dir).Any())
+        {
+            Directory.Delete(dir);
         }
     }
 

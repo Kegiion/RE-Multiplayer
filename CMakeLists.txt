@@ -14,9 +14,13 @@ add_subdirectory(third_party)
 add_subdirectory(shared/netcore)
 add_subdirectory(tools)
 
-# REFramework-Plugins gibt es nur unter Windows.
-if(WIN32)
+# REFramework-Plugins gibt es nur unter Windows (RE-Engine-Spiele sind 64-Bit).
+# RE0 HD ist dagegen ein 32-Bit-Spiel und braucht einen eigenen Win32-Build.
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_subdirectory(shared/re-engine/coopnet-plugin)
+endif()
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    add_subdirectory(games/re0hd)
 endif()
 
 if(REMODS_BUILD_TESTS)
@@ -27,7 +31,7 @@ endif()
 # --- Pakete --------------------------------------------------------------
 # `cmake --install build --prefix dist/re2r-coop --component re2r-coop`
 # erzeugt einen Ordner, der 1:1 in den Spielordner von RE2 kopiert wird.
-if(WIN32)
+if(TARGET remods_coopnet)
     install(TARGETS remods_coopnet
         RUNTIME DESTINATION reframework/plugins
         COMPONENT re2r-coop)

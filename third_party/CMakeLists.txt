@@ -31,3 +31,16 @@ endif()
 # --- REFramework Plugin-API (nur Header) ----------------------------------
 add_library(reframework_api INTERFACE)
 target_include_directories(reframework_api INTERFACE reframework/include)
+
+# --- Dear ImGui (Menue im Spiel, nur RE0-Runtime) ---------------------------
+if(WIN32)
+    add_library(imgui STATIC
+        imgui/imgui.cpp
+        imgui/imgui_draw.cpp
+        imgui/imgui_tables.cpp
+        imgui/imgui_widgets.cpp
+        imgui/backends/imgui_impl_dx9.cpp
+        imgui/backends/imgui_impl_win32.cpp)
+    target_include_directories(imgui PUBLIC imgui imgui/backends)
+    target_link_libraries(imgui PUBLIC d3d9 dwmapi gdi32)
+endif()

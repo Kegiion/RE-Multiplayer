@@ -39,6 +39,45 @@ jobs:
           name: REMods-Tools
           path: dist/REMods-Tools
 
+  windows-x86:
+    name: Windows 32-Bit (RE0 HD)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Konfigurieren
+        run: cmake -S . -B build32 -A Win32
+
+      - name: Bauen
+        run: cmake --build build32 --config Release --parallel
+
+      - name: Tests
+        run: ctest --test-dir build32 -C Release --output-on-failure
+
+      - name: Paket erstellen
+        run: cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re0hd-coop
+
+      - name: Exporte pruefen
+        shell: pwsh
+        run: |
+          # Der Loader muss DirectInput8Create unter genau diesem Namen exportieren
+          $vs = & "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs/VC/Tools/MSVC/*/bin/Hostx64/x86/dumpbin.exe" | Select-Object -First 1
+          $out = & $dumpbin.FullName /exports dist/RE0HD-Coop/dinput8.dll | Out-String
+          Write-Output $out
+          if ($out -notmatch "\sDirectInput8Create\s") { throw "DirectInput8Create fehlt" }
+          $out = & $dumpbin.FullName /exports dist/RE0HD-Coop/remods/remods_re0.dll | Out-String
+          if ($out -notmatch "\sremods_init\s") { throw "remods_init fehlt" }
+          $hdr = & $dumpbin.FullName /headers dist/RE0HD-Coop/dinput8.dll | Out-String
+          if ($hdr -notmatch "14C machine \(x86\)") { throw "dinput8.dll ist nicht 32-Bit" }
+
+      # Download unter "Actions" -> Lauf anklicken -> "Artifacts" -> RE0HD-Coop.
+      # Inhalt direkt in den RE0-Spielordner entpacken (neben re0hd.exe).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RE0HD-Coop
+          path: dist/RE0HD-Coop
+
   linux:
     name: Linux (Tests)
     runs-on: ubuntu-latest

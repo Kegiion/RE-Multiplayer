@@ -15,6 +15,19 @@ add_library(remods_re0 SHARED
     runtime/src/lua_host.cpp)
 target_link_libraries(remods_re0 PRIVATE coop_netcore imgui d3d9)
 target_compile_definitions(remods_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+
+# Git-Commit als Build-ID (wird im Spiel angezeigt)
+find_package(Git QUIET)
+set(REMODS_BUILD_ID "lokal")
+if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE REMODS_BUILD_ID_GIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(REMODS_BUILD_ID_GIT)
+        set(REMODS_BUILD_ID ${REMODS_BUILD_ID_GIT})
+    endif()
+endif()
+target_compile_definitions(remods_re0 PRIVATE REMODS_BUILD_ID="${REMODS_BUILD_ID}")
 set_target_properties(remods_re0 PROPERTIES PREFIX "")
 
 # Paket: `cmake --install build32 --prefix dist/RE0HD-Coop --component re0hd-coop`

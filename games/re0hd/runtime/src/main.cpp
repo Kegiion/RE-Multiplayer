@@ -73,7 +73,7 @@ extern "C" __declspec(dllexport) void remods_init() {
     init_paths();
     log_open(paths().remods_dir + "remods_re0.log");
     init_exe_info();
-    LOG_INFO("REMods RE0 Runtime %s gestartet", kRuntimeVersion);
+    LOG_INFO("REMods RE0 Runtime %s (Build %s) gestartet", kRuntimeVersion, kBuildId);
     LOG_INFO("Spielordner: %s", paths().game_dir.c_str());
     LOG_INFO("re0hd.exe: Basis 0x%08X, Groesse 0x%X, Zeitstempel 0x%08X", static_cast<unsigned>(exe_info().base),
              exe_info().size, exe_info().timestamp);

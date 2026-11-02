@@ -559,6 +559,7 @@ void register_api(lua_State* L) {
 
     lua_newtable(L);
     set_string_field(L, "version", kRuntimeVersion);
+    set_string_field(L, "build", kBuildId);
     set_string_field(L, "game", kGameId);
     set_string_field(L, "game_dir", paths().game_dir);
     set_string_field(L, "data_dir", paths().data_dir);

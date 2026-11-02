@@ -49,4 +49,5 @@ cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re
 
 - `third_party/lua` ist exakt REFrameworks Lua 5.4.3: **nicht aktualisieren** (RE2-Plugin arbeitet auf REFrameworks `lua_State`).
 - Bei Änderungen an bestehenden Netzwerk-Nachrichten `protocol.VERSION` erhöhen.
+- Versionen bei jeder Änderung erhöhen: RE0-Runtime `kRuntimeVersion` (`games/re0hd/runtime/src/runtime.hpp`), Lua-Mods ihr `MOD_VERSION`. Der Git-Commit wird zusätzlich als Build-ID angezeigt.
 - Vor jedem Push sollte die CI grün sein. Ohne lokalen Compiler: pushen und den Actions-Lauf prüfen.

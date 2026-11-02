@@ -34,7 +34,7 @@ Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, 
 
 ## Erster Test (Checkliste)
 
-1. Spiel starten. In den ersten 20 Sekunden erscheint oben links: „REMods RE0 0.1.0 geladen …“.
+1. Spiel starten. In den ersten 20 Sekunden erscheint oben links: „REMods RE0 <Version> (Build <Commit>) geladen …“. Der Build ist der Git-Commit, aus dem das Paket gebaut wurde.
    - Erscheint nichts: Gibt es `remods\remods_re0.log`?
      - **Nein:** Der Loader wurde nicht geladen. Liegt `dinput8.dll` neben `re0hd.exe`?
      - **Ja:** Die Log-Datei an Claude geben.

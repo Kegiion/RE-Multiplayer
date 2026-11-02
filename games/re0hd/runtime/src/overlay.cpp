@@ -199,7 +199,7 @@ void draw_banner() {
                                    ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("##remods_banner", nullptr, flags)) {
         if (show_start) {
-            ImGui::Text("REMods RE0 %s geladen - Einfg oder F8 oeffnet das Menue", kRuntimeVersion);
+            ImGui::Text("REMods RE0 %s (Build %s) geladen - Einfg oder F8 oeffnet das Menue", kRuntimeVersion, kBuildId);
         }
         if (!errors.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%d Lua-Fehler - Details im Menue",
@@ -213,7 +213,7 @@ void draw_menu() {
     ImGui::SetNextWindowSize(ImVec2(640.0f * g_scale, 560.0f * g_scale), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("REMods - Resident Evil 0 HD", &g_menu_open)) {
         const auto& exe = exe_info();
-        ImGui::Text("Runtime %s   re0hd.exe: Basis 0x%08X, Zeitstempel 0x%08X", kRuntimeVersion,
+        ImGui::Text("Runtime %s (Build %s)   re0hd.exe: Basis 0x%08X, Zeitstempel 0x%08X", kRuntimeVersion, kBuildId,
                     static_cast<unsigned>(exe.base), exe.timestamp);
         ImGui::Text("Skripte geladen: %d", lua_host::script_count());
         ImGui::SameLine();

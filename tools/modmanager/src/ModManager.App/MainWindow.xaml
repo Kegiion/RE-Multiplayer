@@ -138,7 +138,7 @@
                 </DockPanel>
             </Border>
             <!-- Fortschritt liegt auf der Trennlinie, damit nichts springt -->
-            <ProgressBar VerticalAlignment="Top" Value="{Binding Progress}" Maximum="100" Background="Transparent"
+            <ProgressBar VerticalAlignment="Top" Value="{Binding Progress, Mode=OneWay}" Maximum="100" Background="Transparent"
                          Visibility="{Binding Busy, Converter={StaticResource BoolToVis}}" />
         </Grid>
     </Grid>

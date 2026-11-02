@@ -220,4 +220,13 @@ run_explorer()
 local snap = json.load_file("re0hd_snap_rebecca_steht.json")
 assert(snap and snap.class == "uPlayerRebecca" and snap.words[2] == "0x00016000" and snap.floats[3] == 1.0, "Schnappschuss falsch")
 os.remove("re0hd_snap_rebecca_steht.json")
+
+-- Alle Objekte einer Klasse auf einmal
+pending_inputs["Was passiert gerade?##all"] = "alle"
+run_explorer()
+pending_clicks["Alle 1 Objekte speichern"] = true
+run_explorer()
+local all = json.load_file("re0hd_snap_alle.json")
+assert(all and all.class == "uPlayerRebecca" and #all.objects == 1 and all.objects[1].addr == "0x00005000", "Sammel-Schnappschuss falsch")
+os.remove("re0hd_snap_alle.json")
 print("re0hd_mock_test: alles ok")

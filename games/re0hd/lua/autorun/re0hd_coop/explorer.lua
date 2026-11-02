@@ -4,7 +4,8 @@
 --   1. "Speicher durchsuchen" (laeuft ueber einige Sekunden verteilt, das Spiel bleibt fluessig)
 --   2. Klasse suchen, z. B. "uPlayer", und ein Objekt anklicken
 --   3. Objekt-Ansicht: Werte live, geaenderte Werte gelb, Zeigern folgen mit ">"
---   4. "Schnappschuss speichern" mit kurzer Beschreibung, was gerade passiert
+--   4. "Alle Objekte speichern" (bzw. in der Objekt-Ansicht "Schnappschuss speichern")
+--      mit kurzer Beschreibung, was gerade passiert
 --      (z. B. "rebecca_steht", "rebecca_laeuft_vor"). Die Dateien landen in
 --      remods/data/ und werden dort ausgewertet.
 
@@ -144,9 +145,15 @@ local function draw_instances()
     if not name then
         return
     end
-    local list = mt.instances(name)
-    imgui.text(string.format("Objekte von %s: %d", name, #list))
     local raw = mt.dti_raw(name)
+    -- Das DTI-Objekt selbst taucht auch in der Liste auf, ist aber kein Spielobjekt
+    local list = {}
+    for _, addr in ipairs(mt.instances(name)) do
+        if not raw or addr ~= raw.addr then
+            list[#list + 1] = addr
+        end
+    end
+    imgui.text(string.format("Objekte von %s: %d", name, #list))
     if raw then
         imgui.text(string.format("  DTI %s, Elternklasse: %s", hex(raw.addr), tostring(raw.parent)))
     end
@@ -159,9 +166,30 @@ local function draw_instances()
             state.stack = {}
             open_object(addr, name)
         end
-        if i % 4 ~= 0 then imgui.same_line() end
+        if i % 4 ~= 0 and i < #list then imgui.same_line() end
     end
-    if #list > 0 then imgui.text("") end
+    if #list == 0 then
+        return
+    end
+
+    -- Alle Objekte der Klasse auf einmal speichern (zum Vergleichen mehrerer Situationen)
+    local changed
+    changed, state.snap_label = imgui.input_text("Was passiert gerade?##all", state.snap_label)
+    if imgui.button("Alle " .. #list .. " Objekte speichern") then
+        local objects = {}
+        for i = 1, math.min(#list, 20) do
+            objects[i] = dump_object(list[i], VIEW_SIZE)
+        end
+        save_file("re0hd_snap_" .. safe_label(state.snap_label) .. ".json", {
+            label = state.snap_label,
+            time = os.date("%Y-%m-%d %H:%M:%S"),
+            class = name,
+            objects = objects,
+        })
+    end
+    if state.message then
+        imgui.text(state.message)
+    end
 end
 
 local function draw_object()

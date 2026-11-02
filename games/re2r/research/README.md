@@ -5,8 +5,8 @@ Diagnose-Dateien, Klassen- und Methodennamen, Beobachtungen.
 
 ## Dateien
 
-- `diag-*.json`: Diagnose-Dateien aus dem Spiel (Button „Diagnose speichern“).
-  Bitte mit Situation im Namen ablegen, z. B. `diag-hauptmenue.json` oder `diag-rpd-eingangshalle.json`.
+- `re2r_coop_diag_<situation>.json`: Diagnose-Dateien aus dem Spiel (Feld „Situation“ ausfüllen, dann Button „Diagnose speichern“).
+  Sie enthalten den Spieler und seine Komponenten, alle geladenen Manager, Details zu interessanten Managern und eine Klassensuche nach Stichworten (Area, Map, Spawn, Door, Item, Enemy, …).
 
 ## Bestätigte Fakten
 

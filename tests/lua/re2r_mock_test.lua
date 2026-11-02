@@ -56,7 +56,16 @@ local transform = obj({
     get_Position = function() return player_pos end,
     get_Rotation = function() return { x = 0, y = 0, z = 0, w = 1 } end,
 })
-local player = obj({ get_Transform = function() return transform end, get_Name = function() return "pl1000" end })
+local function component(name)
+    return { get_type_definition = function() return { get_full_name = function() return name end } end }
+end
+local player = obj({
+    get_Transform = function() return transform end,
+    get_Name = function() return "pl1000" end,
+    get_Components = function()
+        return { get_elements = function() return { component("via.Transform"), component("via.motion.Motion") } end }
+    end,
+})
 local player_manager = obj({ get_CurrentPlayer = function() return player end })
 
 local function fake_type(name)
@@ -144,6 +153,28 @@ local d = files["re2r_coop_diag.json"]
 assert(d.player.found and d.player.object_name == "pl1000")
 assert(d.types["app.ropeway.PlayerManager"].found)
 assert(d.types["app.ropeway.EnemyManager"].found == false)
+assert(d.player.components[2] == "via.motion.Motion", "Komponenten fehlen")
+assert(d.research_available == false and d.type_search == nil)
+
+-- Mit Plugin-Forschungsfunktionen + Situationsname
+coopnet.find_types = function(word)
+    if word == "Map" then return { "app.ropeway.gamemastering.MapManager", "via.Map", "app.ropeway.MapAreaDefineTable" } end
+    return {}
+end
+coopnet.list_singletons = function()
+    return { "app.ropeway.PlayerManager", "app.ropeway.gamemastering.LocationThing", "app.ropeway.SoundManager", "via.SceneManager" }
+end
+local diag = require("re2r_coop.diag")
+local ok, path = diag.write(nil, "RPD Halle 1F!")
+assert(ok, path)
+assert(path == "reframework/data/re2r_coop_diag_RPD_Halle_1F.json", path)
+d = files["re2r_coop_diag_RPD_Halle_1F.json"]
+assert(d.research_available and d.label == "RPD Halle 1F!")
+assert(#d.singletons == 4)
+assert(#d.type_search.Map == 2, "Namespace-Filter falsch") -- via.Map faellt raus
+assert(d.types["app.ropeway.gamemastering.LocationThing"], "interessanter Manager nicht beschrieben")
+assert(d.types["app.ropeway.SoundManager"] == nil, "uninteressanter Manager beschrieben")
+coopnet.find_types, coopnet.list_singletons = nil, nil
 
 assert(find_text("Mitspieler: Claire"), "Mitspieler nicht in der UI")
 

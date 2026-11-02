@@ -15,7 +15,7 @@ Kleine Lua-Änderungen kannst du auch direkt testen: Datei austauschen, im REFra
 
 | Was | Wo zu finden | Wann |
 |---|---|---|
-| **Diagnose-Datei** | `<RE2-Ordner>/reframework/data/re2r_coop_diag.json` (Button „Diagnose speichern“) | Nach jedem neuen Test, am besten in verschiedenen Situationen (Menü, im Spiel, nach Raumwechsel) |
+| **Diagnose-Dateien** | `<RE2-Ordner>/reframework/data/re2r_coop_diag_<situation>.json` (Feld „Situation“ ausfüllen, Button „Diagnose speichern“) | Nach jedem neuen Test, am besten in verschiedenen Situationen (Menü, im Spiel, nach Raumwechsel) |
 | **REFramework-Log** | `<RE2-Ordner>/re2_framework_log.txt` | Wenn etwas nicht lädt oder abstürzt |
 | **Was du beobachtet hast** | Text oder Screenshot | Immer: Was hast du gemacht, was ist passiert, was hast du erwartet? |
 | **Inhalt des „Log“-Bereichs im Menü** | Menü „RE2 Koop“ → „Log“ | Bei Verbindungsproblemen |

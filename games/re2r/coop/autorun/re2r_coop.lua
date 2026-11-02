@@ -134,6 +134,7 @@ end)
 local ui = {
     chat = "",
     diag_result = nil,
+    diag_label = "",
 }
 
 local MODE_TEXT = {
@@ -218,9 +219,13 @@ local function draw_debug_ui(status)
     changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
     if changed then save_config() end
 
+    changed, ui.diag_label = imgui.input_text("Situation (z. B. hauptmenue)", ui.diag_label)
     if imgui.button("Diagnose speichern") then
-        local ok, result = diag.write({ coop_status = status, mod_version = MOD_VERSION })
+        local ok, result = diag.write({ coop_status = status, mod_version = MOD_VERSION }, ui.diag_label)
         ui.diag_result = ok and ("Gespeichert: " .. result) or ("Fehler: " .. result)
+    end
+    if not coopnet.find_types then
+        imgui.text("(Erweiterte Klassensuche nicht verfuegbar - altes Plugin?)")
     end
     if ui.diag_result then
         imgui.text(ui.diag_result)

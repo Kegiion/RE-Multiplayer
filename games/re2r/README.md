@@ -36,8 +36,11 @@ Bitte gehe diese Liste durch und schreib mir zu jedem Punkt, was passiert ist:
 2. **Spieler finden:** Spielstand laden oder neues Spiel starten. Im Menü **Debug-Infos** anhaken.
    - Steht dort „Spieler: pl…“ mit einer Position?
    - Ändern sich die Zahlen, wenn du herumläufst?
-3. **Diagnose:** Einmal im Hauptmenü und einmal im Spiel auf **Diagnose speichern** klicken.
-   - Die Datei `reframework/data/re2r_coop_diag.json` an mich weitergeben (siehe [Zusammenarbeit](../../docs/ZUSAMMENARBEIT.md)).
+3. **Diagnose:** Bei „Situation“ kurz eintragen, wo du bist, und auf **Diagnose speichern** klicken. Am besten machst du das mehrmals:
+   - `hauptmenue`: im Titelmenü
+   - `start`: direkt nach dem Laden eines Spielstands
+   - `anderer_raum`: nachdem du durch eine Tür in einen anderen Bereich gegangen bist
+   - Die Dateien liegen unter `reframework/data/re2r_coop_diag_<situation>.json`. Schick sie mir alle (siehe [Zusammenarbeit](../../docs/ZUSAMMENARBEIT.md)).
 4. **Testbot** (Paket *REMods-Tools* aus denselben Artifacts, irgendwo außerhalb des Spielordners entpacken):
    - Im Spiel auf **Hosten** klicken, dann `testbot.bat` starten.
    - Erscheint im Spiel die Markierung „Testbot“? Läuft sie dir hinterher?

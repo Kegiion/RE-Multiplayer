@@ -13,6 +13,13 @@ Das Plugin `remods_coopnet.dll` stellt in jedem REFramework-Lua-State die global
 | `coopnet.poll()` | Liste von Events | Alle neuen Events seit dem letzten Aufruf |
 | `coopnet.status()` | Tabelle | Modus, Fehler, Peers, Statistik |
 
+**Nur im Spiel (für die Analyse):**
+
+| Funktion | Rückgabe | Beschreibung |
+|---|---|---|
+| `coopnet.find_types(text [, limit=500])` | Liste von Klassennamen | Alle Klassen des Spiels, deren voller Name `text` enthält (Groß-/Kleinschreibung egal) |
+| `coopnet.list_singletons()` | Liste von Klassennamen | Alle gerade geladenen Manager-Objekte (Managed Singletons), sortiert |
+
 **Events** aus `poll()`:
 
 ```lua

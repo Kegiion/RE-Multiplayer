@@ -5,12 +5,13 @@
 --
 -- Aufbau:
 --   remods_coop/*          gemeinsame Lua-Bibliothek (wie bei RE2)
---   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (noch leer)
+--   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (Figuren, Kamera, Partner-Tasten)
+--   re0hd_coop/puppet.lua  Partner als Puppe des Mitspielers (laeuft dessen Weg nach)
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.3.0"
+local MOD_VERSION = "0.4.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -28,6 +29,11 @@ local game = require("re0hd_coop.game")
 local memtool = require("re0hd_coop.memtool")
 local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtime 0.2.0
 local devconsole = require("re0hd_coop.devconsole")
+local Puppet = require("re0hd_coop.puppet")
+
+local SEND_INTERVAL = 0.05   -- 20 Positionsupdates pro Sekunde
+local REMOTE_TIMEOUT = 1.0   -- s ohne Daten: Partner wieder der KI ueberlassen
+local SOLO_DELAY = 2.0       -- s Abstand beim Spur-Test allein
 
 -- --- Einstellungen ---------------------------------------------------------
 
@@ -37,6 +43,7 @@ local config = {
     port = 27350,
     watches = {}, -- { {name=, expr=, type=}, ... } fuer das Speicher-Werkzeug
     devconsole = false, -- Entwickler-Konsole fuer Claude
+    puppet = true,      -- Mitspieler steuert den Partner
 }
 
 local function load_config()
@@ -70,16 +77,89 @@ session:on("CHAT", function(s, peer, msg)
     s:log("%s: %s", peer.name or "?", msg.text)
 end)
 
+-- --- Geister-Koop: eigene Figur senden, Partner folgt dem Mitspieler -----
+
+local coop = {
+    puppet = Puppet.new(game, { delay = 0.2 }),
+    solo = Puppet.new(game, { delay = SOLO_DELAY }),
+    solo_active = false,  -- Spur-Test allein (nicht gespeichert)
+    seq = 0,
+    last_send = 0,
+    local_state = nil,
+    remote = nil,         -- letzter Zustand des Mitspielers
+    remote_seq = nil,
+    remote_time = 0,
+    same_character = false,
+}
+
+session:on("PLAYER_STATE", function(s, peer, msg)
+    -- Veraltete (ueberholte) Pakete verwerfen; Ueberlauf der Nummer beachten
+    if coop.remote_seq and ((msg.seq - coop.remote_seq) % 4294967296) > 2147483648 then
+        return
+    end
+    coop.remote_seq = msg.seq
+    coop.remote = msg
+    coop.remote_time = s:time()
+    coop.puppet:push(msg, s:time())
+end)
+
+session:subscribe("peer_left", function()
+    coop.remote, coop.remote_seq = nil, nil
+    coop.puppet:reset()
+end)
+
+local function coop_frame(now)
+    coop.local_state = game.get_local_state()
+    local ls = coop.local_state
+
+    if ls and session:is_active() and #session:ready_peers() > 0 and now - coop.last_send >= SEND_INTERVAL then
+        coop.last_send = now
+        coop.seq = (coop.seq + 1) % 4294967296
+        session:send("PLAYER_STATE", {
+            seq = coop.seq, area = "", x = ls.x, y = ls.y, z = ls.z,
+            qx = ls.qx, qy = ls.qy, qz = ls.qz, qw = ls.qw, character = ls.character, flags = 0,
+        }, false)
+    end
+
+    local remote_fresh = coop.remote ~= nil and now - coop.remote_time < REMOTE_TIMEOUT
+    coop.same_character = remote_fresh and ls ~= nil and coop.remote.character ~= 0
+        and coop.remote.character == ls.character
+
+    if coop.solo_active then
+        coop.puppet:release()
+        coop.solo:push(ls, now)
+        coop.solo:update(now)
+    elseif config.puppet and remote_fresh and not coop.same_character then
+        coop.solo:release()
+        coop.puppet:update(now)
+    else
+        coop.solo:release()
+        coop.puppet:release()
+    end
+end
+
 local last_error = nil
+local function report_error(text)
+    if text ~= last_error then -- jede Meldung nur einmal
+        last_error = text
+        session:log("FEHLER: %s", text)
+    end
+end
 
 devconsole.enabled = config.devconsole
 
 re.on_frame(function()
-    devconsole.update(session:time())
+    local now = session:time()
+    devconsole.update(now)
     local ok, err = pcall(session.update, session)
-    if not ok and tostring(err) ~= last_error then
-        last_error = tostring(err)
-        session:log("FEHLER: %s", last_error)
+    if not ok then
+        report_error(tostring(err))
+    end
+    ok, err = pcall(coop_frame, now)
+    if not ok then
+        report_error("Koop: " .. tostring(err))
+        coop.puppet:release()
+        coop.solo:release()
     end
 end)
 
@@ -166,6 +246,44 @@ local function draw_status_ui(status)
     end
 end
 
+local CHARACTER_NAMES = { [0] = "?", [1] = "Rebecca", [2] = "Billy" }
+
+local function draw_coop_ui()
+    if not game.supported then
+        imgui.text_colored("Diese re0hd.exe-Version kennt die Mod noch nicht (Zeitstempel "
+            .. string.format("0x%08X", remods.exe_timestamp) .. ") - Koop aus.", 0xFF4040FF)
+        return
+    end
+    local ls = coop.local_state
+    imgui.text("Du steuerst: " .. (ls and CHARACTER_NAMES[ls.character] or "(keine Figur - Menue/Ladebildschirm?)"))
+    if coop.remote then
+        local age = session:time() - coop.remote_time
+        imgui.text(string.format("Mitspieler steuert: %s  (letzte Daten vor %.1f s)",
+            CHARACTER_NAMES[coop.remote.character] or "?", age))
+    end
+    if coop.same_character then
+        imgui.text_colored("Ihr steuert beide dieselbe Figur! Einer muss mit V die Figur wechseln.", 0xFF4040FF)
+    end
+
+    local changed
+    changed, config.puppet = imgui.checkbox("Mitspieler steuert meinen Partner", config.puppet)
+    if changed then save_config() end
+    if config.puppet and coop.remote then
+        imgui.text(string.format("  Partner: %s, Abstand %s", coop.puppet.mode,
+            coop.puppet.dist and string.format("%.0f", coop.puppet.dist) or "-"))
+    end
+
+    changed, coop.solo_active = imgui.checkbox("Spur-Test allein (Partner laeuft dir mit 2 s Abstand nach)", coop.solo_active)
+    if changed and not coop.solo_active then
+        coop.solo:reset()
+    end
+    if coop.solo_active then
+        imgui.text(string.format("  Partner: %s, Abstand %s", coop.solo.mode,
+            coop.solo.dist and string.format("%.0f", coop.solo.dist) or "-"))
+    end
+    imgui.text("Hinweis: Bleibt vorerst im selben Raum (Raumwechsel kommt als Naechstes).")
+end
+
 local function write_diag(status)
     local label = ui.diag_label:gsub("[^%w_%-]", "_")
     if label == "" then
@@ -250,6 +368,8 @@ re.on_draw_ui(function()
         draw_connection_ui(status)
         imgui.separator()
         draw_status_ui(status)
+        imgui.separator()
+        draw_coop_ui()
         imgui.separator()
 
         local changed

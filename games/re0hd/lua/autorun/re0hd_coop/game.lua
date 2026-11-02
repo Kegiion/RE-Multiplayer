@@ -16,6 +16,14 @@ local OFF_ACTIVE = 0x2C              -- sPlayer: gesteuerte Figur
 local OFF_PARTNER = 0x3C             -- sPlayer: Partner
 local OFF_POS = 0x40                 -- Figur: Position (x, y, z)
 local OFF_QUAT = 0x50                -- Figur: Drehung (x, y, z, w)
+local GAMECAMERA_INSTANCE = 0x00E2D6BC -- statischer Zeiger auf sGameCamera
+local OFF_CAMERA = 0x34                -- sGameCamera: aktive Kamera (uGameFreeCamera)
+local OFF_CAM_POS = 0x40               -- Kamera: Position
+local OFF_CAM_TARGET = 0x60            -- Kamera: Blickpunkt
+
+-- Partner-Tasten (DIK-Codes, Standardbelegung KC_partner* = Pfeiltasten).
+-- Sie wirken relativ zur Kamera: hoch = vom Betrachter weg.
+game.PARTNER_KEYS = { up = 0xC8, down = 0xD0, left = 0xCB, right = 0xCD }
 
 game.supported = remods ~= nil and remods.exe_timestamp == EXE_TIMESTAMP
 
@@ -92,6 +100,31 @@ function game.place_partner(s)
         mem.write_f32(obj + OFF_QUAT + 12, s.qw)
     end
     return true
+end
+
+-- Blickrichtung der Kamera in der Ebene (Winkel wie bei der Figur: atan(dx, dz)) oder nil
+function game.camera_heading()
+    if not game.supported then
+        return nil
+    end
+    local gc = mem.read_u32(GAMECAMERA_INSTANCE)
+    local cam = gc and gc ~= 0 and mem.read_u32(gc + OFF_CAMERA)
+    if not cam or cam == 0 then
+        return nil
+    end
+    local px, pz = mem.read_f32(cam + OFF_CAM_POS), mem.read_f32(cam + OFF_CAM_POS + 8)
+    local tx, tz = mem.read_f32(cam + OFF_CAM_TARGET), mem.read_f32(cam + OFF_CAM_TARGET + 8)
+    if not (px and pz and tx and tz) then
+        return nil
+    end
+    return math.atan(tx - px, tz - pz)
+end
+
+-- Partner-Taste druecken/loslassen (ueber den DirectInput-Hook der Runtime)
+function game.set_partner_key(name, down)
+    if input and input.set_key then
+        input.set_key(game.PARTNER_KEYS[name], down)
+    end
 end
 
 return game

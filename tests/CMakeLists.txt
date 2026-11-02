@@ -10,7 +10,7 @@ set(REMODS_LUA_PATH "${PROJECT_SOURCE_DIR}/shared/re-engine/lua/?.lua")
 set(RE2R_AUTORUN "${PROJECT_SOURCE_DIR}/games/re2r/coop/autorun")
 set(RE0HD_LUA "${PROJECT_SOURCE_DIR}/games/re0hd/lua")
 
-foreach(name protocol session re2r_mock re0hd_mock testbot)
+foreach(name protocol session re2r_mock re0hd_mock re0hd_puppet testbot)
     add_test(NAME lua_${name} COMMAND remods_luarun "${CMAKE_CURRENT_SOURCE_DIR}/lua/${name}_test.lua")
     set_tests_properties(lua_${name} PROPERTIES ENVIRONMENT
         "REMODS_LUA_PATH=${REMODS_LUA_PATH};REMODS_RE2R_AUTORUN=${RE2R_AUTORUN};REMODS_RE0HD_LUA=${RE0HD_LUA};REMODS_TOOLS=${PROJECT_SOURCE_DIR}/tools")

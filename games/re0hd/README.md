@@ -49,6 +49,18 @@ Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, 
    - Im Menü sollte „Mitspieler: …“ erscheinen. Ohne den Parameter `re0hd` meldet sich der Bot als RE2-Spieler, dann ist „falsches Spiel“ im Log richtig.
 6. Spiel beenden und `remods\remods_re0.log` an Claude geben (bzw. nach `games/re0hd/research/` kopieren).
 
+## Koop spielen (Stand Lua 0.4.0, Geister-Koop)
+
+Beide brauchen RE0 HD in derselben Version mit derselben Mod. Ihr spielt jeweils euer eigenes Spiel, ladet aber **denselben Punkt** (z. B. beide ein neues Spiel oder derselbe Spielstand). Spielstände übertragen kommt später.
+
+1. Einer klickt im Menü unter „RE0 Koop“ auf **Hosten**. Der andere trägt die IP des Hosts ein und klickt auf **Beitreten**. Der Host muss UDP-Port 27350 freigeben, falls ihr nicht im selben Netz seid.
+2. Jeder steuert eine **andere** Figur: Einer wechselt mit **V** auf Billy. Das Menü warnt, wenn ihr beide dieselbe Figur steuert.
+3. In jedem Spiel läuft jetzt der Partner dem Weg des Mitspielers nach. Die KI des Partners ist dann ausgeschaltet.
+
+**Einschränkungen:** Bleibt vorerst im selben Raum. Gegner, Items und Türen werden noch nicht abgeglichen.
+
+**Allein testen:** Haken bei **„Spur-Test allein“** setzen. Dann läuft dir der Partner mit 2 Sekunden Abstand auf deinem eigenen Weg nach, genau wie später beim Mitspieler.
+
 ## Forschung: MT-Explorer (ab Runtime 0.2.0)
 
 MT Framework hat ein eigenes Typsystem (DTI): Jede Klasse hat einen Namen wie `uPlayerRebecca`, und jedes Objekt verrät seine Klasse. Der Explorer nutzt das. Er steht im Menü unter **RE0 Koop → MT-Explorer (Forschung)**:

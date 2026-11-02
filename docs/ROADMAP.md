@@ -55,22 +55,26 @@ Der Partner wird nicht von der KI gesteuert, sondern von den Netzwerkdaten des a
 - [x] Speicher-Werkzeug und Diagnose-Datei für die Forschung
 - [x] Erster Test im Spiel (Menü, Maus/Tastatur, Alt+Tab, Testbot) ✅ 2. November 2026
 
-### Schritt 2: Forschungswerkzeug „MT-Explorer“ (aktuell)
-- [ ] DTI-Typinfos der Engine im laufenden Spiel finden (Klassennamen, Größen, Vererbung)
-- [ ] Lebende Objekte einer Klasse finden (z. B. `uPlayerRebecca`) und ihre Daten live anzeigen
-- [ ] Zeiger folgen, geänderte Werte hervorheben, Schnappschüsse für die Auswertung speichern
+### Schritt 2: Forschungswerkzeug „MT-Explorer“ ✅
+- [x] DTI-Typinfos der Engine im laufenden Spiel finden (Klassennamen, Größen, Vererbung)
+- [x] Lebende Objekte einer Klasse finden (z. B. `uPlayerRebecca`) und ihre Daten live anzeigen
+- [x] Zeiger folgen, geänderte Werte hervorheben, Schnappschüsse für die Auswertung speichern
+- [x] Entwickler-Konsole: Claude führt im laufenden Spiel Lua-Befehle aus (`remods/data/claude_cmd.lua`)
 
-### Schritt 3: Spieldaten
-- [ ] Position und Drehung von Rebecca und Billy, aktive Figur, Lebenspunkte
+### Schritt 3: Spieldaten (aktuell)
+- [x] Position und Drehung von Rebecca und Billy, aktive Figur und Partner (`sPlayer`)
+- [x] Kamera (`sGameCamera` → `uGameFreeCamera`)
+- [x] Partner-Eingaben einspeisen (DirectInput-Hook) und Partner-KI per Festhalten übersteuern
+- [ ] Lebenspunkte
 - [ ] Aktueller Raum (`sGameArea`, `aRoom…`)
-- [ ] Partner-Eingaben einspeisen (über unseren `dinput8`-Proxy) und Partner-KI abschalten
 
 ### Schritt 4: Spielstand übertragen
 - [ ] Spielstand `data0.bin` (Steam-Cloud-Ordner, verschlüsselt, alle Slots in einer Datei) vom Host zum Mitspieler schicken. Vorher eine Sicherung anlegen
 - [ ] Herausfinden, wann das Spiel die Datei neu einliest (Ladebildschirm oder nur beim Start). Steam Cloud beachten
 
-### Schritt 5: Geister-Koop
-- [ ] Beide Figuren gegenseitig als Partner-Puppe darstellen (Position, Drehung, Laufen)
+### Schritt 5: Geister-Koop (in Arbeit)
+- [x] Beide Figuren gegenseitig als Partner-Puppe darstellen (Position, Drehung, Laufen), Lua 0.4.0
+- [ ] Test mit zwei PCs
 - [ ] Raumwechsel: Die Puppe verschwindet bzw. erscheint im richtigen Raum
 
 ### Schritt 6: Welt abgleichen

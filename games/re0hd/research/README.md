@@ -44,6 +44,26 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 
 **Puppen-Test:** Wird die Position des Partners jeden Frame geschrieben, bleibt sie stehen. Die KI schiebt nur minimal (unter 1 Einheit pro Frame) nach. Der Partner lässt sich also von außen positionieren.
 
+**Kamera:** Bei `0x00E2D6BC` (= `re0hd.exe+A2D6BC`) steht der Zeiger auf `sGameCamera`. Dort bei `+34` steht die aktive Kamera (`uGameFreeCamera`):
+
+| Kamera + | Inhalt |
+|---|---|
+| `+30` | Fernebene (100000) |
+| `+34` | Nahebene (10) |
+| `+38` | Seitenverhältnis (1,334 = 4:3, auch bei 16:9-Ausgabe) |
+| `+3C` | Bildwinkel (FOV) in Grad, ca. 40 bis 50 |
+| `+40` | Kameraposition (x, y, z) |
+| `+50` | Oben-Vektor (0, 1, 0) |
+| `+60` | Blickpunkt (x, y, z) |
+
+**Partner-Tasten** (`KC_partner*`, Standard: Pfeiltasten) wirken **relativ zur Kamera**: hoch = vom Betrachter weg, rechts = nach rechts im Bild. Die Weltrichtung von „hoch“ entspricht der Richtung Kameraposition → Blickpunkt (gemessen: 108° Laufrichtung bei 106° Kamerarichtung). Rechts = hoch − 90°, links = hoch + 90°.
+
+**Puppen-Steuerung (erprobt):**
+- Nur die Position zu schreiben lässt den Partner ohne Laufanimation „schweben“.
+- Die Blickrichtung zu erzwingen, während die Taste in eine andere Richtung zeigt, lässt den Partner stehen bleiben.
+- **Was funktioniert:** passende Partner-Taste zur Kamera drücken (8 Richtungen), bei Abweichung sanft nachziehen, im Stand Position und Drehung festhalten. Der Partner läuft dann einer Spur flüssig nach, auch über Kamerawechsel (Test des Users, 2. November 2026). Umgesetzt in `lua/autorun/re0hd_coop/puppet.lua`.
+- Wird der Partner in eine Wand oder an eine unerreichbare Stelle gesetzt, bleibt er dort hängen und die KI folgt nicht mehr.
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)

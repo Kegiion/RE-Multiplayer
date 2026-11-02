@@ -12,8 +12,10 @@
 --               PlayerCondition.get_StaySceneAreaID liefert Map.ID
 --               (Tankstelle: st1_411_0). Map.ID ist eine Zone, kein Raum:
 --               die Tuer in der Tankstelle bleibt in derselben Zone.
---   UNBESTAETIGT: Wechsel der Zone (noch nicht beobachtet), Namen der
---               anderen Figuren.
+--               Zonenwechsel Tankstelle -> st8_410_0 -> st4_201_0 ->
+--               st4_101_0 (Polizeistation) beobachtet. In Zwischensequenzen
+--               ist die Zone kurz "Invalid" und die Position springt.
+--   UNBESTAETIGT: Namen der anderen Figuren.
 
 local game = {}
 
@@ -149,9 +151,14 @@ function game.get_condition_info(condition)
 end
 
 -- Kennung des aktuellen Bereichs (Name aus Map.ID). Damit erkennen wir, ob
--- der Mitspieler im selben Bereich ist. "" = unbekannt.
+-- der Mitspieler im selben Bereich ist. "" = unbekannt (auch waehrend
+-- Zwischensequenzen, dort meldet das Spiel "Invalid").
 function game.get_area(info)
-    return info and info.scene_area_name or ""
+    local name = info and info.scene_area_name or ""
+    if name == "Invalid" then
+        return ""
+    end
+    return name
 end
 
 -- Figur als Byte fuer PLAYER_STATE.character (Wert aus SurvivorType).

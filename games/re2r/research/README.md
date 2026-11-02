@@ -31,7 +31,9 @@ Erster Test im Spiel am 2. November 2026 (REFramework-nightly 01436, Monolith-DL
 | Spieler-Komponente mit Zustand | `app.ropeway.survivor.player.PlayerCondition` (erbt von `survivor.SurvivorCondition`) hängt am Spieler | ✅ 2. November 2026 (Komponentenliste) |
 | Bereich (Zone) | `PlayerCondition.get_StaySceneAreaID()` → `gamemastering.Map.ID`, z. B. `st1_411_0` (347) an der Tankstelle. Scene, Space, `MainFlowManager.get_LoadArea()` und `UIMapManager.get_SceneMapId()` stimmen überein | ✅ 2. November 2026 (Konsole) |
 | `Map.ID` ist eine Zone, kein Raum | 436 Einträge. Die Tür in der Tankstelle (Laden ↔ Hinterraum) wechselt die ID nicht | ✅ 2. November 2026 |
-| Zonenwechsel | Wechsel der `Map.ID` beim Übergang in eine neue Zone | ❓ noch nicht beobachtet |
+| Zonenwechsel | Beobachtet: `st1_411_0` (Tankstelle) → `Invalid` (Zwischensequenz) → `st8_410_0` (Ort `Opening3`, Straßen) → `st4_201_0` → `st4_101_0` (Eingangshalle Polizeistation, ID 112). Scene, Space und `UIMapManager.get_SceneMapId()` wechseln gemeinsam | ✅ 2. November 2026 |
+| Zwischensequenzen | Zone kurz `Invalid`, Position springt auf (0, 0, 0) oder weit weg (z. B. x = −197) | ✅ 2. November 2026 |
+| Koordinaten | Tankstelle und Eingangshalle liegen beide nahe (0, 0, 0). Möglicherweise sind die Koordinaten pro Zone lokal. Für den Koop egal, solange beide in derselben Zone sind | ❓ |
 | Ort | `MainFlowManager.get_LoadLocation()` / `StayAreaController.get_StayLocationID()` → `Location.ID`, z. B. `GasStation2` (23) | ✅ 2. November 2026 |
 | Figur Leon | `PlayerCondition.get_SurvivorType()` = 0 (`PL0000`), auch `PlayerManager.get_CurrentPlayerType()` = `PL0000` | ✅ 2. November 2026 |
 | Weitere Figuren | `SurvivorType` hat 56 Werte (`PL0000`, `PL1000`, `PL2000`, … bis `PL9900`), keine Klarnamen. `PL1000` ist vermutlich Claire | ❓ |

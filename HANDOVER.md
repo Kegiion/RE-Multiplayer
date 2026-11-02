@@ -31,7 +31,7 @@
 **RE2:**
 
 1. ✅ Erster Test im Spiel (2. November 2026). Die Diagnose-Dateien liegen in `games/re2r/research/`, die Auswertung steht in `games/re2r/research/README.md`.
-2. ✅ Figur und Bereich (Mod 0.3.1): Leon = `SurvivorType` 0 (`PL0000`), Bereich = `Map.ID`-Zone (z. B. `st1_411_0`). Offen: einen Zonenwechsel beobachten und Claire bestätigen.
+2. ✅ Figur und Bereich (Mod 0.3.1): Leon = `SurvivorType` 0 (`PL0000`), Bereich = `Map.ID`-Zone (z. B. `st1_411_0`). Zonenwechsel bis in die Polizeistation (`st4_101_0`) beobachtet, `Invalid` in Zwischensequenzen gilt als unbekannt (Mod 0.3.2). Offen: Claire bestätigen.
    Seit Mod 0.3.0 gibt es dafür die **Entwickler-Konsole**: Ist sie im Menü angehakt, führt `python tools/re2r_console.py "<lua>"` Code im laufenden Spiel aus (Details in `games/re2r/research/README.md`).
 3. Danach kommt **Meilenstein 2**, die sichtbare zweite Spielfigur (siehe `docs/ROADMAP.md`). Ausgangspunkt ist `player.components` aus der Diagnose sowie die Kandidaten in `games/re2r/research/README.md`.
 

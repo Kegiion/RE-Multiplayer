@@ -98,7 +98,7 @@ local function fake_enum(values)
     return { get_fields = function() return fields end }
 end
 local enums = {
-    ["app.ropeway.SurvivorDefine.SurvivorType"] = fake_enum({ Leon = 0, Claire = 1, Invalid = -1 }),
+    ["app.ropeway.SurvivorDefine.SurvivorType"] = fake_enum({ PL0000 = 0, PL1000 = 1, PL2000 = 2, Invalid = -1 }),
     ["app.ropeway.gamemastering.Map.ID"] = fake_enum({ Invalid = -1, St1_101_0 = 7, St1_102_0 = 8 }),
     ["app.ropeway.gamemastering.Map.Area"] = fake_enum({ RPD = 2 }),
 }
@@ -186,11 +186,13 @@ assert(d.player.found and d.player.object_name == "pl1000")
 assert(d.types["app.ropeway.PlayerManager"].found)
 assert(d.types["app.ropeway.EnemyManager"].found == false)
 assert(d.player.components[2] == "via.motion.Motion", "Komponenten fehlen")
-assert(d.player.condition.survivor_name == "Claire", "Figur fehlt in Diagnose")
+assert(d.player.condition.survivor_name == "PL1000", "Figur fehlt in Diagnose")
+local game_mod = require("re2r_coop.game")
+assert(game_mod.character_name(1) == "Claire" and game_mod.character_name(2) == "PL2000" and game_mod.character_name(255) == "?")
 assert(d.player.condition.space_area_name == "St1_102_0")
 assert(d.player.condition.map_area_name == "RPD")
 local st = d.enums["app.ropeway.SurvivorDefine.SurvivorType"]
-assert(st[1] == "-1 = Invalid" and st[3] == "1 = Claire", "Enum-Liste falsch: " .. table.concat(st, ", "))
+assert(st[1] == "-1 = Invalid" and st[3] == "1 = PL1000", "Enum-Liste falsch: " .. table.concat(st, ", "))
 assert(#d.enums["app.ropeway.PlayerDefine.PlayerType"] == 0, "unbekanntes Enum sollte leer sein")
 assert(d.research_available == false and d.type_search == nil)
 

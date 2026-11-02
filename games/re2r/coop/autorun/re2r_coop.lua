@@ -10,7 +10,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.3.0"
+local MOD_VERSION = "0.3.1"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -257,7 +257,7 @@ local function draw_debug_ui(status)
             imgui.text(string.format("Rotation: %.3f  %.3f  %.3f  %.3f", ls.qx, ls.qy, ls.qz, ls.qw))
             local c = ls.condition
             if c then
-                imgui.text(string.format("Figur: %s (%s)", c.survivor_name, tostring(c.survivor_type)))
+                imgui.text(string.format("Figur: %s (%s, %s)", game.character_name(ls.character), c.survivor_name, tostring(c.survivor_type)))
                 imgui.text(string.format("Bereich (Scene): %s (%s)", c.scene_area_name, tostring(c.scene_area_id)))
                 imgui.text(string.format("Bereich (Space): %s (%s)", c.space_area_name, tostring(c.space_area_id)))
                 imgui.text(string.format("Map-Area: %s (%s)", c.map_area_name, tostring(c.map_area)))

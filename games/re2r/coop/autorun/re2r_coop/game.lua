@@ -5,12 +5,15 @@
 -- RE-Engine-Spiele bekommen spaeter eine eigene game.lua mit gleicher
 -- Schnittstelle.
 --
--- STATUS (Diagnose vom 2. November 2026):
---   bestaetigt:   PlayerManager.get_CurrentPlayer -> GameObject "pl0000",
---                 Transform-Position/-Rotation
---   UNBESTAETIGT: Bereich ueber PlayerCondition.get_StaySceneAreaID und
---                 Figur ueber PlayerCondition.get_SurvivorType. Die Methoden
---                 existieren laut Diagnose, ihre Werte sind noch nicht geprueft.
+-- STATUS (Test im Spiel am 2. November 2026, Entwickler-Konsole):
+--   bestaetigt: PlayerManager.get_CurrentPlayer -> GameObject "pl0000",
+--               Transform-Position/-Rotation,
+--               PlayerCondition.get_SurvivorType = 0 ("PL0000") fuer Leon,
+--               PlayerCondition.get_StaySceneAreaID liefert Map.ID
+--               (Tankstelle: st1_411_0). Map.ID ist eine Zone, kein Raum:
+--               die Tuer in der Tankstelle bleibt in derselben Zone.
+--   UNBESTAETIGT: Wechsel der Zone (noch nicht beobachtet), Namen der
+--               anderen Figuren.
 
 local game = {}
 
@@ -31,6 +34,12 @@ game.ENUM_MAP_ID = ns("gamemastering.Map.ID")
 game.ENUM_MAP_AREA = ns("gamemastering.Map.Area")
 game.ENUM_PLAYER_TYPE = ns("PlayerDefine.PlayerType")
 game.ENUM_LOCATION_ID = ns("gamemastering.Location.ID")
+
+-- SurvivorType-Namen (aus dem Spiel) -> Anzeigename.
+game.CHARACTER_NAMES = {
+    PL0000 = "Leon",   -- bestaetigt 2. November 2026
+    PL1000 = "Claire", -- UNBESTAETIGT
+}
 
 -- PLAYER_STATE.character ist ein Byte. Werte ausserhalb 0..254 senden wir
 -- als 255 ("unbekannt").
@@ -158,7 +167,8 @@ function game.character_name(value)
     if value == nil or value == game.CHARACTER_UNKNOWN then
         return "?"
     end
-    return game.enum_name(game.ENUM_SURVIVOR_TYPE, value)
+    local name = game.enum_name(game.ENUM_SURVIVOR_TYPE, value)
+    return game.CHARACTER_NAMES[name] or name
 end
 
 -- Liest den Zustand des lokalen Spielers. Gibt nil zurueck, wenn es (gerade)

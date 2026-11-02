@@ -162,10 +162,10 @@ imgui.begin_child = function() return true end
 imgui.end_child = function() end
 imgui.set_clipboard = function() end
 memory[0x5000] = 0x00C00000          -- vtable von uPlayerRebecca
-memory[0x5004] = 0x6000              -- Zeiger auf ein anderes MT-Objekt
+memory[0x5004] = 0x16000              -- Zeiger auf ein anderes MT-Objekt
 memory[0x5008] = 0x3F800000          -- 1.0 als float
 mem.read_f32 = function(a) return memory[a] == 0x3F800000 and 1.0 or 0.0 end
-memory[0x6000] = 0x00C00010
+memory[0x16000] = 0x00C00010
 mt = {
     scan = function() return { dti = 2, instances = 2, classes_with_instances = 2, ms = 1, scanned_mb = 1 } end,
     classes = function(filter)
@@ -176,7 +176,7 @@ mt = {
     end,
     instances = function(name) return name == "uPlayerRebecca" and { 0x5000 } or {} end,
     class_of = function(a)
-        if a == 0x5000 then return "uPlayerRebecca" elseif a == 0x6000 then return "uCoord" end
+        if a == 0x5000 then return "uPlayerRebecca" elseif a == 0x16000 then return "uCoord" end
     end,
     dti_raw = function() return { addr = 0x100, words = {}, parent = "uPlayerBase" } end,
     info = function() return { dti_count = 2 } end,
@@ -196,12 +196,12 @@ pending_clicks["0x00005000##inst1"] = true
 run_explorer()
 run_explorer()
 assert(find_text("Objekt 0x00005000  %(uPlayerRebecca%)"), "Objekt-Ansicht fehlt")
-assert(find_text("%+004  0x00006000.*%-> uCoord"), "Zeiger-Klasse fehlt")
+assert(find_text("%+004  0x00016000.*%-> uCoord"), "Zeiger-Klasse fehlt")
 assert(find_text("%+008  0x3F800000  f=1%.0000"), "float fehlt")
 pending_clicks[">##follow4"] = true
 run_explorer()
 run_explorer()
-assert(find_text("Objekt 0x00006000  %(uCoord%)"), "Zeiger folgen geht nicht")
+assert(find_text("Objekt 0x00016000  %(uCoord%)"), "Zeiger folgen geht nicht")
 pending_clicks["< Zurueck"] = true
 run_explorer()
 run_explorer()
@@ -211,6 +211,6 @@ run_explorer()
 pending_clicks["Schnappschuss speichern"] = true
 run_explorer()
 local snap = json.load_file("re0hd_snap_rebecca_steht.json")
-assert(snap and snap.class == "uPlayerRebecca" and snap.words[2] == "0x00006000" and snap.floats[3] == 1.0, "Schnappschuss falsch")
+assert(snap and snap.class == "uPlayerRebecca" and snap.words[2] == "0x00016000" and snap.floats[3] == 1.0, "Schnappschuss falsch")
 os.remove("re0hd_snap_rebecca_steht.json")
 print("re0hd_mock_test: alles ok")

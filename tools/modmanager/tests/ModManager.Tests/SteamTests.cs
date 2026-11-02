@@ -52,9 +52,20 @@ public class SteamTests
 
         var libs = SteamLocator.LibraryFolders(steam.Path);
         Assert.Equal(2, libs.Count); // Steam-Ordner nicht doppelt
+        Assert.Equal(steam.Path, libs[0]);
 
         var dir = SteamLocator.FindGame(libs, 339340, "re0hd.exe");
         Assert.Equal(Path.Combine(lib.Path, "steamapps", "common", "Resident Evil 0"), dir);
+    }
+
+    [Fact]
+    public void PrefersSpellingFromLibraryFolders()
+    {
+        using var steam = new TempDir();
+        steam.Write("steamapps/libraryfolders.vdf",
+            $"\"libraryfolders\" {{ \"0\" {{ \"path\" \"{Escape(steam.Path)}\" }} }}");
+        var libs = SteamLocator.LibraryFolders(steam.Path.ToLowerInvariant() + "/");
+        Assert.Equal(new[] { steam.Path }, libs);
     }
 
     [Fact]

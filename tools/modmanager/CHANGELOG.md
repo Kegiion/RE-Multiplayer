@@ -2,6 +2,12 @@
 
 Neueste Version oben. Der Release-Workflow übernimmt den Abschnitt `## <Version>` (Version aus `Directory.Build.props`).
 
+## 1.0.1
+
+- Die Versionszeile wird nicht mehr abgeschnitten.
+- Spielordner werden in der richtigen Schreibweise angezeigt (statt `c:\program files (x86)\...`).
+- Hinweis, wenn eine Mod nicht über den Manager installiert wurde und die Version deshalb unbekannt ist.
+
 ## 1.0.0
 
 - Erste Version.

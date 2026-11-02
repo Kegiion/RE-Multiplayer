@@ -57,7 +57,7 @@ public sealed class GameViewModel : ObservableObject
         get
         {
             var installed = !State.Installed ? "–"
-                : State.InstalledVersion?.ToString() ?? "unbekannt (nicht über den Manager installiert)";
+                : State.InstalledVersion?.ToString() ?? "unbekannt";
             var latest = State.Latest != null
                 ? State.Latest.Version + (State.Latest.Prerelease ? " (Beta)" : "")
                 : State.ReleaseError != null ? "nicht abrufbar"
@@ -90,6 +90,11 @@ public sealed class GameViewModel : ObservableObject
                 var ts = State.ExeTimestamp is { } t ? $"0x{t:X8}" : "unbekannt";
                 hints.Add($"Deine {Def.Exe} hat eine andere Version (Zeitstempel {ts}) als die, für die die Mod gebaut ist. "
                           + "Das Menü funktioniert, der Koop bleibt aber eventuell aus.");
+            }
+            if (State.Installed && State.Record == null)
+            {
+                hints.Add("Nicht über den Manager installiert, deshalb ist die Version unbekannt. "
+                          + "Nach dem nächsten Aktualisieren kennt der Manager sie.");
             }
             if (State.Dir != null && Def.Framework != null && !State.FrameworkPresent)
             {

@@ -73,9 +73,15 @@ public static class SteamLocator
             {
                 continue;
             }
-            if (!libs.Any(l => SamePath(l, path)))
+            var known = libs.FindIndex(l => SamePath(l, path));
+            if (known < 0)
             {
                 libs.Add(path);
+            }
+            else
+            {
+                // Die Registry speichert den Steam-Pfad klein geschrieben, die vdf in richtiger Schreibweise
+                libs[known] = path;
             }
         }
         return libs;

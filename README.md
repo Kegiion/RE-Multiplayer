@@ -31,6 +31,7 @@ REMods/
 
 ## Dokumentation
 
+- [Handover](HANDOVER.md): Einstieg für eine neue Claude-Session (Stand, nächste Schritte, wichtige Fakten)
 - [Architektur](docs/ARCHITEKTUR.md): wie die Teile zusammenspielen und warum
 - [Roadmap](docs/ROADMAP.md): Meilensteine für RE2 und Plan für weitere Teile
 - [Zusammenarbeit](docs/ZUSAMMENARBEIT.md): wie wir im Duo arbeiten (testen, Diagnose, Rückmeldung)

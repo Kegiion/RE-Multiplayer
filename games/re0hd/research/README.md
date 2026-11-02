@@ -16,6 +16,36 @@ Hier landen Diagnose-Dateien (`re0hd_diag_*.json`), Logs und bestätigte Fakten 
 | Die Pfeiltasten (`KC_partner*`) steuern den Partner unabhängig von der eigenen Figur | Test durch den User, 2. November 2026 |
 | MT-DTI: In `.data` liegen 2540 Kandidaten (vtable + Zeiger auf Klassennamen). Das Feld `+10` zeigt bei 1377 auf ein anderes DTI-Objekt, ist also wahrscheinlich der Eltern-Zeiger | Runtime 0.2.0, Log |
 
+## Spielerobjekte (bestätigt am 2. November 2026, exe `0x6799D40F`)
+
+**Fester Weg:** In `re0hd.exe` (.data) steht bei `0x00DCBF3C` (= `re0hd.exe+9CBF3C`) der Zeiger auf die Spieler-Verwaltung `sPlayer` (statischer Instanz-Zeiger). Gefunden mit dem MT-Explorer über `mt.refs`.
+
+| `sPlayer` + | Inhalt |
+|---|---|
+| `+2C` | **gesteuerte Figur** (nach Figurwechsel mit V steht hier die andere) |
+| `+3C` | **Partner** |
+| `+20` bis `+28`, `+30` bis `+38` | Verwaltungsdaten der beiden Einträge (Listen-Zeiger, noch unklar) |
+| `+40` | `1` (Bedeutung unklar, ändert sich beim Figurwechsel nicht) |
+
+Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` → `uCharaBase`.
+
+**Im Spielerobjekt** (`uPlayerRebecca`/`uPlayerBilly`):
+
+| Offset | Typ | Inhalt |
+|---|---|---|
+| `+040`, `+044`, `+048` | float | **Position** x, y (Höhe, im Raum 0), z. Einheiten: etwa Zentimeter |
+| `+050` bis `+05C` | float ×4 | **Drehung** als Quaternion (x, y, z, w). Nur y und w ändern sich (Drehung um die Hochachse) |
+| `+060` bis `+06C` | float ×4 | Skalierung (1, 1, 1) |
+| `+070` bis `+0AC` | float 4×4 | Weltmatrix (Drehung plus Position bei `+0A0`) |
+| `+0E0` | float ×3 | weitere Kopie der Position (vermutlich vorheriger Frame) |
+| `+180`, `+1C0`, `+1E0` | float ×4 | Kollisions- bzw. Körpermittelpunkt (Position plus Höhe ca. 79 bzw. 103) |
+| `+4E0` | int/float | Animationszustand (wechselt zwischen Stehen und Laufen) |
+| `+4EC`, `+4F0`, `+504`, `+508` | float | Bildzähler der laufenden Animation, `+4F4` vermutlich deren Länge |
+
+**Puppen-Test:** Wird die Position des Partners jeden Frame geschrieben, bleibt sie stehen. Die KI schiebt nur minimal (unter 1 Einheit pro Frame) nach. Der Partner lässt sich also von außen positionieren.
+
+**Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
+
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)
 
 - **Einstellungen:** `%LOCALAPPDATA%\CAPCOM\RESIDENT EVIL 0 HD REMASTER\config.ini`. Unter `[DISPLAY]` stehen `Resolution`, `Aspect` (Werte laut exe: `4:3`, `16:9`, `16:10`) und `FullScreen`.

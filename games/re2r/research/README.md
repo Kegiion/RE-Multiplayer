@@ -40,6 +40,23 @@ Erster Test im Spiel am 2. November 2026 (REFramework-nightly 01436, Monolith-DL
 
 Der Spieler hat außerdem die Komponente `app.ropeway.StayAreaController`. Sie bestimmt die Zone per Bodenstrahl und hat die Ereignisse `OnChangedSceneID` / `OnChangedSpaceID` (`Action<Map.ID, Map.ID>`) sowie `OnChangedMapIdentifier` (`MansionManager.MapIdentifier`, eventuell feiner als `Map.ID`, ungeprüft).
 
+## Meilenstein 2: Zweite Spielfigur („Puppe“)
+
+Am 2. November 2026 per Entwickler-Konsole im Spiel geprüft (Leon, Eingangshalle):
+
+| Was | Befund | Status |
+|---|---|---|
+| Figuren-Prefabs | `SurvivorManager.<PrefabInfoList>k__BackingField`: 40 Einträge `SurvivorPrefabInfo` (SurvivorType, RoleType `PLAYER`/`NPC`/`ACTOR`, Prefab, GameObject) | ✅ |
+| Pfade | `ObjectRoot/Prefab/Character/Player/pl0000.pfb`, `…/Npc/pl2000.pfb`, `…/Survivor/Actor/pl0000.pfb`. Actor gibt es für Leon (`pl0000`), Claire (`pl1000`), `pl2000`, `pl3000` und viele mehr | ✅ |
+| Prefab laden | `sdk.create_instance("via.Prefab", true):add_ref()`, `set_Path`, `set_Standby(true)`, dann `get_Ready()`. `Prefab:duplicate()` liefert keinen verwalteten Zeiger | ✅ |
+| Erzeugen | `instantiate(via.vec3, via.Quaternion, via.Folder)` mit `SurvivorManager.get_ActorFolder()` → GameObject `pl0000` | ✅ |
+| Komponenten des Actors | Motion, MotionFsm2, IK, `SurvivorCostumeChanger`, `ActorCondition`, `StayAreaController`. **Kein** `PlayerController`, `CharacterController` oder Inventar | ✅ |
+| Modell | Zuerst unsichtbar (keine Unterobjekte). `SurvivorCostumeChanger.change(SurvivorType, Costume)` mit (0, 0) lädt `Hair`, `Face`, `Body` → Leon steht sichtbar im Spiel | ✅ |
+| Bewegen | `Transform.set_Position` / `set_Rotation`. `Quaternion.new` nimmt (w, x, y, z) | ✅ |
+| Löschen | `go:call("destroy", go)`, ab dem nächsten Frame `get_Valid() == false` | ✅ |
+| Animation | Puppe steht still, keine Animation | ❓ nächster Schritt |
+| Szenenwechsel | Ob das Spiel die Puppe beim Laden löscht | ❓ (Mod 0.4.0 erzeugt sie dann neu) |
+
 ## Weitere Kandidaten aus der Diagnose
 
 - `PlayerManager.get_CurrentPlayerType()` → `PlayerDefine.PlayerType`

@@ -6,11 +6,12 @@
 -- Aufbau:
 --   remods_coop/*      gemeinsame Lua-Bibliothek fuer alle RE-Engine-Spiele
 --   re2r_coop/game.lua RE2-spezifischer Zugriff auf Spieldaten
---   re2r_coop/ghost.lua Anzeige des Mitspielers
+--   re2r_coop/ghost.lua Anzeige des Mitspielers (Markierung)
+--   re2r_coop/puppet.lua Mitspieler als Spielfigur (Meilenstein 2)
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.3.2"
+local MOD_VERSION = "0.4.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -30,6 +31,7 @@ end
 local Session = require("remods_coop.session")
 local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
+local puppet = require("re2r_coop.puppet")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -42,6 +44,7 @@ local config = {
     address = "127.0.0.1",
     port = 27350,
     show_ghosts = true,
+    show_puppets = true, -- Mitspieler als Spielfigur
     show_debug = false,
     devconsole = false, -- Entwickler-Konsole fuer Claude
 }
@@ -84,7 +87,15 @@ end)
 
 session:subscribe("peer_left", function(_, peer)
     ghost.remove(peer.id)
+    puppet.remove(peer.id)
 end)
+
+-- Bei "Reset Scripts" bleiben erzeugte Figuren sonst verwaist in der Welt.
+if re.on_script_reset then
+    re.on_script_reset(function()
+        puppet.clear()
+    end)
+end
 
 -- --- Pro Frame -----------------------------------------------------------
 
@@ -123,6 +134,11 @@ local function frame()
     end
 
     ghost.update(dt)
+    for id, r in pairs(ghost.remote) do
+        local visible = config.show_puppets and state.local_state ~= nil and r.target ~= nil
+            and not ghost.is_stale(r, now) and not ghost.other_area(r, state.local_state)
+        puppet.sync(id, r, visible, now)
+    end
     if config.show_ghosts then
         ghost.draw(state.local_state, now)
     end
@@ -187,6 +203,7 @@ local function draw_connection_ui(status)
         if imgui.button("Trennen") then
             session:leave()
             ghost.clear()
+            puppet.clear()
         end
     end
 end
@@ -225,6 +242,8 @@ end
 local function draw_debug_ui(status)
     local changed
     changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
+    if changed then save_config() end
+    changed, config.show_puppets = imgui.checkbox("Mitspieler als Spielfigur anzeigen", config.show_puppets)
     if changed then save_config() end
     changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
     if changed then save_config() end
@@ -271,6 +290,7 @@ local function draw_debug_ui(status)
             imgui.text(string.format("Remote %d (%s): %.2f %.2f %.2f  seq %d  Figur %s  Bereich %s",
                 id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0,
                 game.character_name(r.character), tostring(r.area)))
+            imgui.text("  Figur im Spiel: " .. puppet.status_text(id))
         end
         local st = status.stats or {}
         imgui.text(string.format("Gesendet: %d Nachr. / %d B   Empfangen: %d Nachr. / %d B",

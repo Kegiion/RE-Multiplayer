@@ -5,10 +5,11 @@ local AUTORUN = assert(os.getenv("REMODS_RE2R_AUTORUN"), "Umgebungsvariable REMO
 package.path = AUTORUN .. "/?.lua;" .. package.path
 
 -- ---- Mock: REFramework-API ---------------------------------------------
-local callbacks = { frame = {}, ui = {} }
+local callbacks = { frame = {}, ui = {}, reset = {} }
 re = {
     on_frame = function(fn) table.insert(callbacks.frame, fn) end,
     on_draw_ui = function(fn) table.insert(callbacks.ui, fn) end,
+    on_script_reset = function(fn) table.insert(callbacks.reset, fn) end,
 }
 log = { info = function() end }
 local files = {}
@@ -36,6 +37,7 @@ imgui = {
 
 local drawn = {}
 Vector3f = { new = function(x, y, z) return { x = x, y = y, z = z } end }
+Quaternion = { new = function(w, x, y, z) return { w = w, x = x, y = y, z = z } end }
 draw = {
     world_to_screen = function(v) return { x = v.x * 10, y = v.y * 10 } end,
     text = function(t) table.insert(drawn, t) end,
@@ -77,6 +79,49 @@ local player = obj({
 })
 local player_manager = obj({ get_CurrentPlayer = function() return player end })
 
+-- Puppe: Prefab, erzeugte GameObjects, SurvivorManager
+local spawned, prefabs = {}, {}
+local function fake_go()
+    local go
+    local transform_obj = obj({
+        set_Position = function(p) go.pos = p end,
+        set_Rotation = function(q) go.rot = q end,
+    })
+    local changer = obj({
+        ["change(app.ropeway.SurvivorDefine.SurvivorType, app.ropeway.SurvivorDefine.Costume)"] =
+            function(t, c) go.costume = { t, c } end,
+    })
+    go = obj({
+        get_Valid = function() return not go.destroyed end,
+        get_Transform = function() return transform_obj end,
+        ["getComponent(System.Type)"] = function(t)
+            if t == "TYPE:app.ropeway.survivor.SurvivorCostumeChanger" then return changer end
+        end,
+        set_DrawSelf = function(v) go.draw = v end,
+        destroy = function(g) g.destroyed = true end,
+    })
+    return go
+end
+local function fake_prefab()
+    local p
+    local checks = 0
+    p = obj({
+        set_Path = function(path) p.path = path end,
+        set_Standby = function(v) p.standby = v end,
+        get_Ready = function() checks = checks + 1; return p.standby and checks > 1 end, -- erst beim 2. Mal fertig
+        ["instantiate(via.vec3, via.Quaternion, via.Folder)"] = function(pos, rot, folder)
+            local go = fake_go()
+            go.pos, go.rot, go.folder = pos, rot, folder
+            spawned[#spawned + 1] = go
+            return go
+        end,
+    })
+    p.add_ref = function(self) return self end
+    prefabs[#prefabs + 1] = p
+    return p
+end
+local survivor_manager = obj({ get_ActorFolder = function() return "ACTOR_FOLDER" end })
+
 local function fake_type(name)
     local method = { get_name = function() return "get_CurrentPlayer" end, get_num_params = function() return 0 end,
         is_static = function() return false end, get_return_type = function() return { get_full_name = function() return "via.GameObject" end } end }
@@ -104,7 +149,11 @@ local enums = {
 }
 sdk = {
     game_namespace = function(n) return "app.ropeway." .. n end,
-    get_managed_singleton = function(n) if n == "app.ropeway.PlayerManager" then return player_manager end end,
+    get_managed_singleton = function(n)
+        if n == "app.ropeway.PlayerManager" then return player_manager end
+        if n == "app.ropeway.SurvivorManager" then return survivor_manager end
+    end,
+    create_instance = function(n) if n == "via.Prefab" then return fake_prefab() end end,
     find_type_definition = function(n)
         if n == "app.ropeway.PlayerManager" then return fake_type(n) end
         return enums[n]
@@ -172,6 +221,44 @@ assert(label, "Markierung fuer Claire wurde nicht gezeichnet")
 assert(label:find("5.0m"), "Entfernung falsch: " .. label) -- (1,0,2) -> (4,0,6) = 5m
 assert(label:find("[Leon]", 1, true), "Figur fehlt: " .. label)
 assert(label:find("anderer Bereich: St1_102_0", 1, true), "Bereichshinweis fehlt: " .. label)
+assert(#prefabs == 0, "Puppe trotz anderem Bereich erzeugt")
+
+-- Gleicher Bereich -> Puppe (Leon-Actor) wird geladen, erzeugt und mitbewegt
+for i = 6, 12 do
+    b:send("PLAYER_STATE", { seq = i, x = 4, y = 0, z = 6, qx = 0, qy = 1, qz = 0, qw = 0, area = "St1_101_0", character = 0 }, false)
+    b:update()
+    sleep_ms(20)
+    run_frame()
+end
+assert(#prefabs == 1, "Prefab nicht angelegt")
+assert(prefabs[1].path == "ObjectRoot/Prefab/Character/Survivor/Actor/pl0000.pfb", tostring(prefabs[1].path))
+assert(#spawned == 1, "Puppe nicht (oder mehrfach) erzeugt: " .. #spawned)
+local pup = spawned[1]
+assert(pup.folder == "ACTOR_FOLDER")
+assert(pup.costume and pup.costume[1] == 0 and pup.costume[2] == 0, "Kostuem nicht angefordert")
+assert(pup.draw == true, "Puppe nicht sichtbar")
+assert(math.abs(pup.pos.x - 4) < 0.01 and math.abs(pup.pos.z - 6) < 0.01, "Puppe an falscher Position")
+assert(pup.rot.y == 1 and pup.rot.w == 0, "Drehung nicht uebernommen")
+
+-- Anderer Bereich -> ausblenden, nicht loeschen
+b:send("PLAYER_STATE", { seq = 13, x = 4, y = 0, z = 6, qw = 1, area = "St1_102_0", character = 0 }, false)
+b:update()
+sleep_ms(20)
+run_frame()
+assert(pup.draw == false and not pup.destroyed, "Puppe nicht ausgeblendet")
+
+-- Vom Spiel geloescht (z. B. Szenenwechsel) -> neu erzeugen
+b:send("PLAYER_STATE", { seq = 14, x = 4, y = 0, z = 6, qw = 1, area = "St1_101_0", character = 0 }, false)
+b:update()
+sleep_ms(20)
+pup.destroyed = true
+for _ = 1, 4 do run_frame() end
+assert(#spawned == 2 and spawned[2].draw == true, "Puppe nicht neu erzeugt")
+
+-- Reset Scripts -> Puppe weg
+assert(#callbacks.reset == 1, "on_script_reset nicht registriert")
+callbacks.reset[1]()
+assert(spawned[2].destroyed, "Puppe nach Reset nicht geloescht")
 
 -- Chat
 b:send("CHAT", { text = "hallo leon" }, true)

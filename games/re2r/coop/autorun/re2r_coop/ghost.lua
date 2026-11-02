@@ -72,6 +72,10 @@ function ghost.update(dt)
     end
 end
 
+function ghost.is_stale(r, now)
+    return r.last_update == nil or (now - r.last_update) > STALE_AFTER
+end
+
 -- true, wenn beide Bereiche bekannt sind und sich unterscheiden.
 function ghost.other_area(r, local_state)
     return local_state ~= nil and r.area ~= nil and r.area ~= ""
@@ -86,7 +90,7 @@ end
 -- Muss in re.on_frame aufgerufen werden (nur dort funktioniert draw.*).
 function ghost.draw(local_state, now)
     for _, r in pairs(ghost.remote) do
-        local stale = r.last_update == nil or (now - r.last_update) > STALE_AFTER
+        local stale = ghost.is_stale(r, now)
         local color = stale and COLOR_STALE or COLOR_ACTIVE
 
         local feet = draw.world_to_screen(Vector3f.new(r.pos.x, r.pos.y, r.pos.z))

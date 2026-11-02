@@ -19,6 +19,7 @@
 | RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Spieler `pl0000`, Diagnose, Testbot läuft hinterher). Mod 0.2.0: Figur und Bereich, im Spiel noch ungeprüft |
 | Testbot (simulierter Mitspieler) | ✅ getestet |
 | CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `REMods-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
+| Mod-Manager `tools/modmanager` (`REMods-Manager.exe`, .NET 10 WPF) | ✅ baut in CI (Workflow `modmanager.yml`), Tests grün. Installiert/aktualisiert/deinstalliert Mods aus GitHub-Releases (`release.yml`), Patch Notes, „Fehler melden“, Selbst-Update. Im Spiel noch vom User zu prüfen. Doku: `tools/modmanager/README.md` |
 | RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
 | RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
@@ -33,7 +34,7 @@
 1. ✅ Erster Test im Spiel (2. November 2026). Die Diagnose-Dateien liegen in `games/re2r/research/`, die Auswertung steht in `games/re2r/research/README.md`.
 2. ✅ Figur und Bereich (Mod 0.3.1): Leon = `SurvivorType` 0 (`PL0000`), Bereich = `Map.ID`-Zone (z. B. `st1_411_0`). Zonenwechsel bis in die Polizeistation (`st4_101_0`) beobachtet, `Invalid` in Zwischensequenzen gilt als unbekannt (Mod 0.3.2). Offen: Claire bestätigen.
    Seit Mod 0.3.0 gibt es dafür die **Entwickler-Konsole**: Ist sie im Menü angehakt, führt `python tools/re2r_console.py "<lua>"` Code im laufenden Spiel aus (Details in `games/re2r/research/README.md`).
-3. Danach kommt **Meilenstein 2**, die sichtbare zweite Spielfigur (siehe `docs/ROADMAP.md`). Ausgangspunkt ist `player.components` aus der Diagnose sowie die Kandidaten in `games/re2r/research/README.md`.
+3. **Meilenstein 2** (sichtbare zweite Spielfigur) läuft: Das Actor-Prefab (`…/Survivor/Actor/pl0000.pfb`) plus `SurvivorCostumeChanger.change` erzeugt einen sichtbaren Leon (im Spiel bestätigt). Mod 0.4.0 (`re2r_coop/puppet.lua`) setzt die Puppe auf die Position des Mitspielers. Offen: Test mit Testbot im Spiel, danach Animationen übertragen.
 
 ## Wichtige technische Fakten (nicht neu herausfinden)
 

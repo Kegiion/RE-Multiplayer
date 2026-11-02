@@ -41,12 +41,12 @@
 
 Idee: Der zweite Spieler steuert den Partner (Rebecca bzw. Billy). Details: [games/re0hd/README.md](../games/re0hd/README.md).
 
-### Schritt 1: Runtime im Spiel (aktuell)
+### Schritt 1: Runtime im Spiel ✅
 - [x] Loader `dinput8.dll`, Runtime mit D3D9-Hook, ImGui-Menü, Lua und `coopnet`
 - [x] Speicher-Werkzeug und Diagnose-Datei für die Forschung
-- [ ] Erster Test im Spiel (Menü, Maus/Tastatur, Alt+Tab, Testbot)
+- [x] Erster Test im Spiel (Menü, Maus/Tastatur, Alt+Tab, Testbot) ✅ 2. November 2026
 
-### Schritt 2: Spieldaten finden
+### Schritt 2: Spieldaten finden (aktuell)
 - [ ] Mit Cheat Engine: Position, Lebenspunkte, aktive Figur, Raum
 - [ ] Adressen über Byte-Muster (`mem.scan`) robust gegen Spiel-Updates machen
 - [ ] `game.get_local_state()` implementieren
@@ -56,6 +56,9 @@ Idee: Der zweite Spieler steuert den Partner (Rebecca bzw. Billy). Details: [gam
 
 ### Schritt 4: Partner übernehmen
 - [ ] Partner-KI abschalten und den Partner über Netzwerk-Eingaben steuern
+
+### Nebenbei: Ultrawide (Wunsch des Users, Monitor 32:9)
+- [ ] Gestrecktes Bild bei 5120x1440 beheben (mindestens korrekt 16:9 mit Rändern, besser echtes Ultrawide). Achtung: RE0 nutzt vorgerenderte Hintergründe, mehr Sichtfeld zeigt evtl. deren Ränder
 
 ## Weitere Teile (danach)
 

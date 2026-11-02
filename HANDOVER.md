@@ -19,14 +19,14 @@
 | RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ gegen REFramework-Mock getestet, ❌ **noch nie im echten Spiel gelaufen** |
 | Testbot (simulierter Mitspieler) | ✅ getestet |
 | CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `REMods-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
-| RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ programmiert, ❌ **noch nie im echten Spiel gelaufen** |
+| RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
 | RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
 **Meilenstein 1 („Geister-Spieler“)** ist programmiert. Was fehlt, ist der **erste Test im Spiel**.
 
 ## Sofort als Nächstes
 
-**RE0 HD (User hat es installiert, RE2 lädt gerade herunter):** Erster Test nach der Checkliste in `games/re0hd/README.md`. Danach mit Cheat Engine Position, Lebenspunkte und die aktive Figur suchen und im Menü mit dem Speicher-Werkzeug prüfen.
+**RE0 HD:** Schritt 1 läuft im Spiel. Als Nächstes Schritt 2: mit Cheat Engine Position, Lebenspunkte und die aktive Figur suchen und im Menü mit dem Speicher-Werkzeug prüfen (Fakten in `games/re0hd/research/README.md`). Wunsch des Users: Ultrawide-Fix für seinen 32:9-Monitor (siehe `docs/ROADMAP.md`).
 
 **RE2:**
 

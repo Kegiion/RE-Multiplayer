@@ -31,7 +31,8 @@ WNDPROC g_orig_wndproc = nullptr;
 bool g_context = false;
 bool g_dx9_ready = false;
 bool g_menu_open = false;
-float g_scale = 1.0f;
+float g_scale = 0.0f;           // 0 = noch nicht berechnet
+bool g_rescale_pending = false;  // nach einem Device-Reset neu berechnen
 ULONGLONG g_start_tick = 0;
 std::string g_ini_path;
 
@@ -112,6 +113,24 @@ UINT backbuffer_height(IDirect3DDevice9* device) {
     return height;
 }
 
+// Groesse an die Aufloesung anpassen: 720p = 1.0, 1080p = 1.5, 1440p = 2.0.
+// RE0 startet mit 1280x720 und wechselt per Reset auf die echte Aufloesung,
+// deshalb nach jedem Reset neu berechnen.
+void apply_scale(IDirect3DDevice9* device) {
+    const UINT height = backbuffer_height(device);
+    const float scale = std::clamp(static_cast<float>(height) / 720.0f, 1.0f, 3.0f);
+    if (scale == g_scale) {
+        return;
+    }
+    g_scale = scale;
+    ImGuiStyle style;  // frischer Stil: ScaleAllSizes wirkt sonst mehrfach
+    ImGui::StyleColorsDark(&style);
+    style.ScaleAllSizes(scale);
+    style.FontScaleMain = scale;
+    ImGui::GetStyle() = style;
+    LOG_INFO("Overlay: Backbuffer-Hoehe %u -> Skalierung %.2f", height, scale);
+}
+
 void init(IDirect3DDevice9* device) {
     if (!g_context) {
         IMGUI_CHECKVERSION();
@@ -122,13 +141,7 @@ void init(IDirect3DDevice9* device) {
         io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;  // Mauszeiger zeichnet ImGui selbst
         io.ConfigErrorRecoveryEnableAssert = false;
 
-        // Groesse an die Aufloesung anpassen: 720p = 1.0, 1080p = 1.5, 1440p = 2.0
-        const UINT height = backbuffer_height(device);
-        g_scale = std::clamp(static_cast<float>(height) / 720.0f, 1.0f, 3.0f);
-        ImGui::StyleColorsDark();
-        ImGuiStyle& style = ImGui::GetStyle();
-        style.ScaleAllSizes(g_scale);
-        style.FontScaleMain = g_scale;
+        apply_scale(device);
 
         g_hwnd = find_window(device);
         ImGui_ImplWin32_Init(g_hwnd);
@@ -136,9 +149,8 @@ void init(IDirect3DDevice9* device) {
             g_orig_wndproc = reinterpret_cast<WNDPROC>(
                 SetWindowLongPtrW(g_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wndproc)));
         }
-        LOG_INFO("Overlay: Fenster %p, Fenster-Thread %lu, Render-Thread %lu, Backbuffer-Hoehe %u, Skalierung %.2f",
-                 static_cast<void*>(g_hwnd), g_hwnd != nullptr ? GetWindowThreadProcessId(g_hwnd, nullptr) : 0UL,
-                 GetCurrentThreadId(), height, g_scale);
+        LOG_INFO("Overlay: Fenster %p, Fenster-Thread %lu, Render-Thread %lu", static_cast<void*>(g_hwnd),
+                 g_hwnd != nullptr ? GetWindowThreadProcessId(g_hwnd, nullptr) : 0UL, GetCurrentThreadId());
         if (g_orig_wndproc == nullptr) {
             LOG_WARN("Overlay: Fenster-Nachrichten konnten nicht abgefangen werden - Maus/Tastatur im Menue evtl. tot");
         }
@@ -253,6 +265,10 @@ void on_present(IDirect3DDevice9* device) {
     busy = true;
 
     init(device);
+    if (g_rescale_pending) {
+        g_rescale_pending = false;
+        apply_scale(device);
+    }
     replay_messages();
     handle_toggle_key();
 
@@ -293,6 +309,7 @@ void on_after_reset(bool ok) {
     if (ok && g_dx9_ready) {
         ImGui_ImplDX9_CreateDeviceObjects();
     }
+    g_rescale_pending = ok;
 }
 
 }  // namespace remods::overlay

@@ -2,7 +2,7 @@
 
 Koop-Mod für **Resident Evil 0 HD Remaster** (Steam, `re0hd.exe`).
 
-> **Stand:** Schritt 1 (Runtime mit Menü im Spiel, Lua, Netzwerk) ist programmiert, aber **noch nie im echten Spiel gelaufen**. Spieldaten (Position, Lebenspunkte von Rebecca und Billy) kennen wir noch nicht.
+> **Stand:** Schritt 1 (Runtime mit Menü im Spiel, Lua, Netzwerk) **läuft im Spiel** (getestet am 2. November 2026). Spieldaten (Position, Lebenspunkte von Rebecca und Billy) kennen wir noch nicht.
 
 ## Idee
 

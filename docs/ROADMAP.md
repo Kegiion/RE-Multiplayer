@@ -37,6 +37,26 @@
 - Wiederverbinden nach Absturz
 - Einstellungen: Friendly Fire, Schwierigkeit, Item-Teilung
 
+## RE0 HD: Partner-Koop (parallel zu RE2)
+
+Idee: Der zweite Spieler steuert den Partner (Rebecca bzw. Billy). Details: [games/re0hd/README.md](../games/re0hd/README.md).
+
+### Schritt 1: Runtime im Spiel (aktuell)
+- [x] Loader `dinput8.dll`, Runtime mit D3D9-Hook, ImGui-Menü, Lua und `coopnet`
+- [x] Speicher-Werkzeug und Diagnose-Datei für die Forschung
+- [ ] Erster Test im Spiel (Menü, Maus/Tastatur, Alt+Tab, Testbot)
+
+### Schritt 2: Spieldaten finden
+- [ ] Mit Cheat Engine: Position, Lebenspunkte, aktive Figur, Raum
+- [ ] Adressen über Byte-Muster (`mem.scan`) robust gegen Spiel-Updates machen
+- [ ] `game.get_local_state()` implementieren
+
+### Schritt 3: Geister-Spieler
+- [ ] Position beider Spieler austauschen und im Menü bzw. als Markierung anzeigen
+
+### Schritt 4: Partner übernehmen
+- [ ] Partner-KI abschalten und den Partner über Netzwerk-Eingaben steuern
+
 ## Weitere Teile (danach)
 
 | Engine | Spiele | Aufwand |

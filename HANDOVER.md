@@ -6,7 +6,7 @@
 ## Wer und was
 
 - **User:** spricht Deutsch, mittlere Programmiererfahrung, besitzt alle RE-Teile (Steam, Windows-PC). Wir arbeiten **im Duo**: Claude schreibt Code, der User testet im Spiel und gibt Rückmeldung.
-- **Ziel:** Koop-Multiplayer **durch die Story**, zuerst **Resident Evil 2 Remake (2019)**, später weitere Teile.
+- **Ziel:** Koop-Multiplayer **durch die Story**. Parallel in Arbeit: **Resident Evil 2 Remake (2019)** und **Resident Evil 0 HD Remaster** (Partner-Koop). Später weitere Teile.
 - **Repo:** `Kegiion/REMods`, Branch `main`. Hier liegen alle Mods. Keine Spieldateien committen.
 
 ## Stand (2. November 2026)
@@ -18,11 +18,17 @@
 | Gemeinsame Lua-Bibliothek `remods_coop` (Protokoll, Session) | ✅ getestet |
 | RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ gegen REFramework-Mock getestet, ❌ **noch nie im echten Spiel gelaufen** |
 | Testbot (simulierter Mitspieler) | ✅ getestet |
-| CI (GitHub Actions) | ✅ grün, baut die Artifacts `RE2R-Coop` und `REMods-Tools` |
+| CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `REMods-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
+| RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ programmiert, ❌ **noch nie im echten Spiel gelaufen** |
+| RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
 **Meilenstein 1 („Geister-Spieler“)** ist programmiert. Was fehlt, ist der **erste Test im Spiel**.
 
 ## Sofort als Nächstes
+
+**RE0 HD (User hat es installiert, RE2 lädt gerade herunter):** Erster Test nach der Checkliste in `games/re0hd/README.md`. Danach mit Cheat Engine Position, Lebenspunkte und die aktive Figur suchen und im Menü mit dem Speicher-Werkzeug prüfen.
+
+**RE2:**
 
 1. **Erster Test im Spiel.** Die Checkliste steht in `games/re2r/README.md` unter „Erster Test“.
    - REFramework installieren: <https://github.com/praydog/REFramework-nightly/releases>, `dinput8.dll` neben `re2.exe` legen.
@@ -50,7 +56,16 @@
 - Standard-Port: **UDP 27350**. Story-Koop ist für 2 Spieler ausgelegt (`max_peers = 1`). Der Host besitzt die Welt.
 - Protokoll: `shared/re-engine/lua/remods_coop/protocol.lua`. Bei Änderungen an bestehenden Nachrichten `protocol.VERSION` erhöhen.
 
+## Wichtige Fakten zu RE0 HD
+
+- `re0hd.exe` ist **32-Bit**, MT Framework, D3D9 (`Direct3DCreate9`, kein Ex). Sie importiert `dinput8.dll`. Darüber läuft unser Loader.
+- Kein REFramework. Unsere Runtime bildet dessen Lua-API teilweise nach (`re`, `imgui`, `log`, `json`), damit `remods_coop` unverändert läuft. Dazu kommen `mem.*` (lesen, schreiben, `scan` für Byte-Muster) und `remods.*`.
+- Lua-Skripte liegen im Spiel unter `remods/autorun/`, Daten unter `remods/data/`, das Log unter `remods/remods_re0.log`. Der Button „Skripte neu laden“ im Menü entspricht „Reset Scripts“ in REFramework.
+- Adressen hängen von der exe-Version ab. Der PE-Zeitstempel steht im Log und in jeder Diagnose-Datei.
+
 ## Bauen und testen
+
+**Auf dem PC des Users gibt es keinen Compiler.** Pushen, dann das Artifact holen: `gh run download <run-id> -n RE0HD-Coop -D <ziel>`. Die GitHub-CLI ist installiert.
 
 ```bat
 :: Windows (Visual Studio 2022 mit "Desktopentwicklung mit C++")
@@ -59,12 +74,17 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 cmake --install build --config Release --prefix dist/RE2R-Coop --component re2r-coop
 cmake --install build --config Release --prefix dist/REMods-Tools --component tools
+
+:: RE0 HD (32-Bit)
+cmake -S . -B build32 -A Win32
+cmake --build build32 --config Release
+cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re0hd-coop
 ```
 
 - `dist/RE2R-Coop/` wird 1:1 in den RE2-Spielordner kopiert. Für reine Lua-Änderungen reicht es, `games/re2r/coop/autorun/*` und `shared/re-engine/lua/*` nach `<Spiel>/reframework/autorun/` zu kopieren.
 - Ohne Visual Studio: die Artifacts aus GitHub Actions verwenden (`gh run download -n RE2R-Coop`, falls die GitHub-CLI installiert ist).
 - Tests laufen auch unter Linux. Die Lua-Tests nutzen `tools/luarun`, `tests/lua/re2r_mock_test.lua` simuliert die REFramework-API.
-- Spielordner (Steam-Standard): `C:\Program Files (x86)\Steam\steamapps\common\RESIDENT EVIL 2  BIOHAZARD RE2\`. Im Zweifel den User fragen oder in Steam → Verwalten → Lokale Dateien nachsehen.
+- Spielordner (Steam-Standard): `C:\Program Files (x86)\Steam\steamapps\common\RESIDENT EVIL 2  BIOHAZARD RE2\`, RE0: `...\common\Resident Evil 0\`. Im Zweifel den User fragen oder in Steam → Verwalten → Lokale Dateien nachsehen.
 - REFramework-Log: `<Spiel>/re2_framework_log.txt`
 
 ## Offene Design-Fragen an den User (noch unbeantwortet)

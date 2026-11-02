@@ -9,15 +9,17 @@ Unsere Mods für die Resident-Evil-Reihe. Das Hauptziel ist ein **Koop-Multiplay
 | Mod | Spiel | Status |
 |---|---|---|
 | [RE2 Koop](games/re2r/README.md) | Resident Evil 2 (2019) | Meilenstein 1: Mitspieler wird als Markierung angezeigt |
+| [RE0 Koop](games/re0hd/README.md) | Resident Evil 0 HD Remaster | Schritt 1: eigene Runtime mit Menü, Lua und Netzwerk (Spieldaten noch unbekannt) |
 
 ## Projektaufbau
 
 ```
 REMods/
 ├── games/                    Spielspezifisches (eine Mod pro Ordner)
-│   └── re2r/
-│       ├── coop/autorun/     Lua-Skripte der RE2-Koop-Mod
-│       └── research/         Diagnose-Dateien und Notizen aus dem Spiel
+│   ├── re2r/
+│   │   ├── coop/autorun/     Lua-Skripte der RE2-Koop-Mod
+│   │   └── research/         Diagnose-Dateien und Notizen aus dem Spiel
+│   └── re0hd/                RE0 HD (32-Bit): Loader, Runtime (C++), Lua-Skripte, Forschung
 ├── shared/                   Wiederverwendbar für alle Spiele
 │   ├── netcore/              C++-Netzwerk-Kern (ENet) + Lua-Anbindung
 │   └── re-engine/
@@ -25,7 +27,7 @@ REMods/
 │       └── lua/remods_coop/  Gemeinsame Lua-Bibliothek: Protokoll, Sitzung
 ├── tools/                    remods_luarun + Testbot (simulierter Mitspieler)
 ├── tests/                    Automatische Tests (laufen ohne Spiel)
-├── third_party/              Fremdbibliotheken (ENet, Lua 5.4.3, REFramework-API)
+├── third_party/              Fremdbibliotheken (ENet, Lua 5.4.3, REFramework-API, Dear ImGui)
 └── docs/                     Architektur, Roadmap, Zusammenarbeit
 ```
 
@@ -48,6 +50,14 @@ cmake -S . -B build -A x64
 cmake --build build --config Release
 ctest --test-dir build -C Release
 cmake --install build --config Release --prefix dist/RE2R-Coop --component re2r-coop
+```
+
+RE0 HD ist ein 32-Bit-Spiel und braucht einen eigenen Build:
+
+```bat
+cmake -S . -B build32 -A Win32
+cmake --build build32 --config Release
+cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re0hd-coop
 ```
 
 Unter Linux laufen die Tests ebenfalls (`cmake -S . -B build && cmake --build build && ctest --test-dir build`). Das Plugin selbst wird nur unter Windows gebaut.

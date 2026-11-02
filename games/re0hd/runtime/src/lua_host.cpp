@@ -448,7 +448,7 @@ int l_mem_scan(lua_State* L) {
             break;
         }
         const uintptr_t r_begin = std::max(region, reinterpret_cast<uintptr_t>(mbi.BaseAddress));
-        const uintptr_t r_end = std::min(end_addr, reinterpret_cast<uintptr_t>(mbi.BaseAddress) + mbi.RegionSize);
+        const uintptr_t r_end = std::min(end_addr, static_cast<uintptr_t>(reinterpret_cast<uintptr_t>(mbi.BaseAddress) + mbi.RegionSize));
         if (range_ok(r_begin, 1, false) && r_end - r_begin >= static_cast<uintptr_t>(count)) {
             const auto* mem = reinterpret_cast<const uint8_t*>(r_begin);
             const size_t n = r_end - r_begin - static_cast<size_t>(count);

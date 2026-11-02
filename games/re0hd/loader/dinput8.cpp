@@ -17,7 +17,7 @@ namespace {
 
 HMODULE g_real = nullptr;
 
-using DirectInput8Create_t = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
+using DirectInput8Create_t = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, void*);
 using DllCanUnloadNow_t = HRESULT(WINAPI*)();
 using DllGetClassObject_t = HRESULT(WINAPI*)(REFCLSID, REFIID, LPVOID*);
 using DllRegisterServer_t = HRESULT(WINAPI*)();
@@ -72,7 +72,7 @@ DWORD WINAPI load_runtime(LPVOID) {
 
 extern "C" {
 
-HRESULT WINAPI Proxy_DirectInput8Create(HINSTANCE inst, DWORD version, REFIID iid, LPVOID* out, LPUNKNOWN outer) {
+HRESULT WINAPI Proxy_DirectInput8Create(HINSTANCE inst, DWORD version, REFIID iid, LPVOID* out, void* outer) {
     auto fn = reinterpret_cast<DirectInput8Create_t>(real("DirectInput8Create"));
     return fn != nullptr ? fn(inst, version, iid, out, outer) : E_FAIL;
 }

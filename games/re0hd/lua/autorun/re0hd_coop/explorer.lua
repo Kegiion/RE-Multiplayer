@@ -7,7 +7,7 @@
 --   4. "Alle Objekte speichern" (bzw. in der Objekt-Ansicht "Schnappschuss speichern")
 --      mit kurzer Beschreibung, was gerade passiert
 --      (z. B. "rebecca_steht", "rebecca_laeuft_vor"). Die Dateien landen in
---      remods/data/ und werden dort ausgewertet.
+--      remultiplayer/data/ und werden dort ausgewertet.
 
 local M = {}
 
@@ -65,7 +65,7 @@ end
 
 local function save_file(name, data)
     local ok, err = json.dump_file(name, data)
-    state.message = ok and ("Gespeichert: remods/data/" .. name) or ("Fehler: " .. tostring(err))
+    state.message = ok and ("Gespeichert: remultiplayer/data/" .. name) or ("Fehler: " .. tostring(err))
 end
 
 local function safe_label(text)
@@ -94,7 +94,7 @@ local function draw_scan()
     if imgui.button("Klassenliste speichern") then
         save_file("re0hd_classes.json", {
             time = os.date("%Y-%m-%d %H:%M:%S"),
-            exe_timestamp = hex(remods.exe_timestamp),
+            exe_timestamp = hex(remultiplayer.exe_timestamp),
             info = mt.info(),
             scan = state.scan_result,
             classes = mt.classes(""),

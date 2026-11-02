@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "games": [
     {
       "id": "re0hd",
@@ -9,19 +9,49 @@
       "processName": "re0hd",
       "tagPrefix": "re0hd-v",
       "assetPrefix": "RE0HD-Coop-",
-      "installedMarker": "remods/remods_re0.dll",
-      "recordPath": "remods/remods-install.json",
-      "keepPaths": [ "remods/data" ],
+      "installedMarker": "remultiplayer/remultiplayer_re0.dll",
+      "recordPath": "remultiplayer/remultiplayer-install.json",
+      "keepPaths": [
+        "remultiplayer/data"
+      ],
       "legacyFiles": [],
-      "legacyDirs": [ "remods" ],
+      "legacyDirs": [
+        "remultiplayer"
+      ],
       "loader": {
         "file": "dinput8.dll",
-        "ownMarker": "remods\\remods_re0.dll",
-        "backupSuffix": ".vor-remods"
+        "ownMarker": "remultiplayer\\remultiplayer_re0.dll",
+        "backupSuffix": ".vor-remultiplayer",
+        "legacyMarkers": [
+          "remods\\remods_re0.dll"
+        ],
+        "legacyBackupSuffixes": [
+          ".vor-remods"
+        ]
       },
-      "supportedExeTimestamps": [ "6799D40F" ],
-      "logs": [ "remods/remods_re0.log" ],
-      "hint": "Im Spiel öffnet Einfg oder F8 das Menü. Unter „RE0 Koop“ kannst du hosten oder beitreten."
+      "supportedExeTimestamps": [
+        "6799D40F"
+      ],
+      "logs": [
+        "remultiplayer/remultiplayer_re0.log"
+      ],
+      "hint": "Im Spiel öffnet Einfg oder F8 das Menü. Unter „RE0 Koop“ kannst du hosten oder beitreten.",
+      "legacyInstalledMarkers": [
+        "remods/remods_re0.dll"
+      ],
+      "legacyRecordPaths": [
+        "remods/remods-install.json"
+      ],
+      "migrations": [
+        {
+          "from": "remods/data",
+          "to": "remultiplayer/data"
+        }
+      ],
+      "obsoleteFiles": [],
+      "obsoleteDirs": [
+        "remods"
+      ]
     },
     {
       "id": "re2r",
@@ -31,26 +61,45 @@
       "processName": "re2",
       "tagPrefix": "re2r-v",
       "assetPrefix": "RE2R-Coop-",
-      "installedMarker": "reframework/plugins/remods_coopnet.dll",
-      "recordPath": "reframework/remods-install.json",
-      "keepPaths": [ "reframework/data" ],
+      "installedMarker": "reframework/plugins/remultiplayer_coopnet.dll",
+      "recordPath": "reframework/remultiplayer-install.json",
+      "keepPaths": [
+        "reframework/data"
+      ],
       "legacyFiles": [
-        "reframework/plugins/remods_coopnet.dll",
+        "reframework/plugins/remultiplayer_coopnet.dll",
         "reframework/autorun/re2r_coop.lua"
       ],
       "legacyDirs": [
         "reframework/autorun/re2r_coop",
-        "reframework/autorun/remods_coop"
+        "reframework/autorun/remultiplayer_coop"
       ],
       "framework": {
         "name": "REFramework",
         "repo": "praydog/REFramework-nightly",
         "asset": "RE2.zip",
-        "files": [ "dinput8.dll" ]
+        "files": [
+          "dinput8.dll"
+        ]
       },
       "supportedExeTimestamps": [],
-      "logs": [ "re2_framework_log.txt" ],
-      "hint": "Im Spiel öffnet Einfg das REFramework-Menü. Dort unter „Script Generated UI“ → „RE2 Koop“."
+      "logs": [
+        "re2_framework_log.txt"
+      ],
+      "hint": "Im Spiel öffnet Einfg das REFramework-Menü. Dort unter „Script Generated UI“ → „RE2 Koop“.",
+      "legacyInstalledMarkers": [
+        "reframework/plugins/remods_coopnet.dll"
+      ],
+      "legacyRecordPaths": [
+        "reframework/remods-install.json"
+      ],
+      "migrations": [],
+      "obsoleteFiles": [
+        "reframework/plugins/remods_coopnet.dll"
+      ],
+      "obsoleteDirs": [
+        "reframework/autorun/remods_coop"
+      ]
     }
   ]
 }

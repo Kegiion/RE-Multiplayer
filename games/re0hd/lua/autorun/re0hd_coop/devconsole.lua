@@ -1,8 +1,8 @@
 -- re0hd_coop/devconsole.lua - Entwickler-Konsole fuer Claude (nur fuer die Entwicklung).
 --
 -- Ist sie im Menue eingeschaltet, schaut das Spiel alle 0,5 Sekunden nach der
--- Datei remods/data/claude_cmd.lua, fuehrt sie einmal aus, loescht sie und
--- schreibt das Ergebnis nach remods/data/claude_out.json. So kann Claude im
+-- Datei remultiplayer/data/claude_cmd.lua, fuehrt sie einmal aus, loescht sie und
+-- schreibt das Ergebnis nach remultiplayer/data/claude_out.json. So kann Claude im
 -- laufenden Spiel forschen, ohne dass der User jedes Mal klicken muss.
 --
 -- Im Befehl verfuegbar (zusaetzlich zur normalen Lua-Umgebung):
@@ -25,7 +25,7 @@ local current_task = nil
 local run_count = 0
 
 local function data_path(name)
-    return (remods and remods.data_dir or "") .. name
+    return (remultiplayer and remultiplayer.data_dir or "") .. name
 end
 
 local function to_plain(v, depth)

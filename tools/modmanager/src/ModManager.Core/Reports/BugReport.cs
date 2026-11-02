@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace REMods.ModManager.Core.Reports;
+namespace REMultiplayer.ModManager.Core.Reports;
 
 /// <summary>
 /// "Fehler melden": Logs einsammeln und ein vorausgefuelltes GitHub-Issue bauen.

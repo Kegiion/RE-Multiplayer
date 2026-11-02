@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace REMods.ModManager.Core.Releases;
+namespace REMultiplayer.ModManager.Core.Releases;
 
 /// <summary>Release aus der GitHub-API (nur die Felder, die wir brauchen).</summary>
 public sealed class GhRelease

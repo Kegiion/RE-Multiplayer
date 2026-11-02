@@ -1,4 +1,4 @@
-# Handover: REMods (für eine neue Claude-Session)
+# Handover: RE:Multiplayer (für eine neue Claude-Session)
 
 > Diese Datei ist der Einstieg für eine neue Claude-Session, z. B. lokal auf dem Windows-PC des Users.
 > Erst diese Datei lesen, dann `README.md`, `docs/ARCHITEKTUR.md` und `games/re2r/README.md`.
@@ -7,20 +7,20 @@
 
 - **User:** spricht Deutsch, mittlere Programmiererfahrung, besitzt alle RE-Teile (Steam, Windows-PC). Wir arbeiten **im Duo**: Claude schreibt Code, der User testet im Spiel und gibt Rückmeldung.
 - **Ziel:** Koop-Multiplayer **durch die Story**. Parallel in Arbeit: **Resident Evil 2 Remake (2019)** und **Resident Evil 0 HD Remaster** (Partner-Koop). Später weitere Teile.
-- **Repo:** `Kegiion/REMods`, Branch `main`. Hier liegen alle Mods. Keine Spieldateien committen.
+- **Repo:** `Kegiion/RE-Multiplayer`, Branch `main`. Hier liegen alle Mods. Keine Spieldateien committen.
 
 ## Stand (2. November 2026)
 
 | Bereich | Status |
 |---|---|
 | Netzwerk-Kern `shared/netcore` (C++, ENet, eigener Thread) | ✅ fertig, getestet (inkl. Thread- und Address-Sanitizer) |
-| REFramework-Plugin `remods_coopnet.dll` (spielunabhängig) | ✅ baut (MSVC in CI, MinGW lokal geprüft) |
-| Gemeinsame Lua-Bibliothek `remods_coop` (Protokoll, Session) | ✅ getestet |
+| REFramework-Plugin `remultiplayer_coopnet.dll` (spielunabhängig) | ✅ baut (MSVC in CI, MinGW lokal geprüft) |
+| Gemeinsame Lua-Bibliothek `remultiplayer_coop` (Protokoll, Session) | ✅ getestet |
 | RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Spieler `pl0000`, Diagnose, Testbot läuft hinterher). Mod 0.2.0: Figur und Bereich, im Spiel noch ungeprüft |
 | Testbot (simulierter Mitspieler) | ✅ getestet |
-| CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `REMods-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
-| Mod-Manager `tools/modmanager` (`REMods-Manager.exe`, .NET 10 WPF) | ✅ baut in CI (Workflow `modmanager.yml`), Tests grün. Installiert/aktualisiert/deinstalliert Mods aus GitHub-Releases (`release.yml`), Patch Notes, „Fehler melden“, Selbst-Update. Im Spiel noch vom User zu prüfen. Doku: `tools/modmanager/README.md` |
-| RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
+| CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `RE-Multiplayer-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
+| Mod-Manager `tools/modmanager` (`RE-Multiplayer.exe`, .NET 10 WPF) | ✅ baut in CI (Workflow `modmanager.yml`), Tests grün. Installiert/aktualisiert/deinstalliert Mods aus GitHub-Releases (`release.yml`), Patch Notes, „Fehler melden“, Selbst-Update. Im Spiel noch vom User zu prüfen. Doku: `tools/modmanager/README.md` |
+| RE0-Loader `dinput8.dll` + Runtime `remultiplayer_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
 | RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
 **Meilenstein 1 („Geister-Spieler“)** läuft in RE2 im Spiel. Offen sind die Prüfung von Figur und Bereich (Mod 0.2.0) und ein Test mit einem echten Mitspieler.
@@ -47,13 +47,13 @@
 - `draw.*` funktioniert nur in `re.on_frame`. Farben sind ABGR (`0xAABBGGRR`).
 - `json.dump_file` und `json.load_file` arbeiten relativ zu `reframework/data/`. Absolute Pfade und `..` sind nicht erlaubt.
 - Standard-Port: **UDP 27350**. Story-Koop ist für 2 Spieler ausgelegt (`max_peers = 1`). Der Host besitzt die Welt.
-- Protokoll: `shared/re-engine/lua/remods_coop/protocol.lua`. Bei Änderungen an bestehenden Nachrichten `protocol.VERSION` erhöhen.
+- Protokoll: `shared/re-engine/lua/remultiplayer_coop/protocol.lua`. Bei Änderungen an bestehenden Nachrichten `protocol.VERSION` erhöhen.
 
 ## Wichtige Fakten zu RE0 HD
 
 - `re0hd.exe` ist **32-Bit**, MT Framework, D3D9 (`Direct3DCreate9`, kein Ex). Sie importiert `dinput8.dll`. Darüber läuft unser Loader.
-- Kein REFramework. Unsere Runtime bildet dessen Lua-API teilweise nach (`re`, `imgui`, `log`, `json`), damit `remods_coop` unverändert läuft. Dazu kommen `mem.*` (lesen, schreiben, `scan` für Byte-Muster) und `remods.*`.
-- Lua-Skripte liegen im Spiel unter `remods/autorun/`, Daten unter `remods/data/`, das Log unter `remods/remods_re0.log`. Der Button „Skripte neu laden“ im Menü entspricht „Reset Scripts“ in REFramework.
+- Kein REFramework. Unsere Runtime bildet dessen Lua-API teilweise nach (`re`, `imgui`, `log`, `json`), damit `remultiplayer_coop` unverändert läuft. Dazu kommen `mem.*` (lesen, schreiben, `scan` für Byte-Muster) und `remultiplayer.*`.
+- Lua-Skripte liegen im Spiel unter `remultiplayer/autorun/`, Daten unter `remultiplayer/data/`, das Log unter `remultiplayer/remultiplayer_re0.log`. Der Button „Skripte neu laden“ im Menü entspricht „Reset Scripts“ in REFramework.
 - Adressen hängen von der exe-Version ab. Der PE-Zeitstempel steht im Log und in jeder Diagnose-Datei.
 
 ## Bauen und testen
@@ -66,7 +66,7 @@ cmake -S . -B build -A x64
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 cmake --install build --config Release --prefix dist/RE2R-Coop --component re2r-coop
-cmake --install build --config Release --prefix dist/REMods-Tools --component tools
+cmake --install build --config Release --prefix dist/RE-Multiplayer-Tools --component tools
 
 :: RE0 HD (32-Bit)
 cmake -S . -B build32 -A Win32

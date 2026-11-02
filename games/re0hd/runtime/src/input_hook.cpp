@@ -14,7 +14,7 @@
 
 #include "log.hpp"
 
-namespace remods::input {
+namespace remultiplayer::input {
 namespace {
 
 // vtable-Indizes von IDirectInputDevice8 (Reihenfolge in dinput.h)
@@ -257,4 +257,4 @@ void register_lua(lua_State* L) {
     lua_setglobal(L, "input");
 }
 
-}  // namespace remods::input
+}  // namespace remultiplayer::input

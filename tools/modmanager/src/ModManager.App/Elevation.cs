@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Principal;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 public static class Elevation
 {

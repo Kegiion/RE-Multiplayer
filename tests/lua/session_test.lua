@@ -1,4 +1,4 @@
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local PORT = 47901
 
 local function pump(sessions, cond, timeout)

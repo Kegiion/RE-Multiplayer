@@ -1,6 +1,6 @@
 # coopnet: Lua-API des Plugins
 
-Das Plugin `remods_coopnet.dll` stellt in jedem REFramework-Lua-State die globale Tabelle `coopnet` bereit. Normalerweise benutzt man sie nicht direkt, sondern über `remods_coop.session`. Die Referenz hilft beim Debuggen.
+Das Plugin `remultiplayer_coopnet.dll` stellt in jedem REFramework-Lua-State die globale Tabelle `coopnet` bereit. Normalerweise benutzt man sie nicht direkt, sondern über `remultiplayer_coop.session`. Die Referenz hilft beim Debuggen.
 
 | Funktion | Rückgabe | Beschreibung |
 |---|---|---|

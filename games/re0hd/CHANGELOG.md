@@ -2,6 +2,11 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.4.1
+
+- **Neuer Name: RE:Multiplayer.** Die Dateien im Spielordner heißen jetzt `remultiplayer/` statt `remods/` (Runtime `remultiplayer_re0.dll`, Log `remultiplayer/remultiplayer_re0.log`).
+- Bestehende Einstellungen zieht der Mod-Manager beim Aktualisieren automatisch nach `remultiplayer/data/` um.
+
 ## 0.4.0
 
 - **Geister-Koop:** Der Partner folgt der Position des Mitspielers.

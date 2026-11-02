@@ -1,18 +1,18 @@
--- remods_coop/session.lua
+-- remultiplayer_coop/session.lua
 --
 -- Spielunabhaengige Sitzungslogik ueber der `coopnet`-API des Plugins:
 -- Verbindungsaufbau, Handshake (HELLO), Versionspruefung, Nachrichten-
 -- verteilung an Handler und ein kleines Log fuer die UI.
 --
 -- Benutzung:
---   local Session = require("remods_coop.session")
+--   local Session = require("remultiplayer_coop.session")
 --   local s = Session.new({ net = coopnet, game = "re2r", mod_version = "0.1.0", name = "Leon" })
 --   s:on("PLAYER_STATE", function(session, peer, msg) ... end)
 --   s:host(27015)  oder  s:join("1.2.3.4", 27015)
 --   -- jeden Frame:
 --   s:update()
 
-local protocol = require("remods_coop.protocol")
+local protocol = require("remultiplayer_coop.protocol")
 
 local Session = {}
 Session.__index = Session
@@ -57,7 +57,7 @@ function Session:log(fmt, ...)
         table.remove(self.log_lines, 1)
     end
     if log and log.info then -- REFramework-Log (reframework/re2_framework_log.txt)
-        log.info("[remods_coop] " .. text)
+        log.info("[remultiplayer_coop] " .. text)
     end
 end
 

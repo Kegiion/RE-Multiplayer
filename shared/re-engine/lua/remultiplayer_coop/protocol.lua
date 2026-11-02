@@ -1,6 +1,6 @@
--- remods_coop/protocol.lua
+-- remultiplayer_coop/protocol.lua
 --
--- Netzwerk-Protokoll aller REMods-Koop-Mods. Jede Nachricht beginnt mit einem
+-- Netzwerk-Protokoll aller RE:Multiplayer-Koop-Mods. Jede Nachricht beginnt mit einem
 -- Byte fuer den Typ, danach folgen die Felder als kompakte Binaerdaten
 -- (string.pack, little-endian).
 --

@@ -1,7 +1,7 @@
-namespace REMods.ModManager.Core.Install;
+namespace REMultiplayer.ModManager.Core.Install;
 
 /// <summary>
-/// Installationsprotokoll im Spielordner (z. B. remods/remods-install.json). Damit weiss der
+/// Installationsprotokoll im Spielordner (z. B. remultiplayer/remultiplayer-install.json). Damit weiss der
 /// Manager, welche Version installiert ist und welche Dateien er beim Deinstallieren entfernt.
 /// </summary>
 public sealed class InstallRecord

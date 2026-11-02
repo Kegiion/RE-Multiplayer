@@ -21,7 +21,7 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-namespace remods::overlay {
+namespace remultiplayer::overlay {
 namespace {
 
 constexpr ULONGLONG kBannerMs = 20000;  // Startmeldung 20 Sekunden zeigen
@@ -137,7 +137,7 @@ void init(IDirect3DDevice9* device) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        g_ini_path = paths().remods_dir + "imgui.ini";
+        g_ini_path = paths().remultiplayer_dir + "imgui.ini";
         io.IniFilename = g_ini_path.c_str();
         io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;  // Mauszeiger zeichnet ImGui selbst
         io.ConfigErrorRecoveryEnableAssert = false;
@@ -199,9 +199,9 @@ void draw_banner() {
     const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                                    ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;
-    if (ImGui::Begin("##remods_banner", nullptr, flags)) {
+    if (ImGui::Begin("##remultiplayer_banner", nullptr, flags)) {
         if (show_start) {
-            ImGui::Text("REMods RE0 %s (Build %s) geladen - Einfg oder F8 oeffnet das Menue", kRuntimeVersion, kBuildId);
+            ImGui::Text("RE:Multiplayer RE0 %s (Build %s) geladen - Einfg oder F8 oeffnet das Menue", kRuntimeVersion, kBuildId);
         }
         if (!errors.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%d Lua-Fehler - Details im Menue",
@@ -213,7 +213,7 @@ void draw_banner() {
 
 void draw_menu() {
     ImGui::SetNextWindowSize(ImVec2(640.0f * g_scale, 560.0f * g_scale), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("REMods - Resident Evil 0 HD", &g_menu_open)) {
+    if (ImGui::Begin("RE:Multiplayer - Resident Evil 0 HD", &g_menu_open)) {
         const auto& exe = exe_info();
         ImGui::Text("Runtime %s (Build %s)   re0hd.exe: Basis 0x%08X, Zeitstempel 0x%08X", kRuntimeVersion, kBuildId,
                     static_cast<unsigned>(exe.base), exe.timestamp);
@@ -314,4 +314,4 @@ void on_after_reset(bool ok) {
     g_rescale_pending = ok;
 }
 
-}  // namespace remods::overlay
+}  // namespace remultiplayer::overlay

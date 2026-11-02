@@ -1,12 +1,12 @@
 using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
-using REMods.ModManager.Core;
-using REMods.ModManager.Core.Games;
-using REMods.ModManager.Core.Releases;
-using REMods.ModManager.Core.Reports;
+using REMultiplayer.ModManager.Core;
+using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Releases;
+using REMultiplayer.ModManager.Core.Reports;
 
-namespace REMods.ModManager.Tests;
+namespace REMultiplayer.ModManager.Tests;
 
 public class CatalogTests
 {
@@ -24,7 +24,7 @@ public class CatalogTests
         Assert.Throws<InvalidDataException>(() => GameCatalog.Parse("{\"schema\": 99, \"games\": []}"));
         Assert.Throws<InvalidDataException>(() => GameCatalog.Parse("kein json"));
         const string bad = """
-            { "schema": 1, "games": [ { "id": "x", "name": "X", "exe": "x.exe", "tagPrefix": "x-v", "assetPrefix": "X-",
+            { "schema": 2, "games": [ { "id": "x", "name": "X", "exe": "x.exe", "tagPrefix": "x-v", "assetPrefix": "X-",
               "installedMarker": "a", "recordPath": "b", "legacyDirs": [ "../../Windows" ] } ] }
             """;
         Assert.Throws<InvalidDataException>(() => GameCatalog.Parse(bad));
@@ -51,11 +51,11 @@ public class BugReportTests
     [Fact]
     public void IssueUrlIsEncodedAndShortened()
     {
-        var url = BugReport.BuildIssueUrl("Kegiion/REMods", "[re0hd] Absturz & mehr", "Zeile 1\nZeile 2");
-        Assert.StartsWith("https://github.com/Kegiion/REMods/issues/new?title=%5Bre0hd%5D%20Absturz%20%26%20mehr&body=", url);
+        var url = BugReport.BuildIssueUrl("Kegiion/RE-Multiplayer", "[re0hd] Absturz & mehr", "Zeile 1\nZeile 2");
+        Assert.StartsWith("https://github.com/Kegiion/RE-Multiplayer/issues/new?title=%5Bre0hd%5D%20Absturz%20%26%20mehr&body=", url);
         Assert.Contains("Zeile%201%0AZeile%202", url);
 
-        var longUrl = BugReport.BuildIssueUrl("Kegiion/REMods", "t", new string('ä', 20000));
+        var longUrl = BugReport.BuildIssueUrl("Kegiion/RE-Multiplayer", "t", new string('ä', 20000));
         Assert.True(longUrl.Length <= BugReport.MaxUrlLength);
         Assert.Contains(Uri.EscapeDataString("gekürzt"), longUrl);
     }
@@ -64,12 +64,12 @@ public class BugReportTests
     public void ZipContainsSanitizedLogsAndInfo()
     {
         using var tmp = new TempDir();
-        var log = tmp.Write("remods_re0.log", "verbunden mit 10.0.0.5");
+        var log = tmp.Write("remultiplayer_re0.log", "verbunden mit 10.0.0.5");
         var zipPath = tmp.File("bericht.zip");
         BugReport.CreateZip(zipPath, "Manager 1.0.0", [log, tmp.File("fehlt.log")], null);
 
         using var zip = ZipFile.OpenRead(zipPath);
-        Assert.Equal("verbunden mit x.x.x.x", Read(zip, "remods_re0.log"));
+        Assert.Equal("verbunden mit x.x.x.x", Read(zip, "remultiplayer_re0.log"));
         Assert.StartsWith("Manager 1.0.0", Read(zip, "info.txt"));
         Assert.Contains("fehlt.log", Read(zip, "info.txt"));
     }
@@ -87,8 +87,8 @@ public class SelfUpdaterTests
     public async Task SwapsExeAndCleansUp()
     {
         using var tmp = new TempDir();
-        var exe = tmp.Write("REMods-Manager.exe", "alt");
-        var neu = tmp.Write("REMods-Manager.exe.new", "neu");
+        var exe = tmp.Write("RE-Multiplayer.exe", "alt");
+        var neu = tmp.Write("RE-Multiplayer.exe.new", "neu");
 
         SelfUpdater.Swap(exe, neu);
         Assert.Equal("neu", File.ReadAllText(exe));
@@ -115,7 +115,7 @@ public class DownloadTests
 
     private static readonly byte[] Body = "Paketinhalt"u8.ToArray();
 
-    private static GhAsset Asset(string? digest, long size = 0, string url = "https://github.com/Kegiion/REMods/releases/download/x/a.zip") =>
+    private static GhAsset Asset(string? digest, long size = 0, string url = "https://github.com/Kegiion/RE-Multiplayer/releases/download/x/a.zip") =>
         new() { Name = "a.zip", DownloadUrl = url, Size = size == 0 ? Body.Length : size, Digest = digest };
 
     [Fact]

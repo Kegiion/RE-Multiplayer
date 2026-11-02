@@ -2,7 +2,7 @@
 --
 -- Die RE0-Runtime laedt diese Datei als globale Tabelle `json`, damit
 -- Skripte dieselbe API wie in REFramework haben:
---   json.dump_file(pfad, tabelle) -> bool      (relativ zu remods/data/)
+--   json.dump_file(pfad, tabelle) -> bool      (relativ zu remultiplayer/data/)
 --   json.load_file(pfad)          -> tabelle | nil
 --   json.encode(wert [, pretty])  -> string
 --   json.decode(text)             -> wert   (wirft Fehler bei kaputtem JSON)
@@ -258,7 +258,7 @@ local function data_path(path)
     if path:find("%.%.") or path:find("^[/\\]") or path:find(":") then
         error("json: nur relative Pfade ohne '..' erlaubt: " .. path)
     end
-    local dir = (remods and remods.data_dir) or ""
+    local dir = (remultiplayer and remultiplayer.data_dir) or ""
     return dir .. path
 end
 

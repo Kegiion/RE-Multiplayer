@@ -1,4 +1,4 @@
-namespace REMods.ModManager.Core;
+namespace REMultiplayer.ModManager.Core;
 
 /// <summary>
 /// Tauscht die laufende exe gegen eine neue. Windows erlaubt, eine laufende exe umzubenennen,

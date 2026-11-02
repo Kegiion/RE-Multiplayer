@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace REMods.ModManager.Core;
+namespace REMultiplayer.ModManager.Core;
 
 /// <summary>Gemeinsame JSON-Einstellungen (games.json, Installationsprotokoll, Einstellungen).</summary>
 public static class Json

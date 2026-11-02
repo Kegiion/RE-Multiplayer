@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 public partial class MainWindow : Window
 {

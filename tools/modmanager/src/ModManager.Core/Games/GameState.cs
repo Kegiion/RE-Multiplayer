@@ -1,7 +1,7 @@
-using REMods.ModManager.Core.Install;
-using REMods.ModManager.Core.Releases;
+using REMultiplayer.ModManager.Core.Install;
+using REMultiplayer.ModManager.Core.Releases;
 
-namespace REMods.ModManager.Core.Games;
+namespace REMultiplayer.ModManager.Core.Games;
 
 public enum GameStatusKind
 {

@@ -1,7 +1,7 @@
 name: Mod-Manager
 
-# Baut und testet den REMods Mod-Manager (tools/modmanager).
-# Artifact "REMods-Manager" = die fertige exe, "REMods-Manager-Bilder" = Bildschirmfotos zur Sichtpruefung.
+# Baut und testet den RE:Multiplayer Mod-Manager (tools/modmanager).
+# Artifact "RE-Multiplayer" = die fertige exe, "RE-Multiplayer-Bilder" = Bildschirmfotos zur Sichtpruefung.
 
 on:
   push:
@@ -48,16 +48,16 @@ jobs:
         run: >-
           dotnet publish tools/modmanager/src/ModManager.App -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true -p:DebugType=none -o dist/REMods-Manager
+          -p:EnableCompressionInSingleFile=true -p:DebugType=none -o dist/RE-Multiplayer
 
       - name: Installieren und Deinstallieren pruefen (Fake-Spielordner)
         shell: pwsh
-        run: ./tools/modmanager/ci/e2e.ps1 -Exe dist/REMods-Manager/REMods-Manager.exe
+        run: ./tools/modmanager/ci/e2e.ps1 -Exe dist/RE-Multiplayer/RE-Multiplayer.exe
 
       - name: Bildschirmfotos
         shell: pwsh
         run: |
-          $exe = (Resolve-Path dist/REMods-Manager/REMods-Manager.exe).Path
+          $exe = (Resolve-Path dist/RE-Multiplayer/RE-Multiplayer.exe).Path
           $dir = Join-Path $pwd 'dist/bilder'
           foreach ($shot in @('demo-920x660', 'demo-720x500', 'echt-920x660')) {
             $parts = $shot.Split('-')
@@ -65,7 +65,7 @@ jobs:
             if ($parts[0] -eq 'demo') { $argList += ' --demo' }
             $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
             if ($p.ExitCode -ne 0) {
-              Get-Content (Join-Path $env:LOCALAPPDATA 'REMods/manager.log') -ErrorAction SilentlyContinue | Select-Object -Last 30
+              Get-Content (Join-Path $env:LOCALAPPDATA 'RE-Multiplayer/manager.log') -ErrorAction SilentlyContinue | Select-Object -Last 30
               throw "Bildschirmfoto $shot fehlgeschlagen"
             }
           }
@@ -73,12 +73,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: REMods-Manager
-          path: dist/REMods-Manager/REMods-Manager.exe
+          name: RE-Multiplayer
+          path: dist/RE-Multiplayer/RE-Multiplayer.exe
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: REMods-Manager-Bilder
+          name: RE-Multiplayer-Bilder
           path: dist/bilder
           if-no-files-found: ignore

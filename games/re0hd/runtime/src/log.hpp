@@ -1,11 +1,11 @@
-// Log-Datei <Spiel>/remods/remods_re0.log plus Ringpuffer fuer das Menue.
+// Log-Datei <Spiel>/remultiplayer/remultiplayer_re0.log plus Ringpuffer fuer das Menue.
 // Thread-sicher.
 #pragma once
 
 #include <string>
 #include <vector>
 
-namespace remods {
+namespace remultiplayer {
 
 enum class LogLevel { Info, Warn, Error };
 
@@ -21,8 +21,8 @@ struct LogEntry {
 // Die letzten `max` Eintraege (aelteste zuerst).
 std::vector<LogEntry> log_tail(size_t max);
 
-}  // namespace remods
+}  // namespace remultiplayer
 
-#define LOG_INFO(...) ::remods::log_fmt(::remods::LogLevel::Info, __VA_ARGS__)
-#define LOG_WARN(...) ::remods::log_fmt(::remods::LogLevel::Warn, __VA_ARGS__)
-#define LOG_ERROR(...) ::remods::log_fmt(::remods::LogLevel::Error, __VA_ARGS__)
+#define LOG_INFO(...) ::remultiplayer::log_fmt(::remultiplayer::LogLevel::Info, __VA_ARGS__)
+#define LOG_WARN(...) ::remultiplayer::log_fmt(::remultiplayer::LogLevel::Warn, __VA_ARGS__)
+#define LOG_ERROR(...) ::remultiplayer::log_fmt(::remultiplayer::LogLevel::Error, __VA_ARGS__)

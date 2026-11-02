@@ -1,8 +1,8 @@
-using REMods.ModManager.Core;
-using REMods.ModManager.Core.Games;
-using REMods.ModManager.Core.Install;
+using REMultiplayer.ModManager.Core;
+using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Install;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Installieren/Deinstallieren ohne Fenster (fuer die CI). Exit-Codes: 0 ok, 1 Fehler, 2 Admin noetig, 3 Aufruf falsch.</summary>
 public static class Headless

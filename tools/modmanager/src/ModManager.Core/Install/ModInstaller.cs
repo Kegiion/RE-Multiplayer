@@ -1,15 +1,15 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
-using REMods.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Games;
 
-namespace REMods.ModManager.Core.Install;
+namespace REMultiplayer.ModManager.Core.Install;
 
 /// <summary>
 /// Installiert, aktualisiert und entfernt eine Mod in einem Spielordner.
 /// Portiert aus games/re0hd/installer/installer.cpp:
 ///   - fremde Loader-DLL (dinput8.dll) wird gesichert und beim Deinstallieren wiederhergestellt
-///   - Einstellungen (KeepPaths, z. B. remods/data) bleiben erhalten
+///   - Einstellungen (KeepPaths, z. B. remultiplayer/data) bleiben erhalten
 ///   - fehlende Schreibrechte melden sich als InstallException mit NeedsAdmin
 /// </summary>
 public sealed class ModInstaller(GameDefinition game, string gameDir)
@@ -22,29 +22,40 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
 
     public string RecordFile => Full(Game.RecordPath);
 
-    public bool IsInstalled => File.Exists(Full(Game.InstalledMarker)) || File.Exists(RecordFile);
+    public bool IsInstalled =>
+        new[] { Game.InstalledMarker, Game.RecordPath }
+            .Concat(Game.LegacyInstalledMarkers)
+            .Concat(Game.LegacyRecordPaths)
+            .Any(p => File.Exists(Full(p)));
 
     /// <summary>true, wenn kein Framework noetig ist oder alle seine Dateien vorhanden sind.</summary>
     public bool FrameworkPresent => Game.Framework == null || Game.Framework.Files.All(f => File.Exists(Full(f)));
 
+    /// <summary>Protokoll dieses Managers, sonst das einer alten Version (alter Name), sonst null.</summary>
     public InstallRecord? ReadRecord()
     {
-        try
+        foreach (var rel in Game.LegacyRecordPaths.Prepend(Game.RecordPath))
         {
-            return File.Exists(RecordFile)
-                ? JsonSerializer.Deserialize<InstallRecord>(File.ReadAllText(RecordFile), Json.Options)
-                : null;
+            var file = Full(rel);
+            try
+            {
+                if (File.Exists(file))
+                {
+                    return JsonSerializer.Deserialize<InstallRecord>(File.ReadAllText(file), Json.Options);
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+            {
+                // kaputtes Protokoll: naechstes versuchen
+            }
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return null;
-        }
+        return null;
     }
 
     /// <summary>Prueft, ob wir im Spielordner schreiben duerfen.</summary>
     public void EnsureWritable()
     {
-        var probe = Path.Combine(GameDir, $".remods-schreibtest-{Guid.NewGuid():N}");
+        var probe = Path.Combine(GameDir, $".remultiplayer-schreibtest-{Guid.NewGuid():N}");
         try
         {
             File.WriteAllText(probe, "");
@@ -89,6 +100,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
                 Full(rel);
             }
 
+            MigrateOldNames();
             var old = ReadRecord();
             var newFiles = entries.Select(e => e.Rel).ToList();
 
@@ -137,6 +149,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
             };
             Directory.CreateDirectory(Path.GetDirectoryName(RecordFile)!);
             File.WriteAllText(RecordFile, JsonSerializer.Serialize(record, Json.Options));
+            RemoveObsolete(newFiles);
             return record;
         });
     }
@@ -147,6 +160,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
         EnsureWritable();
         Run(() =>
         {
+            MigrateOldNames();
             var record = ReadRecord();
             var files = (record?.Files ?? LegacyFiles())
                 .Where(f => GamePaths.TryNormalize(f, out _) && !Game.IsKept(f))
@@ -161,6 +175,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
             {
                 File.Delete(RecordFile);
             }
+            RemoveObsolete([]);
             PruneDirectories(files.Append(Game.RecordPath));
             foreach (var dir in Game.LegacyDirs)
             {
@@ -170,16 +185,79 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
         });
     }
 
-    /// <summary>Unsere Loader-DLL enthaelt den Pfad zur Runtime als UTF-16-Text.</summary>
+    /// <summary>
+    /// Uebergang von alten Namen: Ordner umziehen (z. B. remods/data -> remultiplayer/data, vorhandene
+    /// Dateien am Ziel gewinnen) und alte Loader-Sicherungen auf die neue Endung umbenennen.
+    /// </summary>
+    private void MigrateOldNames()
+    {
+        foreach (var m in Game.Migrations)
+        {
+            var from = Full(m.From);
+            var to = Full(m.To);
+            if (!Directory.Exists(from))
+            {
+                continue;
+            }
+            foreach (var file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories).ToList())
+            {
+                var target = Path.Combine(to, Path.GetRelativePath(from, file));
+                if (File.Exists(target))
+                {
+                    continue;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Move(file, target);
+            }
+        }
+        var loader = Game.Loader;
+        if (loader == null)
+        {
+            return;
+        }
+        var path = Full(loader.File);
+        foreach (var suffix in loader.LegacyBackupSuffixes)
+        {
+            if (File.Exists(path + suffix) && !File.Exists(path + loader.BackupSuffix))
+            {
+                File.Move(path + suffix, path + loader.BackupSuffix);
+            }
+        }
+    }
+
+    /// <summary>Dateien mit alten Namen und alte Protokolle entfernen (keep = Dateien des neuen Pakets).</summary>
+    private void RemoveObsolete(IReadOnlyCollection<string> keep)
+    {
+        var files = new List<string>(Game.ObsoleteFiles);
+        foreach (var dir in Game.ObsoleteDirs)
+        {
+            var full = Full(dir);
+            if (Directory.Exists(full))
+            {
+                files.AddRange(Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories)
+                    .Select(f => Path.GetRelativePath(GameDir, f).Replace('\\', '/')));
+            }
+        }
+        files.AddRange(Game.LegacyRecordPaths);
+        files = files.Where(f => !keep.Contains(f, StringComparer.OrdinalIgnoreCase)).ToList();
+        DeleteFiles(files);
+        PruneDirectories(files);
+        foreach (var dir in Game.ObsoleteDirs)
+        {
+            PruneDirectory(Full(dir));
+        }
+    }
+
+    /// <summary>Unsere Loader-DLL enthaelt den Pfad zur Runtime als UTF-16-Text (neue oder alte Kennung).</summary>
     public bool IsOurLoader(string path)
     {
         if (Game.Loader == null || !File.Exists(path))
         {
             return false;
         }
-        var needle = Encoding.Unicode.GetBytes(Game.Loader.OwnMarker);
         var bytes = File.ReadAllBytes(path);
-        return bytes.AsSpan().IndexOf(needle) >= 0;
+        return Game.Loader.LegacyMarkers.Prepend(Game.Loader.OwnMarker)
+            .Any(marker => bytes.AsSpan().IndexOf(Encoding.Unicode.GetBytes(marker)) >= 0);
     }
 
     private List<string> LegacyFiles()

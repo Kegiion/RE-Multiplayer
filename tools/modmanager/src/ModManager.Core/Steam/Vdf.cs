@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace REMods.ModManager.Core.Steam;
+namespace REMultiplayer.ModManager.Core.Steam;
 
 /// <summary>Knoten einer Valve-KeyValues-Datei (libraryfolders.vdf, appmanifest_*.acf).</summary>
 public sealed class VdfNode

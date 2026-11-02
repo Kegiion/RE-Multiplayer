@@ -7,7 +7,7 @@ target_compile_definitions(re0hd_loader PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 set_target_properties(re0hd_loader PROPERTIES OUTPUT_NAME dinput8 PREFIX "")
 
 # Runtime: Overlay, Lua, Netzwerk.
-add_library(remods_re0 SHARED
+add_library(remultiplayer_re0 SHARED
     runtime/src/main.cpp
     runtime/src/log.cpp
     runtime/src/d3d9_hook.cpp
@@ -16,33 +16,33 @@ add_library(remods_re0 SHARED
     runtime/src/mt_explorer.cpp
     runtime/src/safe_mem.cpp
     runtime/src/input_hook.cpp)
-target_link_libraries(remods_re0 PRIVATE coop_netcore imgui d3d9 dxguid)
-target_compile_definitions(remods_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_link_libraries(remultiplayer_re0 PRIVATE coop_netcore imgui d3d9 dxguid)
+target_compile_definitions(remultiplayer_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 
 # Git-Commit als Build-ID (wird im Spiel angezeigt)
 find_package(Git QUIET)
-set(REMODS_BUILD_ID "lokal")
+set(REMULTIPLAYER_BUILD_ID "lokal")
 if(GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-        OUTPUT_VARIABLE REMODS_BUILD_ID_GIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-    if(REMODS_BUILD_ID_GIT)
-        set(REMODS_BUILD_ID ${REMODS_BUILD_ID_GIT})
+        OUTPUT_VARIABLE REMULTIPLAYER_BUILD_ID_GIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(REMULTIPLAYER_BUILD_ID_GIT)
+        set(REMULTIPLAYER_BUILD_ID ${REMULTIPLAYER_BUILD_ID_GIT})
     endif()
 endif()
-target_compile_definitions(remods_re0 PRIVATE REMODS_BUILD_ID="${REMODS_BUILD_ID}")
-set_target_properties(remods_re0 PROPERTIES PREFIX "")
+target_compile_definitions(remultiplayer_re0 PRIVATE REMULTIPLAYER_BUILD_ID="${REMULTIPLAYER_BUILD_ID}")
+set_target_properties(remultiplayer_re0 PROPERTIES PREFIX "")
 
 # Paket: `cmake --install build32 --prefix dist/RE0HD-Coop --component re0hd-coop`
 # Inhalt 1:1 in den RE0-Spielordner kopieren.
 install(TARGETS re0hd_loader RUNTIME DESTINATION . COMPONENT re0hd-coop)
-install(TARGETS remods_re0 RUNTIME DESTINATION remods COMPONENT re0hd-coop)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/shared/re-engine/lua/ DESTINATION remods/autorun COMPONENT re0hd-coop)
-install(DIRECTORY lua/autorun/ DESTINATION remods/autorun COMPONENT re0hd-coop)
-install(DIRECTORY lua/lib/ DESTINATION remods/lib COMPONENT re0hd-coop)
+install(TARGETS remultiplayer_re0 RUNTIME DESTINATION remultiplayer COMPONENT re0hd-coop)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/shared/re-engine/lua/ DESTINATION remultiplayer/autorun COMPONENT re0hd-coop)
+install(DIRECTORY lua/autorun/ DESTINATION remultiplayer/autorun COMPONENT re0hd-coop)
+install(DIRECTORY lua/lib/ DESTINATION remultiplayer/lib COMPONENT re0hd-coop)
 
 # --- Installer ---------------------------------------------------------------
-# Eine einzige exe (REMods-RE0-Installer.exe), die alle Dateien des Pakets als
+# Eine einzige exe (RE-Multiplayer-RE0-Installer.exe), die alle Dateien des Pakets als
 # Ressourcen enthaelt. Ressource 1 = Verzeichnis "id|relativer/pfad".
 
 # Versionen fuer die Anzeige im Installer
@@ -65,11 +65,11 @@ macro(re0_payload source dest)
 endmacro()
 
 re0_payload("$<TARGET_FILE:re0hd_loader>" "dinput8.dll")
-re0_payload("$<TARGET_FILE:remods_re0>" "remods/remods_re0.dll")
+re0_payload("$<TARGET_FILE:remultiplayer_re0>" "remultiplayer/remultiplayer_re0.dll")
 foreach(dir_pair
-        "${PROJECT_SOURCE_DIR}/shared/re-engine/lua|remods/autorun"
-        "${CMAKE_CURRENT_SOURCE_DIR}/lua/autorun|remods/autorun"
-        "${CMAKE_CURRENT_SOURCE_DIR}/lua/lib|remods/lib")
+        "${PROJECT_SOURCE_DIR}/shared/re-engine/lua|remultiplayer/autorun"
+        "${CMAKE_CURRENT_SOURCE_DIR}/lua/autorun|remultiplayer/autorun"
+        "${CMAKE_CURRENT_SOURCE_DIR}/lua/lib|remultiplayer/lib")
     string(REPLACE "|" ";" dir_parts "${dir_pair}")
     list(GET dir_parts 0 src_dir)
     list(GET dir_parts 1 dest_dir)
@@ -87,17 +87,17 @@ file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/payload_$<CONFIG>.rc
 add_executable(re0hd_installer WIN32
     installer/installer.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/payload_$<CONFIG>.rc)
-add_dependencies(re0hd_installer re0hd_loader remods_re0)
+add_dependencies(re0hd_installer re0hd_loader remultiplayer_re0)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/payload_$<CONFIG>.rc PROPERTIES
     OBJECT_DEPENDS "${RE0_PAYLOAD_DEPENDS};${CMAKE_CURRENT_BINARY_DIR}/payload_index.txt")
 target_compile_definitions(re0hd_installer PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE
-    REMODS_MOD_VERSION="${RE0_MOD_VERSION}" REMODS_RUNTIME_VERSION="${RE0_RUNTIME_VERSION}"
-    REMODS_BUILD_ID="${REMODS_BUILD_ID}")
+    REMULTIPLAYER_MOD_VERSION="${RE0_MOD_VERSION}" REMULTIPLAYER_RUNTIME_VERSION="${RE0_RUNTIME_VERSION}"
+    REMULTIPLAYER_BUILD_ID="${REMULTIPLAYER_BUILD_ID}")
 if(MSVC)
     target_compile_options(re0hd_installer PRIVATE /utf-8)
 endif()
 target_link_libraries(re0hd_installer PRIVATE shell32 ole32 advapi32)
-set_target_properties(re0hd_installer PROPERTIES OUTPUT_NAME "REMods-RE0-Installer")
+set_target_properties(re0hd_installer PROPERTIES OUTPUT_NAME "RE-Multiplayer-RE0-Installer")
 
 # `cmake --install build32 --prefix dist/RE0HD-Installer --component re0hd-installer`
 install(TARGETS re0hd_installer RUNTIME DESTINATION . COMPONENT re0hd-installer)

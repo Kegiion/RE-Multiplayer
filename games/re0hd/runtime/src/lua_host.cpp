@@ -24,7 +24,7 @@
 // In den Bindings deshalb erst alle luaL_check*-Aufrufe, und keine
 // C++-Objekte mit Destruktor, solange ein Lua-Fehler auftreten kann.
 
-namespace remods::lua_host {
+namespace remultiplayer::lua_host {
 namespace {
 
 lua_State* g_L = nullptr;
@@ -480,9 +480,9 @@ int l_mem_scan(lua_State* L) {
     return 1;
 }
 
-// ---- remods ---------------------------------------------------------------
+// ---- remultiplayer ---------------------------------------------------------------
 
-int l_remods_reload(lua_State*) {
+int l_remultiplayer_reload(lua_State*) {
     request_reload();
     return 0;
 }
@@ -580,9 +580,9 @@ void register_api(lua_State* L) {
     set_int_field(L, "exe_size", exe_info().size);
     set_int_field(L, "exe_timestamp", exe_info().timestamp);
     set_int_field(L, "pointer_size", sizeof(void*));
-    lua_pushcfunction(L, l_remods_reload);
+    lua_pushcfunction(L, l_remultiplayer_reload);
     lua_setfield(L, -2, "reload");
-    lua_setglobal(L, "remods");
+    lua_setglobal(L, "remultiplayer");
 
     coop::net::register_lua_api(L, session());
     mt::register_lua(L);
@@ -624,7 +624,7 @@ void open_state() {
 
     // json-Bibliothek (reines Lua) als globale Tabelle `json`
     if (luaL_loadstring(L, "json = require('json')") == LUA_OK) {
-        protected_call(L, 0, "remods/lib/json.lua");
+        protected_call(L, 0, "remultiplayer/lib/json.lua");
     }
 
     // Alle Skripte in autorun/ alphabetisch laden (ohne Unterordner)
@@ -687,4 +687,4 @@ int script_count() {
     return g_script_count;
 }
 
-}  // namespace remods::lua_host
+}  // namespace remultiplayer::lua_host

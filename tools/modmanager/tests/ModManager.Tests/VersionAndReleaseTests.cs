@@ -1,10 +1,10 @@
 using System.Text.Json;
-using REMods.ModManager.Core;
-using REMods.ModManager.Core.Games;
-using REMods.ModManager.Core.Install;
-using REMods.ModManager.Core.Releases;
+using REMultiplayer.ModManager.Core;
+using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Install;
+using REMultiplayer.ModManager.Core.Releases;
 
-namespace REMods.ModManager.Tests;
+namespace REMultiplayer.ModManager.Tests;
 
 public class VersionAndReleaseTests
 {

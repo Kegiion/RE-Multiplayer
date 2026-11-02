@@ -5,7 +5,7 @@
 // spielspezifische Logik (Spieler auslesen, Gegner synchronisieren, ...)
 // steckt in den Lua-Skripten unter games/<spiel>/.
 //
-// Installation: remods_coopnet.dll nach <Spiel>/reframework/plugins/ kopieren.
+// Installation: remultiplayer_coopnet.dll nach <Spiel>/reframework/plugins/ kopieren.
 
 #include <windows.h>
 

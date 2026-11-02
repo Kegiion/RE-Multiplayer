@@ -1,14 +1,14 @@
--- REMods Testbot
+-- RE:Multiplayer Testbot
 --
 -- Ein simulierter Mitspieler fuer Tests ohne zweiten PC: verbindet sich mit
 -- deinem Spiel (dort "Hosten" klicken) und laeuft dir mit 1 Sekunde
 -- Verzoegerung hinterher. Im Spiel siehst du ihn als Markierung "Testbot".
 -- Chat-Nachrichten beantwortet er mit einem Echo.
 --
--- Aufruf: remods_luarun testbot.lua [ip] [port] [spiel]
+-- Aufruf: remultiplayer_luarun testbot.lua [ip] [port] [spiel]
 --         (Standard: 127.0.0.1 27350 re2r)
 
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 
 local Bot = {}
 Bot.__index = Bot
@@ -105,7 +105,7 @@ local bot = Bot.new(net_a, { game = game })
 local last_log = 0
 local next_attempt = 0
 
-print(string.format("REMods Testbot - verbinde zu %s:%d (Spiel %s). Beenden mit Strg+C.", address, port, game))
+print(string.format("RE:Multiplayer Testbot - verbinde zu %s:%d (Spiel %s). Beenden mit Strg+C.", address, port, game))
 while true do
     local now = bot.session:time()
     if bot.session:mode() == "idle" and now >= next_attempt then

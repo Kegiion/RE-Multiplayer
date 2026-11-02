@@ -1,7 +1,7 @@
 using System.Windows.Input;
-using REMods.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Games;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Eine Spielkarte im Fenster.</summary>
 public sealed class GameViewModel : ObservableObject

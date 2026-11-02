@@ -8,25 +8,25 @@ namespace coop::net {
 class Session;
 }
 
-namespace remods {
+namespace remultiplayer {
 
 // Bei jeder Aenderung an der Runtime erhoehen (Lua-Skripte haben eigene Versionen).
-constexpr const char* kRuntimeVersion = "0.3.0";
+constexpr const char* kRuntimeVersion = "0.3.1";
 
 // Git-Commit des Builds (von CMake gesetzt), damit man im Spiel sieht, welcher Build laeuft.
-#ifndef REMODS_BUILD_ID
-#define REMODS_BUILD_ID "lokal"
+#ifndef REMULTIPLAYER_BUILD_ID
+#define REMULTIPLAYER_BUILD_ID "lokal"
 #endif
-constexpr const char* kBuildId = REMODS_BUILD_ID;
+constexpr const char* kBuildId = REMULTIPLAYER_BUILD_ID;
 constexpr const char* kGameId = "re0hd";
 
 struct Paths {
     // Kommentare mit "/" statt Backslash (Backslash am Zeilenende = Zeilenfortsetzung!)
     std::string game_dir;     // <Spiel>/                 mit Trennzeichen am Ende
-    std::string remods_dir;   // <Spiel>/remods/
-    std::string autorun_dir;  // <Spiel>/remods/autorun/  Lua-Skripte, werden automatisch geladen
-    std::string lib_dir;      // <Spiel>/remods/lib/      Lua-Bibliotheken (require)
-    std::string data_dir;     // <Spiel>/remods/data/     Konfiguration, Diagnose (json.*)
+    std::string remultiplayer_dir;   // <Spiel>/remultiplayer/
+    std::string autorun_dir;  // <Spiel>/remultiplayer/autorun/  Lua-Skripte, werden automatisch geladen
+    std::string lib_dir;      // <Spiel>/remultiplayer/lib/      Lua-Bibliotheken (require)
+    std::string data_dir;     // <Spiel>/remultiplayer/data/     Konfiguration, Diagnose (json.*)
 };
 
 struct ExeInfo {
@@ -41,4 +41,4 @@ const ExeInfo& exe_info();
 // Lebt bis zum Prozessende (wird absichtlich nie freigegeben).
 coop::net::Session& session();
 
-}  // namespace remods
+}  // namespace remultiplayer

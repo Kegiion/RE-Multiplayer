@@ -1,14 +1,14 @@
 using System.IO.Compression;
 using System.Text;
 
-namespace REMods.ModManager.Tests;
+namespace REMultiplayer.ModManager.Tests;
 
 /// <summary>Temporaerer Ordner, der nach dem Test geloescht wird.</summary>
 public sealed class TempDir : IDisposable
 {
     public TempDir()
     {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "remods-test-" + Guid.NewGuid().ToString("N"));
+        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "remultiplayer-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path);
     }
 

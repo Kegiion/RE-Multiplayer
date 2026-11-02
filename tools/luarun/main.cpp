@@ -1,4 +1,4 @@
-// remods_luarun - fuehrt ein Lua-Skript mit zwei Netzwerk-Sessions aus.
+// remultiplayer_luarun - fuehrt ein Lua-Skript mit zwei Netzwerk-Sessions aus.
 //
 // Wird fuer die automatischen Tests und fuer den Testbot benutzt.
 // Im Skript verfuegbar:
@@ -6,10 +6,10 @@
 //   sleep_ms(ms)  - warten
 //   arg           - Kommandozeilen-Argumente nach dem Skriptnamen (arg[1], ...)
 //
-// Aufruf: remods_luarun <skript.lua> [argumente ...]
+// Aufruf: remultiplayer_luarun <skript.lua> [argumente ...]
 //
 // Lua-Module werden gesucht in: <Ordner der exe>/lua/, <Ordner des Skripts>/
-// und in REMODS_LUA_PATH (Umgebungsvariable, Lua-Pfadmuster).
+// und in REMULTIPLAYER_LUA_PATH (Umgebungsvariable, Lua-Pfadmuster).
 #include "coop/net/lua_bindings.hpp"
 #include "coop/net/session.hpp"
 
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     lua_register(L, "sleep_ms", l_sleep_ms);
 
     std::string search = dir_of(argv[0]) + "/lua/?.lua;" + dir_of(script) + "/?.lua";
-    if (const char* env = std::getenv("REMODS_LUA_PATH")) {
+    if (const char* env = std::getenv("REMULTIPLAYER_LUA_PATH")) {
         search = std::string{env} + ";" + search;
     }
     prepend_package_path(L, search);

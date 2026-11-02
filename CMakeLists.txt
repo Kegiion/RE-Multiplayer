@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(REMods LANGUAGES C CXX)
+project(REMultiplayer LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,7 +8,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Statische C/C++-Runtime: Die DLL braucht dann kein extra VC++-Redistributable.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-option(REMODS_BUILD_TESTS "Tests bauen (laufen auch unter Linux)" ON)
+option(REMULTIPLAYER_BUILD_TESTS "Tests bauen (laufen auch unter Linux)" ON)
 
 add_subdirectory(third_party)
 add_subdirectory(shared/netcore)
@@ -23,7 +23,7 @@ if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     add_subdirectory(games/re0hd)
 endif()
 
-if(REMODS_BUILD_TESTS)
+if(REMULTIPLAYER_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
@@ -31,8 +31,8 @@ endif()
 # --- Pakete --------------------------------------------------------------
 # `cmake --install build --prefix dist/re2r-coop --component re2r-coop`
 # erzeugt einen Ordner, der 1:1 in den Spielordner von RE2 kopiert wird.
-if(TARGET remods_coopnet)
-    install(TARGETS remods_coopnet
+if(TARGET remultiplayer_coopnet)
+    install(TARGETS remultiplayer_coopnet
         RUNTIME DESTINATION reframework/plugins
         COMPONENT re2r-coop)
 endif()

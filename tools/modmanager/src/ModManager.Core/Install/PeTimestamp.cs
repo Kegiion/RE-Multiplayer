@@ -1,4 +1,4 @@
-namespace REMods.ModManager.Core.Install;
+namespace REMultiplayer.ModManager.Core.Install;
 
 /// <summary>Liest den Zeitstempel aus dem PE-Header einer exe (daran erkennen wir die Spielversion).</summary>
 public static class PeTimestamp

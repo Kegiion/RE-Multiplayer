@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using REMods.ModManager.Core.Install;
+using REMultiplayer.ModManager.Core.Install;
 
-namespace REMods.ModManager.Core.Games;
+namespace REMultiplayer.ModManager.Core.Games;
 
 /// <summary>Ein unterstuetztes Spiel (Eintrag aus games.json).</summary>
 public sealed class GameDefinition
@@ -37,6 +37,22 @@ public sealed class GameDefinition
 
     public FrameworkRule? Framework { get; set; }
 
+    // ---- Alte Namen (vor der Umbenennung REMods -> RE:Multiplayer) ----------
+
+    /// <summary>Markerdateien alter Installationen (gelten ebenfalls als "installiert").</summary>
+    public List<string> LegacyInstalledMarkers { get; set; } = [];
+
+    /// <summary>Installationsprotokolle alter Manager-Versionen.</summary>
+    public List<string> LegacyRecordPaths { get; set; } = [];
+
+    /// <summary>Ordner, die vor dem Installieren/Deinstallieren umziehen (z. B. alte Einstellungen).</summary>
+    public List<PathMigration> Migrations { get; set; } = [];
+
+    /// <summary>Dateien/Ordner mit alten Namen. Werden beim Installieren und Deinstallieren entfernt.</summary>
+    public List<string> ObsoleteFiles { get; set; } = [];
+
+    public List<string> ObsoleteDirs { get; set; } = [];
+
     /// <summary>PE-Zeitstempel der unterstuetzten exe-Versionen (hex). Leer = keine Pruefung.</summary>
     public List<string> SupportedExeTimestamps { get; set; } = [];
 
@@ -70,7 +86,20 @@ public sealed class LoaderRule
     /// <summary>Text, der als UTF-16 in unserem Loader steht (daran erkennen wir ihn).</summary>
     public string OwnMarker { get; set; } = "";
 
-    public string BackupSuffix { get; set; } = ".vor-remods";
+    public string BackupSuffix { get; set; } = ".vor-remultiplayer";
+
+    /// <summary>Kennungen alter Versionen unseres Loaders (gelten auch als "unserer").</summary>
+    public List<string> LegacyMarkers { get; set; } = [];
+
+    /// <summary>Endungen alter Sicherungen (werden auf BackupSuffix umbenannt).</summary>
+    public List<string> LegacyBackupSuffixes { get; set; } = [];
+}
+
+/// <summary>Ordner From wird nach To verschoben (vorhandene Dateien in To gewinnen).</summary>
+public sealed class PathMigration
+{
+    public string From { get; set; } = "";
+    public string To { get; set; } = "";
 }
 
 /// <summary>Fremdes Framework, das die Mod braucht (z. B. REFramework bei RE2).</summary>
@@ -90,7 +119,8 @@ public sealed class FrameworkRule
 /// <summary>Liste aller unterstuetzten Spiele (games.json).</summary>
 public sealed class GameCatalog
 {
-    public const int SupportedSchema = 1;
+    // 2: alte Namen (legacy*/obsolete*/migrations), Manager ab 1.1.0
+    public const int SupportedSchema = 2;
 
     public int Schema { get; set; }
 
@@ -152,6 +182,11 @@ public sealed class GameCatalog
             paths.AddRange(g.LegacyFiles);
             paths.AddRange(g.LegacyDirs);
             paths.AddRange(g.Logs);
+            paths.AddRange(g.LegacyInstalledMarkers);
+            paths.AddRange(g.LegacyRecordPaths);
+            paths.AddRange(g.ObsoleteFiles);
+            paths.AddRange(g.ObsoleteDirs);
+            paths.AddRange(g.Migrations.SelectMany(m => new[] { m.From, m.To }));
             if (g.Loader != null)
             {
                 paths.Add(g.Loader.File);

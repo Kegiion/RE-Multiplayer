@@ -1,6 +1,12 @@
-# Patch Notes: REMods Mod-Manager
+# Patch Notes: RE:Multiplayer Mod-Manager
 
 Neueste Version oben. Der Release-Workflow übernimmt den Abschnitt `## <Version>` (Version aus `Directory.Build.props`).
+
+## 1.1.0
+
+- **Neuer Name: RE:Multiplayer.** Die exe heißt jetzt `RE-Multiplayer.exe`, das Repo `Kegiion/RE-Multiplayer`.
+- Installationen mit den alten Namen (`remods/`, `remods_coopnet.dll`) werden beim Aktualisieren umgezogen. Einstellungen bleiben erhalten, eine gesicherte fremde `dinput8.dll` auch.
+- Die Einstellungen des Managers ziehen von `%LOCALAPPDATA%\REMods` nach `%LOCALAPPDATA%\RE-Multiplayer` um.
 
 ## 1.0.1
 

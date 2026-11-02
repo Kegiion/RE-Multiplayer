@@ -14,14 +14,14 @@ RE0 HD läuft auf der **MT Framework** (nicht RE Engine), ist ein **32-Bit-Progr
 
 | Datei im Spielordner | Aufgabe |
 |---|---|
-| `dinput8.dll` | Loader. Windows lädt sie statt der echten `dinput8.dll`. Sie reicht alles an die echte DLL weiter und lädt `remods\remods_re0.dll` |
-| `remods\remods_re0.dll` | Runtime: Menü im Spiel (Dear ImGui), Lua, Netzwerk (`coopnet`), Speicherzugriff (`mem.*`) |
-| `remods\autorun\*.lua` | Lua-Skripte, werden beim Start automatisch geladen |
-| `remods\lib\json.lua` | JSON-Bibliothek für Konfiguration und Diagnose |
-| `remods\data\` | Konfiguration und Diagnose-Dateien (wird automatisch angelegt) |
-| `remods\remods_re0.log` | Log der Runtime. **Bei Problemen immer zuerst hier nachsehen** |
+| `dinput8.dll` | Loader. Windows lädt sie statt der echten `dinput8.dll`. Sie reicht alles an die echte DLL weiter und lädt `remultiplayer\remultiplayer_re0.dll` |
+| `remultiplayer\remultiplayer_re0.dll` | Runtime: Menü im Spiel (Dear ImGui), Lua, Netzwerk (`coopnet`), Speicherzugriff (`mem.*`) |
+| `remultiplayer\autorun\*.lua` | Lua-Skripte, werden beim Start automatisch geladen |
+| `remultiplayer\lib\json.lua` | JSON-Bibliothek für Konfiguration und Diagnose |
+| `remultiplayer\data\` | Konfiguration und Diagnose-Dateien (wird automatisch angelegt) |
+| `remultiplayer\remultiplayer_re0.log` | Log der Runtime. **Bei Problemen immer zuerst hier nachsehen** |
 
-Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, `imgui.*`, `log.*`, `json.*`). Deshalb nutzt RE0 dieselbe Session- und Protokoll-Bibliothek wie RE2 (`remods_coop`). Die vollständige Liste steht in [runtime/src/lua_host.hpp](runtime/src/lua_host.hpp).
+Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, `imgui.*`, `log.*`, `json.*`). Deshalb nutzt RE0 dieselbe Session- und Protokoll-Bibliothek wie RE2 (`remultiplayer_coop`). Die vollständige Liste steht in [runtime/src/lua_host.hpp](runtime/src/lua_host.hpp).
 
 ## Installation
 
@@ -30,24 +30,24 @@ Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, 
    gh run download -n RE0HD-Coop -D "C:/Program Files (x86)/Steam/steamapps/common/Resident Evil 0"
    ```
 2. Den Inhalt **direkt in den Spielordner** entpacken, sodass `dinput8.dll` neben `re0hd.exe` liegt.
-3. Deinstallieren: `dinput8.dll` und den Ordner `remods` löschen.
+3. Deinstallieren: `dinput8.dll` und den Ordner `remultiplayer` löschen.
 
 ## Erster Test (Checkliste)
 
-1. Spiel starten. In den ersten 20 Sekunden erscheint oben links: „REMods RE0 <Version> (Build <Commit>) geladen …“. Der Build ist der Git-Commit, aus dem das Paket gebaut wurde.
-   - Erscheint nichts: Gibt es `remods\remods_re0.log`?
+1. Spiel starten. In den ersten 20 Sekunden erscheint oben links: „RE:Multiplayer RE0 <Version> (Build <Commit>) geladen …“. Der Build ist der Git-Commit, aus dem das Paket gebaut wurde.
+   - Erscheint nichts: Gibt es `remultiplayer\remultiplayer_re0.log`?
      - **Nein:** Der Loader wurde nicht geladen. Liegt `dinput8.dll` neben `re0hd.exe`?
      - **Ja:** Die Log-Datei an Claude geben.
-2. **Einfg** oder **F8** drücken. Das Menü „REMods – Resident Evil 0 HD“ öffnet sich.
+2. **Einfg** oder **F8** drücken. Das Menü „RE:Multiplayer – Resident Evil 0 HD“ öffnet sich.
    - Funktioniert die Maus im Menü? Lässt sich in „Dein Name“ tippen?
    - Läuft das Spiel noch flüssig?
 3. Im Menü auf **„Skripte neu laden“** klicken. Es sollten keine roten Fehler erscheinen.
 4. Vollbild/Fenster umschalten oder Alt+Tab. Stürzt das Spiel ab, ist das Menü danach noch da?
-5. Netzwerk-Test mit dem Testbot (aus dem Artifact `REMods-Tools`):
+5. Netzwerk-Test mit dem Testbot (aus dem Artifact `RE-Multiplayer-Tools`):
    - Im Menü unter „RE0 Koop“ auf **Hosten** klicken.
    - In einer Eingabeaufforderung im Tools-Ordner `testbot.bat 127.0.0.1 27350 re0hd` starten.
    - Im Menü sollte „Mitspieler: …“ erscheinen. Ohne den Parameter `re0hd` meldet sich der Bot als RE2-Spieler, dann ist „falsches Spiel“ im Log richtig.
-6. Spiel beenden und `remods\remods_re0.log` an Claude geben (bzw. nach `games/re0hd/research/` kopieren).
+6. Spiel beenden und `remultiplayer\remultiplayer_re0.log` an Claude geben (bzw. nach `games/re0hd/research/` kopieren).
 
 ## Koop spielen (Stand Lua 0.4.0, Geister-Koop)
 
@@ -68,8 +68,8 @@ MT Framework hat ein eigenes Typsystem (DTI): Jede Klasse hat einen Namen wie `u
 1. Im Spiel an die gewünschte Stelle gehen, dann **Speicher durchsuchen** klicken. Das Spiel stockt dabei kurz.
 2. Klasse suchen (oder Schnellwahl, z. B. `uPlayerRebecca`) und ein Objekt anklicken.
 3. Die Objekt-Ansicht zeigt die Daten live an. Gelb markiert sind Werte, die sich gerade geändert haben. Mit **>** folgst du einem Zeiger auf ein anderes Objekt.
-4. **Schnappschuss speichern** mit einer kurzen Beschreibung („rebecca_steht“, „rebecca_laeuft_vor“). Claude wertet die Dateien in `remods/data/` direkt aus.
-5. **Klassenliste speichern** schreibt alle gefundenen Klassen mit Anzahl der Objekte nach `remods/data/re0hd_classes.json`.
+4. **Schnappschuss speichern** mit einer kurzen Beschreibung („rebecca_steht“, „rebecca_laeuft_vor“). Claude wertet die Dateien in `remultiplayer/data/` direkt aus.
+5. **Klassenliste speichern** schreibt alle gefundenen Klassen mit Anzahl der Objekte nach `remultiplayer/data/re0hd_classes.json`.
 
 ## Forschung: Spieldaten finden
 
@@ -78,6 +78,6 @@ Die Adressen für Position und Lebenspunkte suchen wir mit **Cheat Engine**. Dan
 - **Adresse:** `re0hd.exe+1A2B` (Modul + Offset) oder als Zeiger-Kette `re0hd.exe+1A2B, 10, 4`. Das entspricht einem Cheat-Engine-Pointer mit Basis `re0hd.exe+1A2B` und den Offsets 10 und 4. Alle Zahlen sind hexadezimal.
 - **Typ** auswählen (`f32` für Positionen, meist `i32`/`u16` für Lebenspunkte).
 - **Merken** setzt den Wert auf die Merkliste. Er wird live angezeigt und bleibt gespeichert.
-- **Diagnose speichern** schreibt alle Werte der Merkliste mit Spielversion nach `remods/data/re0hd_diag_<situation>.json`.
+- **Diagnose speichern** schreibt alle Werte der Merkliste mit Spielversion nach `remultiplayer/data/re0hd_diag_<situation>.json`.
 
 Bestätigte Fakten kommen nach [research/README.md](research/README.md).

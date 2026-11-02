@@ -22,8 +22,8 @@
 
 struct lua_State;
 
-namespace remods::mt {
+namespace remultiplayer::mt {
 
 void register_lua(lua_State* L);
 
-}  // namespace remods::mt
+}  // namespace remultiplayer::mt

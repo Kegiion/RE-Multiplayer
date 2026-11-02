@@ -15,7 +15,7 @@
 
 struct lua_State;
 
-namespace remods::input {
+namespace remultiplayer::input {
 
 bool install();
 
@@ -24,4 +24,4 @@ void set_blocked(bool blocked);
 
 void register_lua(lua_State* L);
 
-}  // namespace remods::input
+}  // namespace remultiplayer::input

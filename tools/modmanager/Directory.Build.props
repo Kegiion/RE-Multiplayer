@@ -3,9 +3,9 @@
        <Version> ist die Manager-Version. Bei jeder Aenderung erhoehen und
        tools/modmanager/CHANGELOG.md ergaenzen (Release-Workflow liest beides). -->
   <PropertyGroup>
-    <Version>1.0.1</Version>
-    <Product>REMods Mod-Manager</Product>
-    <Company>REMods</Company>
+    <Version>1.1.0</Version>
+    <Product>RE:Multiplayer Mod-Manager</Product>
+    <Company>RE:Multiplayer</Company>
     <Copyright>MIT-Lizenz</Copyright>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

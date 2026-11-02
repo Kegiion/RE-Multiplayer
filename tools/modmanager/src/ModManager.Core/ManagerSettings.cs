@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
 
-namespace REMods.ModManager.Core;
+namespace REMultiplayer.ModManager.Core;
 
-/// <summary>Einstellungen des Managers (%LOCALAPPDATA%\REMods\settings.json).</summary>
+/// <summary>Einstellungen des Managers (%LOCALAPPDATA%\RE-Multiplayer\settings.json).</summary>
 public sealed class ManagerSettings
 {
     /// <summary>Von Hand gewaehlte Spielordner, Schluessel = Spiel-Id.</summary>
@@ -46,7 +46,7 @@ public sealed class ManagerSettings
     }
 }
 
-/// <summary>Einfaches Log des Managers (%LOCALAPPDATA%\REMods\manager.log).</summary>
+/// <summary>Einfaches Log des Managers (%LOCALAPPDATA%\RE-Multiplayer\manager.log).</summary>
 public static class ManagerLog
 {
     private const long MaxSize = 1024 * 1024;

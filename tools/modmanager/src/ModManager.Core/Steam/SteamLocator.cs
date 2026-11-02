@@ -2,7 +2,7 @@ using System.Runtime.Versioning;
 using System.Security;
 using Microsoft.Win32;
 
-namespace REMods.ModManager.Core.Steam;
+namespace REMultiplayer.ModManager.Core.Steam;
 
 /// <summary>Findet Steam, alle Steam-Bibliotheken und darin installierte Spiele.</summary>
 public static class SteamLocator

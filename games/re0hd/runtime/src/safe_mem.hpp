@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace remods {
+namespace remultiplayer {
 
 // Kopiert n Bytes von src nach dst. false bei ungueltigem Speicher.
 bool safe_read(void* dst, uintptr_t src, size_t n);
@@ -22,4 +22,4 @@ bool safe_get(uintptr_t addr, T& out) {
     return safe_read(&out, addr, sizeof(T));
 }
 
-}  // namespace remods
+}  // namespace remultiplayer

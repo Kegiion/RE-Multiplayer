@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
-using REMods.ModManager.Core.Releases;
+using REMultiplayer.ModManager.Core.Releases;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Zeigt die Release-Texte aller Versionen einer Mod, neueste zuerst.</summary>
 public partial class NotesWindow : Window

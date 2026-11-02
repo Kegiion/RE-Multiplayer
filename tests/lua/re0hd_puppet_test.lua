@@ -1,7 +1,7 @@
 -- Testet die Puppen-Steuerung (re0hd_coop/puppet.lua) in einem Mini-Spiel:
 -- Der Partner laeuft in die Richtung der gedrueckten Partner-Tasten
 -- (relativ zur Kamera), so wie in RE0 beobachtet.
-local RE0 = assert(os.getenv("REMODS_RE0HD_LUA"), "Umgebungsvariable REMODS_RE0HD_LUA fehlt")
+local RE0 = assert(os.getenv("REMULTIPLAYER_RE0HD_LUA"), "Umgebungsvariable REMULTIPLAYER_RE0HD_LUA fehlt")
 package.path = RE0 .. "/autorun/?.lua;" .. package.path
 local Puppet = require("re0hd_coop.puppet")
 

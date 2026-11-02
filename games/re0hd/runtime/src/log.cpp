@@ -7,7 +7,7 @@
 #include <deque>
 #include <mutex>
 
-namespace remods {
+namespace remultiplayer {
 namespace {
 
 constexpr size_t kRingSize = 300;
@@ -45,7 +45,7 @@ void log_line(LogLevel level, const std::string& text) {
         std::fprintf(g_file, "%s%s\n", prefix, text.c_str());
         std::fflush(g_file);  // Bei einem Absturz soll nichts verloren gehen
     }
-    OutputDebugStringA(("[REMods] " + text + "\n").c_str());
+    OutputDebugStringA(("[RE:Multiplayer] " + text + "\n").c_str());
     g_ring.push_back({level, std::string{prefix} + text});
     if (g_ring.size() > kRingSize) {
         g_ring.pop_front();
@@ -67,4 +67,4 @@ std::vector<LogEntry> log_tail(size_t max) {
     return {g_ring.begin() + static_cast<std::ptrdiff_t>(start), g_ring.end()};
 }
 
-}  // namespace remods
+}  // namespace remultiplayer

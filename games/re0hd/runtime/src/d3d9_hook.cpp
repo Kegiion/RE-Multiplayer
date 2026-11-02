@@ -8,7 +8,7 @@
 
 #include "log.hpp"
 
-namespace remods::d3d9 {
+namespace remultiplayer::d3d9 {
 namespace {
 
 // vtable-Indizes (Reihenfolge der Methoden in d3d9.h)
@@ -149,7 +149,7 @@ bool install(const Callbacks& callbacks) {
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = DefWindowProcW;
     wc.hInstance = GetModuleHandleW(nullptr);
-    wc.lpszClassName = L"REModsDummyWindow";
+    wc.lpszClassName = L"REMultiplayerDummyWindow";
     RegisterClassExW(&wc);
     HWND wnd = CreateWindowExW(0, wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 0, 0, 16, 16, nullptr, nullptr,
                                wc.hInstance, nullptr);
@@ -184,4 +184,4 @@ bool install(const Callbacks& callbacks) {
     return true;
 }
 
-}  // namespace remods::d3d9
+}  // namespace remultiplayer::d3d9

@@ -1,4 +1,4 @@
-// Netzwerk-Kern fuer alle REMods-Multiplayer-Mods.
+// Netzwerk-Kern fuer alle RE:Multiplayer-Mods.
 //
 // Ein Session-Objekt ist entweder Host (wartet auf Verbindungen) oder Client
 // (verbindet sich zu einem Host). Die eigentliche Netzwerkarbeit laeuft in

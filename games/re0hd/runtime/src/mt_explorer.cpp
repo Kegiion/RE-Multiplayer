@@ -16,7 +16,7 @@
 #include "runtime.hpp"
 #include "safe_mem.hpp"
 
-namespace remods::mt {
+namespace remultiplayer::mt {
 namespace {
 
 struct Range {
@@ -575,4 +575,4 @@ void register_lua(lua_State* L) {
     lua_setglobal(L, "mt");
 }
 
-}  // namespace remods::mt
+}  // namespace remultiplayer::mt

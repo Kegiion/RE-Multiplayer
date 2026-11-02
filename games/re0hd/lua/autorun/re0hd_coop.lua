@@ -1,17 +1,17 @@
--- RE0 HD Koop (REMods) - Einstiegspunkt
+-- RE0 HD Koop (RE:Multiplayer) - Einstiegspunkt
 --
--- Wird von der REMods-Runtime automatisch geladen (remods/autorun/).
+-- Wird von der RE:Multiplayer-Runtime automatisch geladen (remultiplayer/autorun/).
 -- Menue: Taste Einfg oder F8 -> Abschnitt "RE0 Koop".
 --
 -- Aufbau:
---   remods_coop/*          gemeinsame Lua-Bibliothek (wie bei RE2)
+--   remultiplayer_coop/*          gemeinsame Lua-Bibliothek (wie bei RE2)
 --   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (Figuren, Kamera, Partner-Tasten)
 --   re0hd_coop/puppet.lua  Partner als Puppe des Mitspielers (laeuft dessen Weg nach)
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.4.0"
+local MOD_VERSION = "0.4.1"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -24,7 +24,7 @@ if coopnet == nil then
     return
 end
 
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local game = require("re0hd_coop.game")
 local memtool = require("re0hd_coop.memtool")
 local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtime 0.2.0
@@ -251,7 +251,7 @@ local CHARACTER_NAMES = { [0] = "?", [1] = "Rebecca", [2] = "Billy" }
 local function draw_coop_ui()
     if not game.supported then
         imgui.text_colored("Diese re0hd.exe-Version kennt die Mod noch nicht (Zeitstempel "
-            .. string.format("0x%08X", remods.exe_timestamp) .. ") - Koop aus.", 0xFF4040FF)
+            .. string.format("0x%08X", remultiplayer.exe_timestamp) .. ") - Koop aus.", 0xFF4040FF)
         return
     end
     local ls = coop.local_state
@@ -293,19 +293,19 @@ local function write_diag(status)
     local data = {
         label = ui.diag_label,
         time = os.date("%Y-%m-%d %H:%M:%S"),
-        runtime_version = remods.version,
+        runtime_version = remultiplayer.version,
         mod_version = MOD_VERSION,
         exe = {
-            base = string.format("0x%08X", remods.exe_base),
-            size = string.format("0x%X", remods.exe_size),
-            timestamp = string.format("0x%08X", remods.exe_timestamp),
+            base = string.format("0x%08X", remultiplayer.exe_base),
+            size = string.format("0x%X", remultiplayer.exe_size),
+            timestamp = string.format("0x%08X", remultiplayer.exe_timestamp),
         },
         watches = memtool.snapshot(config.watches),
         coop_status = status,
     }
     local ok, err = json.dump_file(file, data)
     if ok then
-        return true, "remods/data/" .. file
+        return true, "remultiplayer/data/" .. file
     end
     return false, tostring(err)
 end
@@ -405,4 +405,4 @@ re.on_draw_ui(function()
     imgui.tree_pop()
 end)
 
-session:log("RE0 Koop %s geladen (coopnet %s, Runtime %s)", MOD_VERSION, coopnet.version(), remods.version)
+session:log("RE0 Koop %s geladen (coopnet %s, Runtime %s)", MOD_VERSION, coopnet.version(), remultiplayer.version)

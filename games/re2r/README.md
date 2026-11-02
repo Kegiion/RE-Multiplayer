@@ -19,11 +19,11 @@ Koop-Multiplayer für die Story von Resident Evil 2 Remake.
    ├── re2.exe
    ├── dinput8.dll
    └── reframework/
-       ├── plugins/remods_coopnet.dll
+       ├── plugins/remultiplayer_coopnet.dll
        └── autorun/
            ├── re2r_coop.lua
            ├── re2r_coop/ ...
-           └── remods_coop/ ...
+           └── remultiplayer_coop/ ...
    ```
 3. Spiel neu starten.
 
@@ -41,7 +41,7 @@ Bitte gehe diese Liste durch und schreib mir zu jedem Punkt, was passiert ist:
    - `start`: direkt nach dem Laden eines Spielstands
    - `anderer_raum`: nachdem du durch eine Tür in einen anderen Bereich gegangen bist
    - Die Dateien liegen unter `reframework/data/re2r_coop_diag_<situation>.json`. Schick sie mir alle (siehe [Zusammenarbeit](../../docs/ZUSAMMENARBEIT.md)).
-4. **Testbot** (Paket *REMods-Tools* aus denselben Artifacts, irgendwo außerhalb des Spielordners entpacken):
+4. **Testbot** (Paket *RE-Multiplayer-Tools* aus denselben Artifacts, irgendwo außerhalb des Spielordners entpacken):
    - Im Spiel auf **Hosten** klicken, dann `testbot.bat` starten.
    - Erscheint im Spiel die Markierung „Testbot“? Läuft sie dir hinterher?
    - Schreib im Menü eine Nachricht. Kommt „Echo: …“ im Log zurück?
@@ -56,7 +56,7 @@ Wenn etwas nicht klappt: Datei `re2_framework_log.txt` aus dem Spielordner und d
 
 ## Deinstallieren
 
-`reframework/plugins/remods_coopnet.dll`, `reframework/autorun/re2r_coop.lua` sowie die Ordner `re2r_coop/` und `remods_coop/` löschen. Zum Entfernen von REFramework zusätzlich `dinput8.dll` löschen.
+`reframework/plugins/remultiplayer_coopnet.dll`, `reframework/autorun/re2r_coop.lua` sowie die Ordner `re2r_coop/` und `remultiplayer_coop/` löschen. Zum Entfernen von REFramework zusätzlich `dinput8.dll` löschen.
 
 ## Bekannte offene Punkte
 

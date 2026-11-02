@@ -25,7 +25,7 @@ local OFF_CAM_TARGET = 0x60            -- Kamera: Blickpunkt
 -- Sie wirken relativ zur Kamera: hoch = vom Betrachter weg.
 game.PARTNER_KEYS = { up = 0xC8, down = 0xD0, left = 0xCB, right = 0xCD }
 
-game.supported = remods ~= nil and remods.exe_timestamp == EXE_TIMESTAMP
+game.supported = remultiplayer ~= nil and remultiplayer.exe_timestamp == EXE_TIMESTAMP
 
 local CLASS_TO_CHARACTER = { uPlayerRebecca = 1, uPlayerBilly = 2 }
 

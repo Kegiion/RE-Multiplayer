@@ -1,11 +1,11 @@
 using System.Windows;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Kurze Meldungen an den Spieler.</summary>
 public static class Dialogs
 {
-    private const string Title = "REMods Mod-Manager";
+    private const string Title = "RE:Multiplayer Mod-Manager";
 
     private static Window? Owner => Application.Current?.MainWindow is { IsVisible: true } w ? w : null;
 

@@ -1,8 +1,8 @@
 -- Testbot: folgt mit Verzoegerung und seitlichem Versatz, beantwortet Chat.
 TESTBOT_AS_MODULE = true
-package.path = assert(os.getenv("REMODS_TOOLS")) .. "/testbot/?.lua;" .. package.path
+package.path = assert(os.getenv("REMULTIPLAYER_TOOLS")) .. "/testbot/?.lua;" .. package.path
 local Bot = require("testbot")
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local PORT = 47931
 
 Bot.DELAY = 0.2

@@ -6,8 +6,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-    <AssemblyName>REMods-Manager</AssemblyName>
-    <RootNamespace>REMods.ModManager</RootNamespace>
+    <AssemblyName>RE-Multiplayer</AssemblyName>
+    <RootNamespace>REMultiplayer.ModManager</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
   </PropertyGroup>

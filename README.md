@@ -1,4 +1,4 @@
-# REMods
+# RE:Multiplayer
 
 Unsere Mods für die Resident-Evil-Reihe. Das Hauptziel ist ein **Koop-Multiplayer durch die Story**, zuerst für **Resident Evil 2 Remake**, später für weitere Teile.
 
@@ -15,7 +15,7 @@ Unsere Mods für die Resident-Evil-Reihe. Das Hauptziel ist ein **Koop-Multiplay
 ## Projektaufbau
 
 ```
-REMods/
+RE-Multiplayer/
 ├── games/                    Spielspezifisches (eine Mod pro Ordner)
 │   ├── re2r/
 │   │   ├── coop/autorun/     Lua-Skripte der RE2-Koop-Mod
@@ -25,8 +25,8 @@ REMods/
 │   ├── netcore/              C++-Netzwerk-Kern (ENet) + Lua-Anbindung
 │   └── re-engine/
 │       ├── coopnet-plugin/   REFramework-Plugin (DLL) für alle RE-Engine-Spiele
-│       └── lua/remods_coop/  Gemeinsame Lua-Bibliothek: Protokoll, Sitzung
-├── tools/                    remods_luarun, Testbot (simulierter Mitspieler), modmanager/ (Mod-Manager)
+│       └── lua/remultiplayer_coop/  Gemeinsame Lua-Bibliothek: Protokoll, Sitzung
+├── tools/                    remultiplayer_luarun, Testbot (simulierter Mitspieler), modmanager/ (Mod-Manager)
 ├── tests/                    Automatische Tests (laufen ohne Spiel)
 ├── third_party/              Fremdbibliotheken (ENet, Lua 5.4.3, REFramework-API, Dear ImGui)
 └── docs/                     Architektur, Roadmap, Zusammenarbeit

@@ -1,7 +1,7 @@
 -- Laedt das RE2-Koop-Skript in einer nachgebauten REFramework-Umgebung und
 -- spielt eine Verbindung mit einem zweiten (reinen Lua-)Spieler durch.
--- Erwartet: Umgebungsvariable REMODS_RE2R_AUTORUN = Pfad zu games/re2r/coop/autorun
-local AUTORUN = assert(os.getenv("REMODS_RE2R_AUTORUN"), "Umgebungsvariable REMODS_RE2R_AUTORUN fehlt")
+-- Erwartet: Umgebungsvariable REMULTIPLAYER_RE2R_AUTORUN = Pfad zu games/re2r/coop/autorun
+local AUTORUN = assert(os.getenv("REMULTIPLAYER_RE2R_AUTORUN"), "Umgebungsvariable REMULTIPLAYER_RE2R_AUTORUN fehlt")
 package.path = AUTORUN .. "/?.lua;" .. package.path
 
 -- ---- Mock: REFramework-API ---------------------------------------------
@@ -192,7 +192,7 @@ run_ui()
 assert(net_a.status().mode == "hosting", "Host nicht gestartet")
 
 -- Spieler B (reine Lua-Session) tritt bei
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local b = Session.new({ net = net_b, game = "re2r", mod_version = "0.1.0", name = "Claire" })
 local b_states = {}
 b:on("PLAYER_STATE", function(_, _, msg) table.insert(b_states, msg) end)

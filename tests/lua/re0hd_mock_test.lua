@@ -1,12 +1,12 @@
--- Laedt das RE0-Koop-Skript in einer nachgebauten REMods-Runtime-Umgebung:
+-- Laedt das RE0-Koop-Skript in einer nachgebauten RE:Multiplayer-Runtime-Umgebung:
 -- json.lua (echt), Speicher-Werkzeug mit Fake-Speicher, Verbindung mit einem
 -- zweiten (reinen Lua-)Spieler.
--- Erwartet: REMODS_RE0HD_LUA = Pfad zu games/re0hd/lua
-local RE0 = assert(os.getenv("REMODS_RE0HD_LUA"), "Umgebungsvariable REMODS_RE0HD_LUA fehlt")
+-- Erwartet: REMULTIPLAYER_RE0HD_LUA = Pfad zu games/re0hd/lua
+local RE0 = assert(os.getenv("REMULTIPLAYER_RE0HD_LUA"), "Umgebungsvariable REMULTIPLAYER_RE0HD_LUA fehlt")
 package.path = RE0 .. "/lib/?.lua;" .. RE0 .. "/autorun/?.lua;" .. package.path
 
 -- ---- json.lua -------------------------------------------------------------
-remods = {
+remultiplayer = {
     version = "0.1.0", game = "re0hd", data_dir = "",
     exe_base = 0x400000, exe_size = 0x100000, exe_timestamp = 0x5A0B1C2D,
 }
@@ -126,7 +126,7 @@ pending_inputs["Situation (z. B. rebecca_zug)"] = "Zug Wagen 1!"
 run_ui()
 pending_clicks["Diagnose speichern"] = true
 run_ui()
-assert(find_text("Gespeichert: remods/data/re0hd_diag_Zug_Wagen_1_.json"), "Diagnose nicht gespeichert")
+assert(find_text("Gespeichert: remultiplayer/data/re0hd_diag_Zug_Wagen_1_.json"), "Diagnose nicht gespeichert")
 local d = json.load_file("re0hd_diag_Zug_Wagen_1_.json")
 assert(d.exe.timestamp == "0x5A0B1C2D" and d.watches[1].value == 1234 and d.watches[1].address == "0x00003004")
 os.remove("re0hd_diag_Zug_Wagen_1_.json")
@@ -136,7 +136,7 @@ pending_clicks["Hosten"] = true
 run_ui()
 assert(net_a.status().mode == "hosting", "Host nicht gestartet")
 
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local b = Session.new({ net = net_b, game = "re0hd", mod_version = "0.1.0", name = "Billy" })
 assert(b:join("127.0.0.1", 27350))
 

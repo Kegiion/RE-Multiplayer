@@ -5,7 +5,7 @@ Aufruf:
     python tools/re2r_console.py -f befehl.lua
 
 Voraussetzung: Im Spiel unter "RE2 Koop" ist "Entwickler-Konsole fuer Claude"
-angehakt. Der Datenordner kann mit --data oder REMODS_RE2R_DATA geaendert werden.
+angehakt. Der Datenordner kann mit --data oder REMULTIPLAYER_RE2R_DATA geaendert werden.
 """
 
 import argparse
@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("code", nargs="?", help="Lua-Code")
     parser.add_argument("-f", "--file", help="Lua-Code aus Datei")
-    parser.add_argument("--data", default=os.environ.get("REMODS_RE2R_DATA", DEFAULT_DATA))
+    parser.add_argument("--data", default=os.environ.get("REMULTIPLAYER_RE2R_DATA", DEFAULT_DATA))
     parser.add_argument("--timeout", type=float, default=10.0)
     args = parser.parse_args()
 

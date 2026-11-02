@@ -30,7 +30,7 @@ Kleine Lua-Änderungen kannst du auch direkt testen: Datei austauschen, im REFra
 
 ## Testen ohne zweiten PC
 
-Mit dem **Testbot** (Paket *REMods-Tools*):
+Mit dem **Testbot** (Paket *RE-Multiplayer-Tools*):
 1. Spiel starten, im Menü „RE2 Koop“ auf **Hosten** klicken.
 2. `testbot.bat` starten.
 3. Der Testbot verbindet sich und läuft dir mit einer Sekunde Verzögerung als Markierung hinterher. Chat-Nachrichten beantwortet er mit einem Echo.

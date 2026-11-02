@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace REMods.ModManager.Core;
+namespace REMultiplayer.ModManager.Core;
 
 /// <summary>Versionsnummer wie "0.4.0" oder "1.2.0-beta.1" (SemVer-aehnlich, bis zu 4 Teile).</summary>
 public sealed class ModVersion : IComparable<ModVersion>, IEquatable<ModVersion>

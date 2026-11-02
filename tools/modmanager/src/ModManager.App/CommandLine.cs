@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>
 /// Befehlszeile:

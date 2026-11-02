@@ -3,7 +3,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Speichert den Fensterinhalt als PNG, ohne das Fenster anzuzeigen (Sichtpruefung in der CI).</summary>
 public static class Screenshot

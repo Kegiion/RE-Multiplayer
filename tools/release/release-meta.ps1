@@ -11,7 +11,7 @@ $mods = @{
     're2r'    = @{ Source = 'games/re2r/coop/autorun/re2r_coop.lua'; Pattern = '^local MOD_VERSION = "([^"]+)"'
                    Changelog = 'games/re2r/CHANGELOG.md'; Title = 'Resident Evil 2 Koop'; Asset = 'RE2R-Coop-{0}.zip' }
     'manager' = @{ Source = 'tools/modmanager/Directory.Build.props'; Pattern = '<Version>([^<]+)</Version>'
-                   Changelog = 'tools/modmanager/CHANGELOG.md'; Title = 'REMods Mod-Manager'; Asset = 'REMods-Manager.exe' }
+                   Changelog = 'tools/modmanager/CHANGELOG.md'; Title = 'RE:Multiplayer Mod-Manager'; Asset = 'RE-Multiplayer.exe' }
 }
 $m = $mods[$Mod]
 

@@ -1,17 +1,17 @@
--- RE2 Remake Koop (REMods) - Einstiegspunkt
+-- RE2 Remake Koop (RE:Multiplayer) - Einstiegspunkt
 --
 -- Wird von REFramework automatisch geladen (reframework/autorun/).
 -- Menue: REFramework-Overlay (Taste Einfg/Insert) -> Script Generated UI -> "RE2 Koop".
 --
 -- Aufbau:
---   remods_coop/*      gemeinsame Lua-Bibliothek fuer alle RE-Engine-Spiele
+--   remultiplayer_coop/*      gemeinsame Lua-Bibliothek fuer alle RE-Engine-Spiele
 --   re2r_coop/game.lua RE2-spezifischer Zugriff auf Spieldaten
 --   re2r_coop/ghost.lua Anzeige des Mitspielers (Markierung)
 --   re2r_coop/puppet.lua Mitspieler als Spielfigur (Meilenstein 2)
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.4.1"
+local MOD_VERSION = "0.4.2"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -19,7 +19,7 @@ local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 if coopnet == nil then
     re.on_draw_ui(function()
         if imgui.tree_node("RE2 Koop") then
-            imgui.text_colored("Plugin remods_coopnet.dll nicht gefunden!", 0xFF4040FF)
+            imgui.text_colored("Plugin remultiplayer_coopnet.dll nicht gefunden!", 0xFF4040FF)
             imgui.text("Es gehoert nach: <RE2-Ordner>/reframework/plugins/")
             imgui.text("Danach das Spiel neu starten.")
             imgui.tree_pop()
@@ -28,7 +28,7 @@ if coopnet == nil then
     return
 end
 
-local Session = require("remods_coop.session")
+local Session = require("remultiplayer_coop.session")
 local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
 local puppet = require("re2r_coop.puppet")

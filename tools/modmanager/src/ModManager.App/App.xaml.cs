@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Threading;
-using REMods.ModManager.Core;
+using REMultiplayer.ModManager.Core;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 public partial class App : Application
 {
@@ -10,6 +10,10 @@ public partial class App : Application
     {
         base.OnStartup(e);
         Directory.CreateDirectory(AppInfo.DataDir);
+        if (!File.Exists(AppInfo.SettingsFile) && File.Exists(AppInfo.LegacySettingsFile))
+        {
+            File.Copy(AppInfo.LegacySettingsFile, AppInfo.SettingsFile);
+        }
         ManagerLog.FilePath = AppInfo.LogFile;
         DispatcherUnhandledException += OnUnhandled;
 
@@ -56,7 +60,7 @@ public partial class App : Application
     {
         ManagerLog.Error("Unerwarteter Fehler", e.Exception);
         MessageBox.Show("Unerwarteter Fehler:\n\n" + e.Exception.Message + "\n\nDetails stehen in " + AppInfo.LogFile,
-            "REMods Mod-Manager", MessageBoxButton.OK, MessageBoxImage.Error);
+            "RE:Multiplayer Mod-Manager", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 }

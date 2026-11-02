@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>
 /// Sehr einfache Markdown-Anzeige fuer Patch Notes: Ueberschriften (#), Aufzaehlungen (- oder *),

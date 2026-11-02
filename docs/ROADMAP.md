@@ -59,7 +59,7 @@ Der Partner wird nicht von der KI gesteuert, sondern von den Netzwerkdaten des a
 - [x] DTI-Typinfos der Engine im laufenden Spiel finden (Klassennamen, Größen, Vererbung)
 - [x] Lebende Objekte einer Klasse finden (z. B. `uPlayerRebecca`) und ihre Daten live anzeigen
 - [x] Zeiger folgen, geänderte Werte hervorheben, Schnappschüsse für die Auswertung speichern
-- [x] Entwickler-Konsole: Claude führt im laufenden Spiel Lua-Befehle aus (`remods/data/claude_cmd.lua`)
+- [x] Entwickler-Konsole: Claude führt im laufenden Spiel Lua-Befehle aus (`remultiplayer/data/claude_cmd.lua`)
 
 ### Schritt 3: Spieldaten (aktuell)
 - [x] Position und Drehung von Rebecca und Billy, aktive Figur und Partner (`sPlayer`)

@@ -24,7 +24,7 @@ jobs:
       - name: Pakete erstellen
         run: |
           cmake --install build --config Release --prefix dist/RE2R-Coop --component re2r-coop
-          cmake --install build --config Release --prefix dist/REMods-Tools --component tools
+          cmake --install build --config Release --prefix dist/RE-Multiplayer-Tools --component tools
 
       # Download unter "Actions" -> Lauf anklicken -> "Artifacts" -> RE2R-Coop.
       # Inhalt direkt in den RE2-Spielordner entpacken.
@@ -36,8 +36,8 @@ jobs:
       # Testbot & Co. - NICHT in den Spielordner, sondern irgendwo hin entpacken.
       - uses: actions/upload-artifact@v4
         with:
-          name: REMods-Tools
-          path: dist/REMods-Tools
+          name: RE-Multiplayer-Tools
+          path: dist/RE-Multiplayer-Tools
 
   windows-x86:
     name: Windows 32-Bit (RE0 HD)
@@ -66,8 +66,8 @@ jobs:
           $out = & $dumpbin.FullName /exports dist/RE0HD-Coop/dinput8.dll | Out-String
           Write-Output $out
           if ($out -notmatch "\sDirectInput8Create\s") { throw "DirectInput8Create fehlt" }
-          $out = & $dumpbin.FullName /exports dist/RE0HD-Coop/remods/remods_re0.dll | Out-String
-          if ($out -notmatch "\sremods_init\s") { throw "remods_init fehlt" }
+          $out = & $dumpbin.FullName /exports dist/RE0HD-Coop/remultiplayer/remultiplayer_re0.dll | Out-String
+          if ($out -notmatch "\sremultiplayer_init\s") { throw "remultiplayer_init fehlt" }
           $hdr = & $dumpbin.FullName /headers dist/RE0HD-Coop/dinput8.dll | Out-String
           if ($hdr -notmatch "14C machine \(x86\)") { throw "dinput8.dll ist nicht 32-Bit" }
 
@@ -75,7 +75,7 @@ jobs:
         shell: pwsh
         run: |
           cmake --install build32 --config Release --prefix dist/RE0HD-Installer --component re0hd-installer
-          $exe = (Resolve-Path dist/RE0HD-Installer/REMods-RE0-Installer.exe).Path
+          $exe = (Resolve-Path dist/RE0HD-Installer/RE-Multiplayer-RE0-Installer.exe).Path
           # Testlauf in einem Fake-Spielordner (re0hd.exe = beliebige exe)
           $game = Join-Path $env:RUNNER_TEMP "re0_fake"
           New-Item -ItemType Directory -Force $game | Out-Null
@@ -83,12 +83,12 @@ jobs:
           Set-Content (Join-Path $game "dinput8.dll") "fremde Mod"
           $p = Start-Process $exe -ArgumentList "--path `"$game`" --install --quiet" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Installation fehlgeschlagen ($($p.ExitCode))" }
-          foreach ($f in "dinput8.dll", "dinput8.dll.vor-remods", "remods/remods_re0.dll", "remods/autorun/re0hd_coop.lua", "remods/autorun/remods_coop/session.lua", "remods/lib/json.lua") {
+          foreach ($f in "dinput8.dll", "dinput8.dll.vor-remultiplayer", "remultiplayer/remultiplayer_re0.dll", "remultiplayer/autorun/re0hd_coop.lua", "remultiplayer/autorun/remultiplayer_coop/session.lua", "remultiplayer/lib/json.lua") {
             if (-not (Test-Path (Join-Path $game $f))) { throw "$f fehlt nach der Installation" }
           }
           $p = Start-Process $exe -ArgumentList "--path `"$game`" --uninstall --quiet" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Deinstallation fehlgeschlagen ($($p.ExitCode))" }
-          if (Test-Path (Join-Path $game "remods/remods_re0.dll")) { throw "Runtime nach Deinstallation noch da" }
+          if (Test-Path (Join-Path $game "remultiplayer/remultiplayer_re0.dll")) { throw "Runtime nach Deinstallation noch da" }
           if ((Get-Content (Join-Path $game "dinput8.dll")) -ne "fremde Mod") { throw "fremde dinput8.dll nicht wiederhergestellt" }
           Write-Output "Installer ok"
 

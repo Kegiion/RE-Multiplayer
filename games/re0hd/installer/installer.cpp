@@ -1,4 +1,4 @@
-// REMods RE0 Installer - eine exe, die die RE0-Koop-Mod installiert,
+// RE:Multiplayer RE0 Installer - eine exe, die die RE0-Koop-Mod installiert,
 // aktualisiert oder entfernt.
 //
 // Alle Dateien der Mod stecken als Ressourcen (RCDATA) in der exe. Die
@@ -11,7 +11,7 @@
 //   3. Dateien schreiben. Fehlen Schreibrechte, startet sich der Installer als Administrator neu.
 //
 // Befehlszeile (fuer den Neustart als Administrator und zum Testen):
-//   REMods-RE0-Installer.exe [--path <Spielordner>] [--install | --uninstall] [--quiet]
+//   RE-Multiplayer-RE0-Installer.exe [--path <Spielordner>] [--install | --uninstall] [--quiet]
 
 #include <windows.h>
 
@@ -28,18 +28,18 @@
 
 namespace {
 
-constexpr const wchar_t* kTitle = L"REMods – Resident Evil 0 HD Koop";
+constexpr const wchar_t* kTitle = L"RE:Multiplayer – Resident Evil 0 HD Koop";
 constexpr uint32_t kSupportedTimestamp = 0x6799D40F;  // re0hd.exe, Steam-Build 17178773
 constexpr const char* kAppId = "339340";
 
-#ifndef REMODS_MOD_VERSION
-#define REMODS_MOD_VERSION "?"
+#ifndef REMULTIPLAYER_MOD_VERSION
+#define REMULTIPLAYER_MOD_VERSION "?"
 #endif
-#ifndef REMODS_RUNTIME_VERSION
-#define REMODS_RUNTIME_VERSION "?"
+#ifndef REMULTIPLAYER_RUNTIME_VERSION
+#define REMULTIPLAYER_RUNTIME_VERSION "?"
 #endif
-#ifndef REMODS_BUILD_ID
-#define REMODS_BUILD_ID "lokal"
+#ifndef REMULTIPLAYER_BUILD_ID
+#define REMULTIPLAYER_BUILD_ID "lokal"
 #endif
 
 bool g_quiet = false;
@@ -231,7 +231,7 @@ bool is_our_loader(const std::wstring& path) {
     if (!read_file(path, bytes)) {
         return false;
     }
-    const std::wstring marker = L"remods\\remods_re0.dll";
+    const std::wstring marker = L"remultiplayer\\remultiplayer_re0.dll";
     const std::string needle(reinterpret_cast<const char*>(marker.data()), marker.size() * sizeof(wchar_t));
     return bytes.find(needle) != std::string::npos;
 }
@@ -276,7 +276,7 @@ Result install(const std::wstring& game) {
     // Fremde dinput8.dll (andere Mod) sichern, nicht ueberschreiben
     const std::wstring loader = game + L"\\dinput8.dll";
     if (file_exists(loader) && !is_our_loader(loader)) {
-        const std::wstring backup = game + L"\\dinput8.dll.vor-remods";
+        const std::wstring backup = game + L"\\dinput8.dll.vor-remultiplayer";
         if (!CopyFileW(loader.c_str(), backup.c_str(), FALSE)) {
             const DWORD err = GetLastError();
             if (err == ERROR_ACCESS_DENIED) {
@@ -330,7 +330,7 @@ void delete_tree(const std::wstring& dir, const std::wstring& keep_name) {
 
 Result uninstall(const std::wstring& game) {
     const std::wstring loader = game + L"\\dinput8.dll";
-    const std::wstring backup = game + L"\\dinput8.dll.vor-remods";
+    const std::wstring backup = game + L"\\dinput8.dll.vor-remultiplayer";
     if (file_exists(loader) && is_our_loader(loader)) {
         if (!DeleteFileW(loader.c_str())) {
             const DWORD err = GetLastError();
@@ -344,9 +344,9 @@ Result uninstall(const std::wstring& game) {
     if (file_exists(backup)) {
         MoveFileW(backup.c_str(), loader.c_str());  // vorherige Mod wiederherstellen
     }
-    // remods-Ordner leeren, Einstellungen (data) behalten
-    delete_tree(game + L"\\remods", L"data");
-    RemoveDirectoryW((game + L"\\remods").c_str());  // klappt nur, wenn data leer war
+    // remultiplayer-Ordner leeren, Einstellungen (data) behalten
+    delete_tree(game + L"\\remultiplayer", L"data");
+    RemoveDirectoryW((game + L"\\remultiplayer").c_str());  // klappt nur, wenn data leer war
     return Result::Ok;
 }
 
@@ -399,8 +399,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     LocalFree(argv);
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    const std::wstring version = L"Mod " + widen(REMODS_MOD_VERSION) + L", Runtime " + widen(REMODS_RUNTIME_VERSION) +
-                                 L" (Build " + widen(REMODS_BUILD_ID) + L")";
+    const std::wstring version = L"Mod " + widen(REMULTIPLAYER_MOD_VERSION) + L", Runtime " + widen(REMULTIPLAYER_RUNTIME_VERSION) +
+                                 L" (Build " + widen(REMULTIPLAYER_BUILD_ID) + L")";
 
     if (game.empty()) {
         game = find_game_dir();
@@ -417,9 +417,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         }
     }
 
-    const bool installed = file_exists(game + L"\\remods\\remods_re0.dll");
+    const bool installed = file_exists(game + L"\\remultiplayer\\remultiplayer_re0.dll");
     if (action == 0) {
-        std::wstring text = L"REMods Koop für Resident Evil 0 HD\n" + version + L"\n\nSpielordner:\n" + game + L"\n\n";
+        std::wstring text = L"RE:Multiplayer Koop für Resident Evil 0 HD\n" + version + L"\n\nSpielordner:\n" + game + L"\n\n";
         if (installed) {
             text += L"Die Mod ist bereits installiert.\n\n"
                     L"Ja = aktualisieren\nNein = deinstallieren\nAbbrechen = nichts tun";
@@ -469,7 +469,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
                 L"kannst du hosten oder beitreten.\n\n" + version,
                 MB_ICONINFORMATION);
     } else {
-        message(L"Die Mod wurde entfernt. Deine Einstellungen liegen weiter unter remods\\data.", MB_ICONINFORMATION);
+        message(L"Die Mod wurde entfernt. Deine Einstellungen liegen weiter unter remultiplayer\\data.", MB_ICONINFORMATION);
     }
     return 0;
 }

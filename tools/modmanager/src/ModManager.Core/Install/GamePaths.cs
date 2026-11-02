@@ -1,4 +1,4 @@
-namespace REMods.ModManager.Core.Install;
+namespace REMultiplayer.ModManager.Core.Install;
 
 /// <summary>
 /// Relative Pfade im Spielordner. Intern immer mit "/" getrennt. Alles, was aus dem

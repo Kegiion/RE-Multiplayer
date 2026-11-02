@@ -4,8 +4,8 @@
        Windows-spezifisches (Registry) ist mit OperatingSystem.IsWindows() abgesichert. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>REMods.ModManager.Core</RootNamespace>
-    <AssemblyName>REMods.ModManager.Core</AssemblyName>
+    <RootNamespace>REMultiplayer.ModManager.Core</RootNamespace>
+    <AssemblyName>REMultiplayer.ModManager.Core</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

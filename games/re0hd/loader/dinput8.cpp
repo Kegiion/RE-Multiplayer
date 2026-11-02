@@ -1,11 +1,11 @@
-// dinput8.dll - Loader fuer REMods in RE0 HD (re0hd.exe, 32-Bit).
+// dinput8.dll - Loader fuer RE:Multiplayer in RE0 HD (re0hd.exe, 32-Bit).
 //
 // re0hd.exe importiert dinput8.dll. Liegt diese Datei neben der exe, laedt
 // Windows sie statt der System-DLL. Wir
 //   1. reichen alle Aufrufe an die echte dinput8.dll aus dem Systemordner
 //      weiter (das Spiel merkt nichts davon) und
-//   2. laden in einem eigenen Thread remods\remods_re0.dll und rufen deren
-//      Export `remods_init` auf.
+//   2. laden in einem eigenen Thread remultiplayer\remultiplayer_re0.dll und rufen deren
+//      Export `remultiplayer_init` auf.
 //
 // Der Loader bleibt absichtlich winzig: Die ganze Logik steckt in der Runtime.
 
@@ -49,19 +49,19 @@ void game_dir(wchar_t* out, DWORD size) {
 DWORD WINAPI load_runtime(LPVOID) {
     wchar_t path[MAX_PATH]{};
     game_dir(path, MAX_PATH);
-    wcscat_s(path, L"remods\\remods_re0.dll");
+    wcscat_s(path, L"remultiplayer\\remultiplayer_re0.dll");
 
     HMODULE mod = LoadLibraryExW(path, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
     if (mod == nullptr) {
         wchar_t msg[MAX_PATH + 128]{};
-        swprintf_s(msg, L"REMods: %s konnte nicht geladen werden (Fehler %lu).", path, GetLastError());
+        swprintf_s(msg, L"RE:Multiplayer: %s konnte nicht geladen werden (Fehler %lu).", path, GetLastError());
         OutputDebugStringW(msg);
         return 1;
     }
     using init_t = void (*)();
-    auto init = reinterpret_cast<init_t>(GetProcAddress(mod, "remods_init"));
+    auto init = reinterpret_cast<init_t>(GetProcAddress(mod, "remultiplayer_init"));
     if (init == nullptr) {
-        OutputDebugStringW(L"REMods: remods_init fehlt in remods_re0.dll");
+        OutputDebugStringW(L"RE:Multiplayer: remultiplayer_init fehlt in remultiplayer_re0.dll");
         return 1;
     }
     init();

@@ -1,4 +1,4 @@
-local protocol = require("remods_coop.protocol")
+local protocol = require("remultiplayer_coop.protocol")
 
 -- Roundtrip HELLO
 local raw = protocol.encode("HELLO", { protocol = protocol.VERSION, game = "re2r", mod_version = "0.1.0", name = "Leon", want_reply = 1 })

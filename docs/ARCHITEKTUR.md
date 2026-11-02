@@ -11,12 +11,12 @@
 │   │    ├── re2r_coop/game.lua    ◄── kennt RE2-Klassen (Adapter)           │
 │   │    ├── re2r_coop/ghost.lua   Mitspieler anzeigen                       │
 │   │    ├── re2r_coop/diag.lua    Diagnose-Datei schreiben                  │
-│   │    └── remods_coop/          gemeinsam für alle Spiele                 │
+│   │    └── remultiplayer_coop/          gemeinsam für alle Spiele                 │
 │   │         ├── protocol.lua     Nachrichtenformat                         │
 │   │         └── session.lua      Handshake, Peers, Verteilung              │
 │   │                 │                                                      │
 │   │                 ▼  globale Tabelle `coopnet`                           │
-│   └── Plugin: reframework/plugins/remods_coopnet.dll                       │
+│   └── Plugin: reframework/plugins/remultiplayer_coopnet.dll                       │
 │        └── netcore (C++) ── eigener Netzwerk-Thread ── ENet (UDP)          │
 └────────────────────────────────────────┬───────────────────────────────────┘
                                          │ Internet / LAN / VPN
@@ -49,7 +49,7 @@ Ein Spieler ist **Host**, der andere **Client**. Für den Story-Koop wird der Ho
 
 ## Protokoll
 
-Definiert in `shared/re-engine/lua/remods_coop/protocol.lua`. Jede Nachricht besteht aus einem Byte Typ plus den Feldern per `string.pack`. Wenn sich eine Nachricht ändert, wird `protocol.VERSION` erhöht. Spieler mit unterschiedlicher Version werden beim Handshake erkannt und abgelehnt.
+Definiert in `shared/re-engine/lua/remultiplayer_coop/protocol.lua`. Jede Nachricht besteht aus einem Byte Typ plus den Feldern per `string.pack`. Wenn sich eine Nachricht ändert, wird `protocol.VERSION` erhöht. Spieler mit unterschiedlicher Version werden beim Handshake erkannt und abgelehnt.
 
 | ID | Nachricht | Kanal | Inhalt |
 |---|---|---|---|

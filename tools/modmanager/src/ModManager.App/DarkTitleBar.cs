@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 /// <summary>Dunkle Titelleiste (Windows 10 ab 20H1 und Windows 11). Auf aelteren Systemen passiert nichts.</summary>
 public static class DarkTitleBar

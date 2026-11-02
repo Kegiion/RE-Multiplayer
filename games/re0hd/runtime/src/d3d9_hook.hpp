@@ -3,7 +3,7 @@
 
 struct IDirect3DDevice9;
 
-namespace remods::d3d9 {
+namespace remultiplayer::d3d9 {
 
 struct Callbacks {
     void (*on_present)(IDirect3DDevice9* device) = nullptr;  // vor jedem Present (Render-Thread)
@@ -16,4 +16,4 @@ struct Callbacks {
 // Device mit anderer vtable erzeugt).
 bool install(const Callbacks& callbacks);
 
-}  // namespace remods::d3d9
+}  // namespace remultiplayer::d3d9

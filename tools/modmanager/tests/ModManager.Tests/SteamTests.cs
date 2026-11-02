@@ -1,6 +1,6 @@
-using REMods.ModManager.Core.Steam;
+using REMultiplayer.ModManager.Core.Steam;
 
-namespace REMods.ModManager.Tests;
+namespace REMultiplayer.ModManager.Tests;
 
 public class SteamTests
 {

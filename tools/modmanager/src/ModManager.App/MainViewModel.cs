@@ -6,14 +6,14 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
-using REMods.ModManager.Core;
-using REMods.ModManager.Core.Games;
-using REMods.ModManager.Core.Install;
-using REMods.ModManager.Core.Releases;
-using REMods.ModManager.Core.Reports;
-using REMods.ModManager.Core.Steam;
+using REMultiplayer.ModManager.Core;
+using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Install;
+using REMultiplayer.ModManager.Core.Releases;
+using REMultiplayer.ModManager.Core.Reports;
+using REMultiplayer.ModManager.Core.Steam;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 public sealed class MainViewModel : ObservableObject
 {
@@ -380,7 +380,7 @@ public sealed class MainViewModel : ObservableObject
     private async Task UpdateManagerAsync()
     {
         var update = managerUpdate;
-        var asset = update?.FindAsset("REMods-Manager", ".exe");
+        var asset = update?.FindAsset("RE-Multiplayer", ".exe");
         if (update == null || asset == null || Busy)
         {
             if (update != null && asset == null)
@@ -407,7 +407,7 @@ public sealed class MainViewModel : ObservableObject
             ManagerLog.Error("Selbst-Update: keine Schreibrechte", e);
             TryDelete(newFile);
             Dialogs.Error("Der Manager darf sich in seinem Ordner nicht ersetzen.\n\n"
-                          + "Bitte REMods-Manager.exe z. B. auf den Desktop oder in Downloads verschieben und neu starten.");
+                          + "Bitte RE-Multiplayer.exe z. B. auf den Desktop oder in Downloads verschieben und neu starten.");
         }
         catch (Exception e) when (e is GitHubException or HttpRequestException or IOException or TaskCanceledException)
         {
@@ -429,7 +429,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
         var list = ReleaseSelector.ForPrefix(releases, AppInfo.ManagerTagPrefix, IncludePrereleases);
-        NotesWindow.ShowFor("REMods Mod-Manager", list);
+        NotesWindow.ShowFor("RE:Multiplayer Mod-Manager", list);
     }
 
     // ---- Kleinere Aktionen --------------------------------------------------------
@@ -510,7 +510,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        var zipPath = Path.Combine(desktop, $"REMods-Fehlerbericht-{g.Def.Id}-{DateTime.Now:yyyyMMdd-HHmm}.zip");
+        var zipPath = Path.Combine(desktop, $"RE-Multiplayer-Fehlerbericht-{g.Def.Id}-{DateTime.Now:yyyyMMdd-HHmm}.zip");
         try
         {
             BugReport.CreateZip(zipPath, info, files, profile);

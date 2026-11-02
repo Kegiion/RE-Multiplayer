@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
-namespace REMods.ModManager;
+namespace REMultiplayer.ModManager;
 
 public abstract class ObservableObject : INotifyPropertyChanged
 {

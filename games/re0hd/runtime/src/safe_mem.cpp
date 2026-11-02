@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-namespace remods {
+namespace remultiplayer {
 
 // Hinweis: In Funktionen mit __try duerfen keine C++-Objekte mit Destruktor
 // stehen (MSVC C2712). Deshalb nur rohe Zeiger.
@@ -56,4 +56,4 @@ bool safe_write(uintptr_t dst, const void* src, size_t n) {
 #endif
 }
 
-}  // namespace remods
+}  // namespace remultiplayer

@@ -12,7 +12,10 @@ re = {
     on_script_reset = function(fn) table.insert(callbacks.reset, fn) end,
 }
 log = { info = function() end }
-local files = { ["re2r_coop_config.json"] = { devconsole = true } } -- gespeicherter Haken
+-- Gespeicherte Konfiguration: Konsolen-Haken an, eigener Port, damit der Test
+-- auch laeuft, waehrend das echte Spiel auf 27350 hostet.
+local TEST_PORT = 27351
+local files = { ["re2r_coop_config.json"] = { devconsole = true, port = TEST_PORT } }
 json = {
     load_file = function(p) return files[p] end,
     dump_file = function(p, t) files[p] = t; return true end,
@@ -193,7 +196,7 @@ local Session = require("remods_coop.session")
 local b = Session.new({ net = net_b, game = "re2r", mod_version = "0.1.0", name = "Claire" })
 local b_states = {}
 b:on("PLAYER_STATE", function(_, _, msg) table.insert(b_states, msg) end)
-assert(b:join("127.0.0.1", 27350))
+assert(b:join("127.0.0.1", TEST_PORT))
 
 local deadline = net_a.time() + 3
 while net_a.time() < deadline and #b_states < 3 do
@@ -318,6 +321,7 @@ files["claude_cmd.json"] = { id = 5, code = "out(game.ID, 1 + 1); return { a = 1
 run_frame()
 assert(files["claude_out.json"] == nil, "Konsole lief, obwohl aus")
 devconsole.enabled = true
+sleep_ms(600) -- Abfrage-Intervall der Konsole (0,5 s) abwarten
 run_frame()
 local res = files["claude_out.json"]
 assert(res and res.ok and res.id == 5, "Befehl nicht ausgefuehrt")

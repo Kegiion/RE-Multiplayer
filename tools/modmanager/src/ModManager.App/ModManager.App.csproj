@@ -12,6 +12,11 @@
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <!-- WPF laesst System.IO bei den impliziten usings weg (Namenskonflikt mit Shapes.Path) -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ModManager.Core\ModManager.Core.csproj" />
   </ItemGroup>

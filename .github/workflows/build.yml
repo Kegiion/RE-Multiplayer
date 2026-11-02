@@ -71,12 +71,39 @@ jobs:
           $hdr = & $dumpbin.FullName /headers dist/RE0HD-Coop/dinput8.dll | Out-String
           if ($hdr -notmatch "14C machine \(x86\)") { throw "dinput8.dll ist nicht 32-Bit" }
 
+      - name: Installer erstellen und pruefen
+        shell: pwsh
+        run: |
+          cmake --install build32 --config Release --prefix dist/RE0HD-Installer --component re0hd-installer
+          $exe = (Resolve-Path dist/RE0HD-Installer/REMods-RE0-Installer.exe).Path
+          # Testlauf in einem Fake-Spielordner (re0hd.exe = beliebige exe)
+          $game = Join-Path $env:RUNNER_TEMP "re0_fake"
+          New-Item -ItemType Directory -Force $game | Out-Null
+          Copy-Item $exe (Join-Path $game "re0hd.exe")
+          Set-Content (Join-Path $game "dinput8.dll") "fremde Mod"
+          $p = Start-Process $exe -ArgumentList "--path `"$game`" --install --quiet" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Installation fehlgeschlagen ($($p.ExitCode))" }
+          foreach ($f in "dinput8.dll", "dinput8.dll.vor-remods", "remods/remods_re0.dll", "remods/autorun/re0hd_coop.lua", "remods/autorun/remods_coop/session.lua", "remods/lib/json.lua") {
+            if (-not (Test-Path (Join-Path $game $f))) { throw "$f fehlt nach der Installation" }
+          }
+          $p = Start-Process $exe -ArgumentList "--path `"$game`" --uninstall --quiet" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Deinstallation fehlgeschlagen ($($p.ExitCode))" }
+          if (Test-Path (Join-Path $game "remods/remods_re0.dll")) { throw "Runtime nach Deinstallation noch da" }
+          if ((Get-Content (Join-Path $game "dinput8.dll")) -ne "fremde Mod") { throw "fremde dinput8.dll nicht wiederhergestellt" }
+          Write-Output "Installer ok"
+
       # Download unter "Actions" -> Lauf anklicken -> "Artifacts" -> RE0HD-Coop.
       # Inhalt direkt in den RE0-Spielordner entpacken (neben re0hd.exe).
       - uses: actions/upload-artifact@v4
         with:
           name: RE0HD-Coop
           path: dist/RE0HD-Coop
+
+      # Ein-Datei-Installer zum Weitergeben
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RE0HD-Installer
+          path: dist/RE0HD-Installer
 
   linux:
     name: Linux (Tests)

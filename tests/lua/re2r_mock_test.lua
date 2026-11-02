@@ -59,7 +59,16 @@ local transform = obj({
 local function component(name)
     return { get_type_definition = function() return { get_full_name = function() return name end } end }
 end
+local condition = obj({
+    get_SurvivorType = function() return 1 end,
+    get_StaySceneAreaID = function() return 7 end,
+    get_StaySpaceAreaID = function() return 8 end,
+    get_StaySceneMapArea = function() return 2 end,
+})
 local player = obj({
+    ["getComponent(System.Type)"] = function(t)
+        if t == "TYPE:app.ropeway.survivor.player.PlayerCondition" then return condition end
+    end,
     get_Transform = function() return transform end,
     get_Name = function() return "pl1000" end,
     get_Components = function()
@@ -78,10 +87,29 @@ local function fake_type(name)
         get_fields = function() return {} end,
     }
 end
+-- Enums wie in REFramework: statische Felder mit Wert, dazu das Instanzfeld value__
+local function fake_enum(values)
+    local fields = { { is_static = function() return false end, get_name = function() return "value__" end,
+        get_data = function() error("kein statisches Feld") end } }
+    for name, value in pairs(values) do
+        fields[#fields + 1] = { is_static = function() return true end, get_name = function() return name end,
+            get_data = function() return value end }
+    end
+    return { get_fields = function() return fields end }
+end
+local enums = {
+    ["app.ropeway.SurvivorDefine.SurvivorType"] = fake_enum({ Leon = 0, Claire = 1, Invalid = -1 }),
+    ["app.ropeway.gamemastering.Map.ID"] = fake_enum({ Invalid = -1, St1_101_0 = 7, St1_102_0 = 8 }),
+    ["app.ropeway.gamemastering.Map.Area"] = fake_enum({ RPD = 2 }),
+}
 sdk = {
     game_namespace = function(n) return "app.ropeway." .. n end,
     get_managed_singleton = function(n) if n == "app.ropeway.PlayerManager" then return player_manager end end,
-    find_type_definition = function(n) if n == "app.ropeway.PlayerManager" then return fake_type(n) end end,
+    find_type_definition = function(n)
+        if n == "app.ropeway.PlayerManager" then return fake_type(n) end
+        return enums[n]
+    end,
+    typeof = function(n) return "TYPE:" .. n end,
 }
 reframework = { get_game_name = function() return "re2" end, get_commit_count = function() return 1 end }
 
@@ -127,10 +155,12 @@ end
 assert(#b_states >= 3, "B hat keine Positionsdaten bekommen")
 assert(b_states[1].x == 1 and b_states[1].z == 2, "falsche Position")
 assert(b_states[2].seq > b_states[1].seq)
+assert(b_states[1].character == 1, "Figur falsch: " .. tostring(b_states[1].character))
+assert(b_states[1].area == "St1_101_0", "Bereich falsch: " .. tostring(b_states[1].area))
 
 -- B sendet seine Position -> A zeichnet Markierung "Claire"
 for i = 1, 5 do
-    b:send("PLAYER_STATE", { seq = i, x = 4, y = 0, z = 6, qw = 1 }, false)
+    b:send("PLAYER_STATE", { seq = i, x = 4, y = 0, z = 6, qw = 1, area = "St1_102_0", character = 0 }, false)
     b:update()
     sleep_ms(20)
     drawn = {}
@@ -140,6 +170,8 @@ local label
 for _, t in ipairs(drawn) do if t:find("Claire") then label = t end end
 assert(label, "Markierung fuer Claire wurde nicht gezeichnet")
 assert(label:find("5.0m"), "Entfernung falsch: " .. label) -- (1,0,2) -> (4,0,6) = 5m
+assert(label:find("[Leon]", 1, true), "Figur fehlt: " .. label)
+assert(label:find("anderer Bereich: St1_102_0", 1, true), "Bereichshinweis fehlt: " .. label)
 
 -- Chat
 b:send("CHAT", { text = "hallo leon" }, true)
@@ -154,6 +186,12 @@ assert(d.player.found and d.player.object_name == "pl1000")
 assert(d.types["app.ropeway.PlayerManager"].found)
 assert(d.types["app.ropeway.EnemyManager"].found == false)
 assert(d.player.components[2] == "via.motion.Motion", "Komponenten fehlen")
+assert(d.player.condition.survivor_name == "Claire", "Figur fehlt in Diagnose")
+assert(d.player.condition.space_area_name == "St1_102_0")
+assert(d.player.condition.map_area_name == "RPD")
+local st = d.enums["app.ropeway.SurvivorDefine.SurvivorType"]
+assert(st[1] == "-1 = Invalid" and st[3] == "1 = Claire", "Enum-Liste falsch: " .. table.concat(st, ", "))
+assert(#d.enums["app.ropeway.PlayerDefine.PlayerType"] == 0, "unbekanntes Enum sollte leer sein")
 assert(d.research_available == false and d.type_search == nil)
 
 -- Mit Plugin-Forschungsfunktionen + Situationsname

@@ -16,13 +16,13 @@
 | Netzwerk-Kern `shared/netcore` (C++, ENet, eigener Thread) | ✅ fertig, getestet (inkl. Thread- und Address-Sanitizer) |
 | REFramework-Plugin `remods_coopnet.dll` (spielunabhängig) | ✅ baut (MSVC in CI, MinGW lokal geprüft) |
 | Gemeinsame Lua-Bibliothek `remods_coop` (Protokoll, Session) | ✅ getestet |
-| RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ gegen REFramework-Mock getestet, ❌ **noch nie im echten Spiel gelaufen** |
+| RE2-Mod `games/re2r/coop` (Menü, Positionssync, Markierung, Diagnose) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Spieler `pl0000`, Diagnose, Testbot läuft hinterher). Mod 0.2.0: Figur und Bereich, im Spiel noch ungeprüft |
 | Testbot (simulierter Mitspieler) | ✅ getestet |
 | CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `REMods-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
 | RE0-Loader `dinput8.dll` + Runtime `remods_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
 | RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
-**Meilenstein 1 („Geister-Spieler“)** ist programmiert. Was fehlt, ist der **erste Test im Spiel**.
+**Meilenstein 1 („Geister-Spieler“)** läuft in RE2 im Spiel. Offen sind die Prüfung von Figur und Bereich (Mod 0.2.0) und ein Test mit einem echten Mitspieler.
 
 ## Sofort als Nächstes
 
@@ -30,18 +30,9 @@
 
 **RE2:**
 
-1. **Erster Test im Spiel.** Die Checkliste steht in `games/re2r/README.md` unter „Erster Test“.
-   - REFramework installieren: <https://github.com/praydog/REFramework-nightly/releases>, `dinput8.dll` neben `re2.exe` legen.
-   - Paket installieren: Artifact `RE2R-Coop` des neuesten grünen Actions-Laufs in den Spielordner entpacken. Alternativ lokal bauen, siehe unten.
-   - Prüfen, ob das Menü „RE2 Koop“ erscheint und ob der Spieler gefunden wird („Debug-Infos“).
-   - Diagnose mit Situationen `hauptmenue`, `start` und `anderer_raum` speichern. Die Dateien liegen unter `<Spiel>/reframework/data/re2r_coop_diag_*.json`.
-   - Testbot: im Spiel „Hosten“ klicken, dann `testbot.bat` aus `REMods-Tools` starten.
-2. **Diagnose-Dateien nach `games/re2r/research/` kopieren und committen**, dann auswerten:
-   - Stimmt `PlayerManager.get_CurrentPlayer`? Siehe `player.found` und `player.source`.
-   - **Bereichs-ID finden**: In `type_search.Area`, `type_search.Map`, `type_search.Location` und in den beschriebenen Managern unter `types` nach etwas wie „aktuelle Map/Area/Stage“ suchen. Dann `game.get_area()` in `games/re2r/coop/autorun/re2r_coop/game.lua` implementieren.
-   - Figur erkennen (Leon/Claire) über `player.object_name` und `game.CHARACTERS` füllen.
-   - Bestätigte Fakten in `games/re2r/research/README.md` eintragen.
-3. Danach kommt **Meilenstein 2**, die sichtbare zweite Spielfigur (siehe `docs/ROADMAP.md`). Ausgangspunkt ist `player.components` aus der Diagnose sowie die Suchtreffer für `Prefab`, `Spawn` und `Survivor`.
+1. ✅ Erster Test im Spiel (2. November 2026). Die Diagnose-Dateien liegen in `games/re2r/research/`, die Auswertung steht in `games/re2r/research/README.md`.
+2. **Mod 0.2.0 prüfen:** Figur (`PlayerCondition.get_SurvivorType`) und Bereich (`get_StaySceneAreaID` / `get_StaySpaceAreaID`) stehen unter „Debug-Infos“. Prüfen, ob die Figur stimmt und welche Bereichs-ID beim Gang durch eine Tür wechselt. Danach in `game.lua` die richtige Quelle festlegen und als bestätigt markieren. Die neue Diagnose enthält zusätzlich die Enum-Listen (`enums`).
+3. Danach kommt **Meilenstein 2**, die sichtbare zweite Spielfigur (siehe `docs/ROADMAP.md`). Ausgangspunkt ist `player.components` aus der Diagnose sowie die Kandidaten in `games/re2r/research/README.md`.
 
 ## Wichtige technische Fakten (nicht neu herausfinden)
 

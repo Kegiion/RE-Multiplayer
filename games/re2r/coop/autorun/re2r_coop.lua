@@ -9,7 +9,7 @@
 --   re2r_coop/ghost.lua Anzeige des Mitspielers
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 
-local MOD_VERSION = "0.1.0"
+local MOD_VERSION = "0.2.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -30,6 +30,8 @@ local Session = require("remods_coop.session")
 local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
 local diag = require("re2r_coop.diag")
+
+ghost.character_name = game.character_name
 
 -- --- Einstellungen ---------------------------------------------------------
 
@@ -237,12 +239,22 @@ local function draw_debug_ui(status)
             imgui.text(string.format("Spieler: %s  via %s", tostring(ls.object_name), tostring(game.player_source)))
             imgui.text(string.format("Position: %.2f  %.2f  %.2f", ls.x, ls.y, ls.z))
             imgui.text(string.format("Rotation: %.3f  %.3f  %.3f  %.3f", ls.qx, ls.qy, ls.qz, ls.qw))
+            local c = ls.condition
+            if c then
+                imgui.text(string.format("Figur: %s (%s)", c.survivor_name, tostring(c.survivor_type)))
+                imgui.text(string.format("Bereich (Scene): %s (%s)", c.scene_area_name, tostring(c.scene_area_id)))
+                imgui.text(string.format("Bereich (Space): %s (%s)", c.space_area_name, tostring(c.space_area_id)))
+                imgui.text(string.format("Map-Area: %s (%s)", c.map_area_name, tostring(c.map_area)))
+            else
+                imgui.text("PlayerCondition: nicht gefunden")
+            end
         else
             imgui.text("Spieler: nicht gefunden (Menue/Ladebildschirm?)")
         end
         for id, r in pairs(ghost.remote) do
-            imgui.text(string.format("Remote %d (%s): %.2f %.2f %.2f  seq %d",
-                id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0))
+            imgui.text(string.format("Remote %d (%s): %.2f %.2f %.2f  seq %d  Figur %s  Bereich %s",
+                id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0,
+                game.character_name(r.character), tostring(r.area)))
         end
         local st = status.stats or {}
         imgui.text(string.format("Gesendet: %d Nachr. / %d B   Empfangen: %d Nachr. / %d B",

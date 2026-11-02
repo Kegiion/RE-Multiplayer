@@ -6,8 +6,11 @@
 
 local ghost = {}
 
--- remote[peer_id] = { name=, target={...}, pos={x,y,z}, seq=, last_update=, area= }
+-- remote[peer_id] = { name=, target={...}, pos={x,y,z}, seq=, last_update=, area=, character= }
 ghost.remote = {}
+
+-- Optional: Funktion Figur-ID -> Anzeigename (setzt das Spielskript).
+ghost.character_name = nil
 
 local STALE_AFTER = 2.0     -- Sekunden ohne Update -> grau anzeigen
 local SMOOTHING = 12.0      -- hoeher = schneller an Zielposition
@@ -38,6 +41,7 @@ function ghost.on_state(peer, msg, now)
     r.seq = msg.seq
     r.target = msg
     r.area = msg.area
+    r.character = msg.character
     r.last_update = now
 end
 
@@ -68,6 +72,12 @@ function ghost.update(dt)
     end
 end
 
+-- true, wenn beide Bereiche bekannt sind und sich unterscheiden.
+function ghost.other_area(r, local_state)
+    return local_state ~= nil and r.area ~= nil and r.area ~= ""
+        and local_state.area ~= nil and local_state.area ~= "" and r.area ~= local_state.area
+end
+
 local function shadow_text(text, x, y, color)
     draw.text(text, x + 1, y + 1, COLOR_SHADOW)
     draw.text(text, x, y, color)
@@ -90,12 +100,17 @@ function ghost.draw(local_state, now)
         end
         if head ~= nil then
             local label = r.name
+            if ghost.character_name ~= nil and r.character ~= nil then
+                label = string.format("%s [%s]", label, ghost.character_name(r.character))
+            end
             if local_state ~= nil then
                 local dx, dy, dz = r.pos.x - local_state.x, r.pos.y - local_state.y, r.pos.z - local_state.z
                 label = string.format("%s  %.1fm", label, math.sqrt(dx * dx + dy * dy + dz * dz))
             end
             if stale then
                 label = label .. "  (keine Daten)"
+            elseif ghost.other_area(r, local_state) then
+                label = label .. "  (anderer Bereich: " .. r.area .. ")"
             end
             shadow_text(label, head.x - 4 * #label, head.y - 18, color)
         end

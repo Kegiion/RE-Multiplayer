@@ -90,6 +90,22 @@ local function describe_type(full_name)
     return info
 end
 
+-- Enum als Liste "wert = NAME" (JSON vertraegt keine luecken-/negativen
+-- Zahlenschluessel).
+local function list_enum(type_name)
+    local names = game.enum_names(type_name)
+    local values = {}
+    for v in pairs(names) do
+        values[#values + 1] = v
+    end
+    table.sort(values)
+    local result = {}
+    for _, v in ipairs(values) do
+        result[#result + 1] = string.format("%d = %s", v, names[v])
+    end
+    return result
+end
+
 local function contains_any(text, words)
     local lower = text:lower()
     for _, w in ipairs(words) do
@@ -156,7 +172,15 @@ function diag.collect(extra)
         object_name = player and game.get_name(player) or nil,
         state = game.get_local_state(),
         components = player and list_components(player) or nil,
+        condition = game.get_condition_info(game.get_condition(player)),
     }
+
+    -- Enums fuer Figur und Bereich (Werte -> Namen)
+    result.enums = {}
+    for _, name in ipairs({ game.ENUM_SURVIVOR_TYPE, game.ENUM_MAP_ID, game.ENUM_MAP_AREA,
+        game.ENUM_PLAYER_TYPE, game.ENUM_LOCATION_ID }) do
+        result.enums[name] = list_enum(name)
+    end
 
     -- Feste Kandidaten
     for _, name in ipairs(diag.CANDIDATE_TYPES) do

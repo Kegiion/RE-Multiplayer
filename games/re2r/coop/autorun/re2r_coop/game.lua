@@ -5,8 +5,12 @@
 -- RE-Engine-Spiele bekommen spaeter eine eigene game.lua mit gleicher
 -- Schnittstelle.
 --
--- STATUS: Die Namen unten sind noch NICHT im Spiel bestaetigt. Der
--- Diagnose-Button im Menue schreibt auf, was wirklich existiert.
+-- STATUS (Diagnose vom 2. November 2026):
+--   bestaetigt:   PlayerManager.get_CurrentPlayer -> GameObject "pl0000",
+--                 Transform-Position/-Rotation
+--   UNBESTAETIGT: Bereich ueber PlayerCondition.get_StaySceneAreaID und
+--                 Figur ueber PlayerCondition.get_SurvivorType. Die Methoden
+--                 existieren laut Diagnose, ihre Werte sind noch nicht geprueft.
 
 local game = {}
 
@@ -21,11 +25,16 @@ local function ns(name)
 end
 game.ns = ns
 
--- Figuren-IDs fuer PLAYER_STATE.character. Wird ergaenzt, sobald wir die
--- GameObject-Namen der Figuren per Diagnose kennen.
-game.CHARACTERS = {
-    [0] = "?",
-}
+-- Enum-Typen, deren Namen wir zur Laufzeit aus dem Spiel lesen.
+game.ENUM_SURVIVOR_TYPE = ns("SurvivorDefine.SurvivorType")
+game.ENUM_MAP_ID = ns("gamemastering.Map.ID")
+game.ENUM_MAP_AREA = ns("gamemastering.Map.Area")
+game.ENUM_PLAYER_TYPE = ns("PlayerDefine.PlayerType")
+game.ENUM_LOCATION_ID = ns("gamemastering.Location.ID")
+
+-- PLAYER_STATE.character ist ein Byte. Werte ausserhalb 0..254 senden wir
+-- als 255 ("unbekannt").
+game.CHARACTER_UNKNOWN = 255
 
 -- Wie wir den Spieler gefunden haben (fuer UI/Diagnose).
 game.player_source = nil
@@ -65,11 +74,91 @@ function game.get_name(game_object)
     return try_call(game_object, "get_Name")
 end
 
--- Kennung des aktuellen Bereichs. Damit zeigen wir den Mitspieler spaeter
--- nur an, wenn er im selben Bereich ist.
--- TODO: Richtige Quelle per Diagnose finden (Kandidaten siehe diag.lua).
-function game.get_area()
-    return ""
+-- Enum-Wert -> Name, gelesen aus den statischen Feldern der Enum-Klasse.
+-- Ergebnis wird pro Typ gecacht (die Typdatenbank aendert sich nicht).
+local enum_cache = {}
+
+function game.enum_names(type_name)
+    local names = enum_cache[type_name]
+    if names ~= nil then
+        return names
+    end
+    names = {}
+    local td = sdk.find_type_definition(type_name)
+    local ok, fields = pcall(function() return td:get_fields() end)
+    for _, f in ipairs(ok and fields or {}) do
+        local ok_static, is_static = pcall(f.is_static, f)
+        if ok_static and is_static then
+            local ok_data, value = pcall(f.get_data, f, nil)
+            if ok_data and type(value) == "number" then
+                names[value] = f:get_name()
+            end
+        end
+    end
+    enum_cache[type_name] = names
+    return names
+end
+
+-- Name zu einem Enum-Wert, "#<zahl>" wenn unbekannt, "" ohne Wert.
+function game.enum_name(type_name, value)
+    if type(value) ~= "number" then
+        return ""
+    end
+    return game.enum_names(type_name)[value] or ("#" .. tostring(value))
+end
+
+-- PlayerCondition-Komponente des Spielers (Figur, Bereich, Zustand).
+function game.get_condition(player)
+    if player == nil or sdk.typeof == nil then
+        return nil
+    end
+    local t = sdk.typeof(ns("survivor.player.PlayerCondition"))
+    if t == nil then
+        return nil
+    end
+    return try_call(player, "getComponent(System.Type)", t)
+end
+
+-- Rohwerte aus PlayerCondition (fuer Debug-Anzeige und Diagnose).
+-- UNBESTAETIGT, welche der beiden Bereichs-IDs beim Tuerwechsel zuverlaessig
+-- wechselt. Wir nutzen vorerst StaySceneAreaID.
+function game.get_condition_info(condition)
+    if condition == nil then
+        return nil
+    end
+    local info = {
+        survivor_type = try_call(condition, "get_SurvivorType"),
+        scene_area_id = try_call(condition, "get_StaySceneAreaID"),
+        space_area_id = try_call(condition, "get_StaySpaceAreaID"),
+        map_area = try_call(condition, "get_StaySceneMapArea"),
+    }
+    info.survivor_name = game.enum_name(game.ENUM_SURVIVOR_TYPE, info.survivor_type)
+    info.scene_area_name = game.enum_name(game.ENUM_MAP_ID, info.scene_area_id)
+    info.space_area_name = game.enum_name(game.ENUM_MAP_ID, info.space_area_id)
+    info.map_area_name = game.enum_name(game.ENUM_MAP_AREA, info.map_area)
+    return info
+end
+
+-- Kennung des aktuellen Bereichs (Name aus Map.ID). Damit erkennen wir, ob
+-- der Mitspieler im selben Bereich ist. "" = unbekannt.
+function game.get_area(info)
+    return info and info.scene_area_name or ""
+end
+
+-- Figur als Byte fuer PLAYER_STATE.character (Wert aus SurvivorType).
+function game.get_character(info)
+    local value = info and info.survivor_type
+    if type(value) ~= "number" or value < 0 or value >= game.CHARACTER_UNKNOWN then
+        return game.CHARACTER_UNKNOWN
+    end
+    return math.floor(value)
+end
+
+function game.character_name(value)
+    if value == nil or value == game.CHARACTER_UNKNOWN then
+        return "?"
+    end
+    return game.enum_name(game.ENUM_SURVIVOR_TYPE, value)
 end
 
 -- Liest den Zustand des lokalen Spielers. Gibt nil zurueck, wenn es (gerade)
@@ -88,13 +177,15 @@ function game.get_local_state()
     if pos == nil or rot == nil then
         return nil
     end
+    local info = game.get_condition_info(game.get_condition(player))
     return {
         x = pos.x, y = pos.y, z = pos.z,
         qx = rot.x, qy = rot.y, qz = rot.z, qw = rot.w,
-        area = game.get_area(),
-        character = 0,
+        area = game.get_area(info),
+        character = game.get_character(info),
         flags = 0,
         object_name = game.get_name(player),
+        condition = info,
     }
 end
 

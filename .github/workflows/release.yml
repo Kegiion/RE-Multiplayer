@@ -1,0 +1,117 @@
+name: Release
+
+# Veroeffentlicht eine Mod oder den Mod-Manager als GitHub-Release. Der Mod-Manager
+# holt sich darueber Updates und Patch Notes.
+#
+# Start: GitHub -> Actions -> Release -> "Run workflow", oder
+#   gh workflow run release.yml -f mod=re0hd
+#   gh workflow run release.yml -f mod=manager -f prerelease=true
+#
+# Die Version kommt aus dem Code (MOD_VERSION bzw. <Version> in tools/modmanager/Directory.Build.props),
+# die Patch Notes aus dem passenden CHANGELOG.md (Abschnitt "## <Version>").
+# Gibt es das Release schon, bricht der Lauf ab: dann zuerst die Version erhoehen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: Was soll veroeffentlicht werden?
+        type: choice
+        required: true
+        options:
+          - re0hd
+          - re2r
+          - manager
+      prerelease:
+        description: Als Vorabversion (Beta) markieren
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.mod }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release ${{ inputs.mod }}
+    runs-on: windows-latest
+    env:
+      MOD: ${{ inputs.mod }}
+      PRERELEASE: ${{ inputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+      DOTNET_NOLOGO: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version und Patch Notes lesen
+        id: meta
+        shell: pwsh
+        run: ./tools/release/release-meta.ps1 -Mod $env:MOD
+
+      - name: Pruefen, dass es das Release noch nicht gibt
+        shell: pwsh
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Das Release $env:TAG gibt es schon. Bitte zuerst die Version erhoehen." }
+          exit 0
+
+      - name: RE0 HD bauen (32-Bit)
+        if: inputs.mod == 're0hd'
+        run: |
+          cmake -S . -B build32 -A Win32
+          cmake --build build32 --config Release --parallel
+          ctest --test-dir build32 -C Release --output-on-failure
+          cmake --install build32 --config Release --prefix dist/pkg --component re0hd-coop
+
+      - name: RE2 bauen
+        if: inputs.mod == 're2r'
+        run: |
+          cmake -S . -B build -A x64
+          cmake --build build --config Release --parallel
+          ctest --test-dir build -C Release --output-on-failure
+          cmake --install build --config Release --prefix dist/pkg --component re2r-coop
+
+      - uses: actions/setup-dotnet@v4
+        if: inputs.mod == 'manager'
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Mod-Manager bauen
+        if: inputs.mod == 'manager'
+        run: |
+          dotnet test tools/modmanager/tests/ModManager.Tests -c Release
+          dotnet publish tools/modmanager/src/ModManager.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o dist/manager
+
+      - name: Datei fuer das Release packen
+        shell: pwsh
+        env:
+          ASSET: ${{ steps.meta.outputs.asset }}
+        run: |
+          $out = New-Item -ItemType Directory -Force dist/out
+          if ($env:MOD -eq 'manager') {
+            Copy-Item dist/manager/REMods-Manager.exe (Join-Path $out $env:ASSET)
+          } else {
+            # ZIP-Inhalt = Spielordner (z. B. dinput8.dll und remods/ bei RE0)
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [IO.Compression.ZipFile]::CreateFromDirectory((Resolve-Path dist/pkg).Path, (Join-Path $out $env:ASSET))
+          }
+          Get-ChildItem $out
+
+      - name: Release anlegen
+        shell: pwsh
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          TITLE: ${{ steps.meta.outputs.title }}
+          ASSET: ${{ steps.meta.outputs.asset }}
+        run: |
+          $ghArgs = @($env:TAG, "dist/out/$env:ASSET", '--title', $env:TITLE, '--notes-file', 'dist/release-notes.md', '--target', $env:GITHUB_SHA)
+          if ($env:PRERELEASE -eq 'true') { $ghArgs += '--prerelease' }
+          # "Latest" zeigt immer auf den Manager, damit .../releases/latest/download/REMods-Manager.exe funktioniert
+          if ($env:MOD -eq 'manager' -and $env:PRERELEASE -ne 'true') { $ghArgs += '--latest' } else { $ghArgs += '--latest=false' }
+          gh release create @ghArgs
+          if ($LASTEXITCODE -ne 0) { throw 'gh release create fehlgeschlagen' }

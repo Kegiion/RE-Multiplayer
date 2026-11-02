@@ -1,0 +1,13 @@
+# Patch Notes: REMods Mod-Manager
+
+Neueste Version oben. Der Release-Workflow übernimmt den Abschnitt `## <Version>` (Version aus `Directory.Build.props`).
+
+## 1.0.0
+
+- Erste Version.
+- Findet Resident Evil 0 HD und Resident Evil 2 (Remake) über Steam, auch in weiteren Steam-Bibliotheken. Andere Ordner kann man von Hand wählen.
+- Installieren, Aktualisieren und Deinstallieren der Koop-Mods per Klick. Deine Einstellungen bleiben dabei erhalten.
+- RE2: REFramework wird bei Bedarf automatisch mitinstalliert.
+- Patch Notes aller Versionen direkt im Manager.
+- **Fehler melden:** Logs landen als ZIP auf dem Desktop und GitHub öffnet sich mit einem vorausgefüllten Fehlerbericht.
+- Der Manager aktualisiert sich selbst.

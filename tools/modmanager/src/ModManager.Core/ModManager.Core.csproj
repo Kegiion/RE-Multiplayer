@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Plattformunabhaengiger Kern (laeuft auch unter Linux, dort laufen die Tests).
+       Windows-spezifisches (Registry) ist mit OperatingSystem.IsWindows() abgesichert. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>REMods.ModManager.Core</RootNamespace>
+    <AssemblyName>REMods.ModManager.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\games.json" LogicalName="games.json" />
+  </ItemGroup>
+
+</Project>

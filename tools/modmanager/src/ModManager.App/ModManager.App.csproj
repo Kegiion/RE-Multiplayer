@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Die Manager-exe (WPF). Veroeffentlicht als eine einzige Datei:
+       dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+         -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>REMods-Manager</AssemblyName>
+    <RootNamespace>REMods.ModManager</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModManager.Core\ModManager.Core.csproj" />
+  </ItemGroup>
+
+</Project>

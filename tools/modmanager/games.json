@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "games": [
+    {
+      "id": "re0hd",
+      "name": "Resident Evil 0 HD Remaster",
+      "steamAppId": 339340,
+      "exe": "re0hd.exe",
+      "processName": "re0hd",
+      "tagPrefix": "re0hd-v",
+      "assetPrefix": "RE0HD-Coop-",
+      "installedMarker": "remods/remods_re0.dll",
+      "recordPath": "remods/remods-install.json",
+      "keepPaths": [ "remods/data" ],
+      "legacyFiles": [],
+      "legacyDirs": [ "remods" ],
+      "loader": {
+        "file": "dinput8.dll",
+        "ownMarker": "remods\\remods_re0.dll",
+        "backupSuffix": ".vor-remods"
+      },
+      "supportedExeTimestamps": [ "6799D40F" ],
+      "logs": [ "remods/remods_re0.log" ],
+      "hint": "Im Spiel öffnet Einfg oder F8 das Menü. Unter „RE0 Koop“ kannst du hosten oder beitreten."
+    },
+    {
+      "id": "re2r",
+      "name": "Resident Evil 2 (Remake)",
+      "steamAppId": 883710,
+      "exe": "re2.exe",
+      "processName": "re2",
+      "tagPrefix": "re2r-v",
+      "assetPrefix": "RE2R-Coop-",
+      "installedMarker": "reframework/plugins/remods_coopnet.dll",
+      "recordPath": "reframework/remods-install.json",
+      "keepPaths": [ "reframework/data" ],
+      "legacyFiles": [
+        "reframework/plugins/remods_coopnet.dll",
+        "reframework/autorun/re2r_coop.lua"
+      ],
+      "legacyDirs": [
+        "reframework/autorun/re2r_coop",
+        "reframework/autorun/remods_coop"
+      ],
+      "framework": {
+        "name": "REFramework",
+        "repo": "praydog/REFramework-nightly",
+        "asset": "RE2.zip",
+        "files": [ "dinput8.dll" ]
+      },
+      "supportedExeTimestamps": [],
+      "logs": [ "re2_framework_log.txt" ],
+      "hint": "Im Spiel öffnet Einfg das REFramework-Menü. Dort unter „Script Generated UI“ → „RE2 Koop“."
+    }
+  ]
+}

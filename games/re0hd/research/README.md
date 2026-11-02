@@ -13,6 +13,8 @@ Hier landen Diagnose-Dateien (`re0hd_diag_*.json`), Logs und bestätigte Fakten 
 | Die vtable des Spiel-Devices ist **eine andere** als die unseres NULLREF-Dummy-Devices. Der Hook auf `IDirect3D9::CreateDevice` ist deshalb nötig | Runtime-Log |
 | Fenster-Nachrichten und `Present` laufen in **verschiedenen Threads** | Runtime-Log |
 | Bei 32:9 (Samsung Odyssey G9, 5120x1440) wird das Bild gestreckt | Test durch den User |
+| Die Pfeiltasten (`KC_partner*`) steuern den Partner unabhängig von der eigenen Figur | Test durch den User, 2. November 2026 |
+| MT-DTI: In `.data` liegen 2540 Kandidaten (vtable + Zeiger auf Klassennamen). Das Feld `+10` zeigt bei 1377 auf ein anderes DTI-Objekt, ist also wahrscheinlich der Eltern-Zeiger | Runtime 0.2.0, Log |
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)
 

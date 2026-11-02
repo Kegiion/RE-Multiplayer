@@ -14,6 +14,7 @@
 #include <type_traits>
 
 #include "coop/net/lua_bindings.hpp"
+#include "input_hook.hpp"
 #include "log.hpp"
 #include "mt_explorer.hpp"
 #include "runtime.hpp"
@@ -585,6 +586,7 @@ void register_api(lua_State* L) {
 
     coop::net::register_lua_api(L, session());
     mt::register_lua(L);
+    input::register_lua(L);
 
     // Suchpfade fuer require(): erst lib/, dann autorun/
     const auto& p = paths();

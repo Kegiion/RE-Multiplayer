@@ -11,6 +11,7 @@
 
 #include "coop/net/session.hpp"
 #include "d3d9_hook.hpp"
+#include "input_hook.hpp"
 #include "log.hpp"
 #include "overlay.hpp"
 #include "runtime.hpp"
@@ -88,5 +89,8 @@ extern "C" __declspec(dllexport) void remods_init() {
         LOG_INFO("D3D9-Hooks installiert - warte auf den ersten Frame");
     } else {
         LOG_ERROR("D3D9-Hooks fehlgeschlagen - kein Overlay");
+    }
+    if (!input::install()) {
+        LOG_WARN("DirectInput-Hooks fehlgeschlagen - Spiel bekommt Eingaben auch bei offenem Menue");
     }
 }

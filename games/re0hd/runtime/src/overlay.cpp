@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "input_hook.hpp"
 #include "log.hpp"
 #include "lua_host.hpp"
 #include "runtime.hpp"
@@ -184,6 +185,7 @@ void handle_toggle_key() {
     if ((insert || f8) && GetForegroundWindow() == g_hwnd) {
         g_menu_open = !g_menu_open;
     }
+    input::set_blocked(g_menu_open);  // Spiel sieht Tastatur/Maus nicht, solange das Menue offen ist
 }
 
 void draw_banner() {

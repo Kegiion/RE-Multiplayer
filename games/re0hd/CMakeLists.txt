@@ -14,8 +14,9 @@ add_library(remods_re0 SHARED
     runtime/src/overlay.cpp
     runtime/src/lua_host.cpp
     runtime/src/mt_explorer.cpp
-    runtime/src/safe_mem.cpp)
-target_link_libraries(remods_re0 PRIVATE coop_netcore imgui d3d9)
+    runtime/src/safe_mem.cpp
+    runtime/src/input_hook.cpp)
+target_link_libraries(remods_re0 PRIVATE coop_netcore imgui d3d9 dxguid)
 target_compile_definitions(remods_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 
 # Git-Commit als Build-ID (wird im Spiel angezeigt)

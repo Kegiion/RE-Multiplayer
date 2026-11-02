@@ -11,7 +11,7 @@ class Session;
 namespace remods {
 
 // Bei jeder Aenderung an der Runtime erhoehen (Lua-Skripte haben eigene Versionen).
-constexpr const char* kRuntimeVersion = "0.1.1";
+constexpr const char* kRuntimeVersion = "0.2.0";
 
 // Git-Commit des Builds (von CMake gesetzt), damit man im Spiel sieht, welcher Build laeuft.
 #ifndef REMODS_BUILD_ID

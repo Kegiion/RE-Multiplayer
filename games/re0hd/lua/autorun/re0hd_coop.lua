@@ -7,8 +7,9 @@
 --   remods_coop/*          gemeinsame Lua-Bibliothek (wie bei RE2)
 --   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (noch leer)
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
+--   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 
-local MOD_VERSION = "0.1.0"
+local MOD_VERSION = "0.2.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -24,6 +25,7 @@ end
 local Session = require("remods_coop.session")
 local game = require("re0hd_coop.game")
 local memtool = require("re0hd_coop.memtool")
+local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtime 0.2.0
 
 -- --- Einstellungen ---------------------------------------------------------
 
@@ -243,6 +245,11 @@ re.on_draw_ui(function()
         imgui.separator()
         draw_status_ui(status)
         imgui.separator()
+
+        if explorer and imgui.tree_node("MT-Explorer (Forschung)") then
+            explorer.draw()
+            imgui.tree_pop()
+        end
 
         if imgui.tree_node("Speicher-Werkzeug (Forschung)") then
             draw_memtool_ui()

@@ -49,6 +49,16 @@ Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, 
    - Im Menü sollte „Mitspieler: …“ erscheinen. Ohne den Parameter `re0hd` meldet sich der Bot als RE2-Spieler, dann ist „falsches Spiel“ im Log richtig.
 6. Spiel beenden und `remods\remods_re0.log` an Claude geben (bzw. nach `games/re0hd/research/` kopieren).
 
+## Forschung: MT-Explorer (ab Runtime 0.2.0)
+
+MT Framework hat ein eigenes Typsystem (DTI): Jede Klasse hat einen Namen wie `uPlayerRebecca`, und jedes Objekt verrät seine Klasse. Der Explorer nutzt das. Er steht im Menü unter **RE0 Koop → MT-Explorer (Forschung)**:
+
+1. Im Spiel an die gewünschte Stelle gehen, dann **Speicher durchsuchen** klicken. Das Spiel stockt dabei kurz.
+2. Klasse suchen (oder Schnellwahl, z. B. `uPlayerRebecca`) und ein Objekt anklicken.
+3. Die Objekt-Ansicht zeigt die Daten live an. Gelb markiert sind Werte, die sich gerade geändert haben. Mit **>** folgst du einem Zeiger auf ein anderes Objekt.
+4. **Schnappschuss speichern** mit einer kurzen Beschreibung („rebecca_steht“, „rebecca_laeuft_vor“). Claude wertet die Dateien in `remods/data/` direkt aus.
+5. **Klassenliste speichern** schreibt alle gefundenen Klassen mit Anzahl der Objekte nach `remods/data/re0hd_classes.json`.
+
 ## Forschung: Spieldaten finden
 
 Die Adressen für Position und Lebenspunkte suchen wir mit **Cheat Engine**. Danach prüfen wir sie im Menü unter **RE0 Koop → Speicher-Werkzeug**:

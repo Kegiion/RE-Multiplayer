@@ -15,7 +15,9 @@
 
 #include "coop/net/lua_bindings.hpp"
 #include "log.hpp"
+#include "mt_explorer.hpp"
 #include "runtime.hpp"
+#include "safe_mem.hpp"
 
 // Hinweis: Lua-Fehler springen per longjmp aus den C-Funktionen heraus.
 // In den Bindings deshalb erst alle luaL_check*-Aufrufe, und keine
@@ -269,6 +271,22 @@ int l_imgui_end_window(lua_State*) {
     return 0;
 }
 
+// imgui.begin_child(id, breite, hoehe) / imgui.end_child() - Bereich mit eigener Scrollleiste
+int l_imgui_begin_child(lua_State* L) {
+    const char* id = luaL_checkstring(L, 1);
+    const auto w = static_cast<float>(luaL_optnumber(L, 2, 0));
+    const auto h = static_cast<float>(luaL_optnumber(L, 3, 0));
+    lua_pushboolean(L, g_imgui_active && ImGui::BeginChild(id, ImVec2(w, h), ImGuiChildFlags_Borders));
+    return 1;
+}
+
+int l_imgui_end_child(lua_State*) {
+    if (g_imgui_active) {
+        ImGui::EndChild();
+    }
+    return 0;
+}
+
 int l_imgui_set_clipboard(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
     if (g_imgui_active) {
@@ -323,12 +341,11 @@ void push_value(lua_State* L, T v) {
 template <typename T>
 int l_mem_read(lua_State* L) {
     const uintptr_t addr = check_addr(L, 1);
-    if (!range_ok(addr, sizeof(T), false)) {
+    T v{};
+    if (!safe_get(addr, v)) {
         lua_pushnil(L);
         return 1;
     }
-    T v{};
-    std::memcpy(&v, reinterpret_cast<const void*>(addr), sizeof(T));
     push_value(L, v);
     return 1;
 }
@@ -342,11 +359,7 @@ int l_mem_write(lua_State* L) {
     } else {
         v = static_cast<T>(luaL_checkinteger(L, 2));
     }
-    const bool ok = range_ok(addr, sizeof(T), true);
-    if (ok) {
-        std::memcpy(reinterpret_cast<void*>(addr), &v, sizeof(T));
-    }
-    lua_pushboolean(L, ok);
+    lua_pushboolean(L, safe_write(addr, &v, sizeof(T)));
     return 1;
 }
 
@@ -354,19 +367,16 @@ int l_mem_write(lua_State* L) {
 int l_mem_read_string(lua_State* L) {
     const uintptr_t addr = check_addr(L, 1);
     const auto max = static_cast<size_t>(luaL_optinteger(L, 2, 256));
-    if (!range_ok(addr, 1, false)) {
+    char first = 0;
+    if (!safe_get(addr, first)) {
         lua_pushnil(L);
         return 1;
     }
     luaL_Buffer b;
     luaL_buffinit(L, &b);
     for (size_t i = 0; i < max; ++i) {
-        const uintptr_t p = addr + i;
-        if ((p & 0xFFF) == 0 && !range_ok(p, 1, false)) {  // neue Speicherseite
-            break;
-        }
-        const char c = *reinterpret_cast<const char*>(p);
-        if (c == '\0') {
+        char c = 0;
+        if (!safe_get(addr + i, c) || c == '\0') {
             break;
         }
         luaL_addchar(&b, c);
@@ -529,6 +539,8 @@ void register_api(lua_State* L) {
         {"begin_window", l_imgui_begin_window},
         {"end_window", l_imgui_end_window},
         {"set_clipboard", l_imgui_set_clipboard},
+        {"begin_child", l_imgui_begin_child},
+        {"end_child", l_imgui_end_child},
         {nullptr, nullptr},
     };
     set_funcs(L, "imgui", imgui_funcs);
@@ -572,6 +584,7 @@ void register_api(lua_State* L) {
     lua_setglobal(L, "remods");
 
     coop::net::register_lua_api(L, session());
+    mt::register_lua(L);
 
     // Suchpfade fuer require(): erst lib/, dann autorun/
     const auto& p = paths();

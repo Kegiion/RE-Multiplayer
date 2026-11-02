@@ -12,7 +12,9 @@ add_library(remods_re0 SHARED
     runtime/src/log.cpp
     runtime/src/d3d9_hook.cpp
     runtime/src/overlay.cpp
-    runtime/src/lua_host.cpp)
+    runtime/src/lua_host.cpp
+    runtime/src/mt_explorer.cpp
+    runtime/src/safe_mem.cpp)
 target_link_libraries(remods_re0 PRIVATE coop_netcore imgui d3d9)
 target_compile_definitions(remods_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 

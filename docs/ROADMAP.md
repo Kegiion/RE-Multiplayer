@@ -37,25 +37,49 @@
 - Wiederverbinden nach Absturz
 - Einstellungen: Friendly Fire, Schwierigkeit, Item-Teilung
 
-## RE0 HD: Partner-Koop (parallel zu RE2)
+## RE0 HD: Koop mit eigenem Bild für jeden (Weg B)
 
-Idee: Der zweite Spieler steuert den Partner (Rebecca bzw. Billy). Details: [games/re0hd/README.md](../games/re0hd/README.md).
+Entscheidung des Users (2. November 2026): **Weg B**. Jeder spielt in seinem eigenen Spiel mit eigener Kamera. Der Host bestimmt die Welt (Gegner, Items, Story).
+
+**Grundidee:** In RE0 sind Rebecca und Billy immer beide in der Welt. In jedem der beiden Spiele ist der **Partner** der andere Spieler:
+
+| | Spiel des Hosts | Spiel des Mitspielers |
+|---|---|---|
+| Gesteuert (lokal) | Rebecca | Billy (per Figurwechsel aktiv) |
+| Partner | Billy = Puppe des Mitspielers | Rebecca = Puppe des Hosts |
+
+Der Partner wird nicht von der KI gesteuert, sondern von den Netzwerkdaten des anderen Spielers. Er wird über seine eigenen Eingaben bewegt (Partner-Steuerung des Spiels, siehe `KC_partner*`) und regelmäßig auf die echte Position korrigiert. So laufen Animationen von selbst richtig. RE0 erlaubt außerdem schon getrennte Partner in verschiedenen Räumen.
 
 ### Schritt 1: Runtime im Spiel ✅
 - [x] Loader `dinput8.dll`, Runtime mit D3D9-Hook, ImGui-Menü, Lua und `coopnet`
 - [x] Speicher-Werkzeug und Diagnose-Datei für die Forschung
 - [x] Erster Test im Spiel (Menü, Maus/Tastatur, Alt+Tab, Testbot) ✅ 2. November 2026
 
-### Schritt 2: Spieldaten finden (aktuell)
-- [ ] Mit Cheat Engine: Position, Lebenspunkte, aktive Figur, Raum
-- [ ] Adressen über Byte-Muster (`mem.scan`) robust gegen Spiel-Updates machen
-- [ ] `game.get_local_state()` implementieren
+### Schritt 2: Forschungswerkzeug „MT-Explorer“ (aktuell)
+- [ ] DTI-Typinfos der Engine im laufenden Spiel finden (Klassennamen, Größen, Vererbung)
+- [ ] Lebende Objekte einer Klasse finden (z. B. `uPlayerRebecca`) und ihre Daten live anzeigen
+- [ ] Zeiger folgen, geänderte Werte hervorheben, Schnappschüsse für die Auswertung speichern
 
-### Schritt 3: Geister-Spieler
-- [ ] Position beider Spieler austauschen und im Menü bzw. als Markierung anzeigen
+### Schritt 3: Spieldaten
+- [ ] Position und Drehung von Rebecca und Billy, aktive Figur, Lebenspunkte
+- [ ] Aktueller Raum (`sGameArea`, `aRoom…`)
+- [ ] Partner-Eingaben einspeisen (über unseren `dinput8`-Proxy) und Partner-KI abschalten
 
-### Schritt 4: Partner übernehmen
-- [ ] Partner-KI abschalten und den Partner über Netzwerk-Eingaben steuern
+### Schritt 4: Spielstand übertragen
+- [ ] Spielstand `data0.bin` (Steam-Cloud-Ordner, verschlüsselt, alle Slots in einer Datei) vom Host zum Mitspieler schicken. Vorher eine Sicherung anlegen
+- [ ] Herausfinden, wann das Spiel die Datei neu einliest (Ladebildschirm oder nur beim Start). Steam Cloud beachten
+
+### Schritt 5: Geister-Koop
+- [ ] Beide Figuren gegenseitig als Partner-Puppe darstellen (Position, Drehung, Laufen)
+- [ ] Raumwechsel: Die Puppe verschwindet bzw. erscheint im richtigen Raum
+
+### Schritt 6: Welt abgleichen
+- [ ] Gegner: Der Host steuert, der Mitspieler sieht Puppen. Schaden und Tod abgleichen
+- [ ] Items, Inventar und Türen
+- [ ] Story-Flags (`sFlagManager`) und Zwischensequenzen
+
+### Schritt 7: Komfort
+- [ ] Wiederverbinden, Verbindung ohne Portfreigabe
 
 ### Nebenbei: Ultrawide (Wunsch des Users, Monitor 32:9)
 - [ ] Gestrecktes Bild bei 5120x1440 beheben (mindestens korrekt 16:9 mit Rändern, besser echtes Ultrawide). Achtung: RE0 nutzt vorgerenderte Hintergründe, mehr Sichtfeld zeigt evtl. deren Ränder

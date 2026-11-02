@@ -8,8 +8,9 @@
 --   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (noch leer)
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
+--   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.2.2"
+local MOD_VERSION = "0.3.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -26,6 +27,7 @@ local Session = require("remods_coop.session")
 local game = require("re0hd_coop.game")
 local memtool = require("re0hd_coop.memtool")
 local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtime 0.2.0
+local devconsole = require("re0hd_coop.devconsole")
 
 -- --- Einstellungen ---------------------------------------------------------
 
@@ -34,6 +36,7 @@ local config = {
     address = "127.0.0.1",
     port = 27350,
     watches = {}, -- { {name=, expr=, type=}, ... } fuer das Speicher-Werkzeug
+    devconsole = false, -- Entwickler-Konsole fuer Claude
 }
 
 local function load_config()
@@ -69,7 +72,10 @@ end)
 
 local last_error = nil
 
+devconsole.enabled = config.devconsole
+
 re.on_frame(function()
+    devconsole.update(session:time())
     local ok, err = pcall(session.update, session)
     if not ok and tostring(err) ~= last_error then
         last_error = tostring(err)
@@ -245,6 +251,15 @@ re.on_draw_ui(function()
         imgui.separator()
         draw_status_ui(status)
         imgui.separator()
+
+        local changed
+        changed, config.devconsole = imgui.checkbox("Entwickler-Konsole fuer Claude", config.devconsole)
+        if changed then
+            devconsole.enabled = config.devconsole
+            save_config()
+        end
+        imgui.same_line()
+        imgui.text("(" .. devconsole.status_text() .. ")")
 
         if explorer and imgui.tree_node("MT-Explorer (Forschung)") then
             explorer.draw()

@@ -20,6 +20,8 @@ local GAMECAMERA_INSTANCE = 0x00E2D6BC -- statischer Zeiger auf sGameCamera
 local OFF_CAMERA = 0x34                -- sGameCamera: aktive Kamera (uGameFreeCamera)
 local OFF_CAM_POS = 0x40               -- Kamera: Position
 local OFF_CAM_TARGET = 0x60            -- Kamera: Blickpunkt
+local GAMEAREA_INSTANCE = 0x00E2D8C0   -- statischer Zeiger auf sGameArea
+local OFF_ROOM = 0x3834                -- sGameArea: aktueller Raum (aRoomXxNN)
 
 -- Partner-Tasten (DIK-Codes, Standardbelegung KC_partner* = Pfeiltasten).
 -- Sie wirken relativ zur Kamera: hoch = vom Betrachter weg.
@@ -79,9 +81,44 @@ function game.read_state(obj)
     }
 end
 
--- Zustand des lokalen Spielers fuer PLAYER_STATE
+-- Aktueller Raum als Kennung wie "Tr04" (Klasse aRoomTr04 ohne "aRoom") oder nil.
+-- Das Raum-Objekt bleibt an derselben Adresse, beim Raumwechsel aendert sich
+-- seine Klasse (vtable). Deshalb wird die Kennung pro vtable zwischengespeichert.
+local room_cache = { vtable = nil, id = nil }
+function game.room_id()
+    if not game.supported or not mt then
+        return nil
+    end
+    local ga = mem.read_u32(GAMEAREA_INSTANCE)
+    local room = ga and ga ~= 0 and mem.read_u32(ga + OFF_ROOM)
+    local vtable = room and room ~= 0 and mem.read_u32(room)
+    if not vtable or vtable == 0 then
+        return nil
+    end
+    if vtable ~= room_cache.vtable then
+        local class = mt.class_of(room)
+        room_cache.vtable = vtable
+        room_cache.id = class and class:match("^aRoom(%w+)$") or nil
+    end
+    return room_cache.id
+end
+
+-- Sind beide im selben Raum? true/false, oder nil, wenn ein Raum unbekannt ist
+-- ("" = Mitspieler kennt seinen Raum nicht)
+function game.same_room(a, b)
+    if a == nil or b == nil or a == "" or b == "" then
+        return nil
+    end
+    return a == b
+end
+
+-- Zustand des lokalen Spielers fuer PLAYER_STATE (mit Raum in .area)
 function game.get_local_state()
-    return game.read_state(game.active_object())
+    local s = game.read_state(game.active_object())
+    if s then
+        s.area = game.room_id()
+    end
+    return s
 end
 
 -- Partner an eine Position/Drehung setzen (jeden Frame aufrufen, sonst laeuft die KI weiter)

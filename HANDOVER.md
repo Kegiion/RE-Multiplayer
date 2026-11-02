@@ -21,13 +21,13 @@
 | CI (GitHub Actions) | baut die Artifacts `RE2R-Coop`, `RE-Multiplayer-Tools` und `RE0HD-Coop` (eigener Win32-Job) |
 | Mod-Manager `tools/modmanager` (`RE-Multiplayer.exe`, .NET 10 WPF) | ✅ baut in CI (Workflow `modmanager.yml`), Tests grün. Installiert/aktualisiert/deinstalliert Mods aus GitHub-Releases (`release.yml`), Patch Notes, „Fehler melden“, Selbst-Update. Im Spiel noch vom User zu prüfen. Doku: `tools/modmanager/README.md` |
 | RE0-Loader `dinput8.dll` + Runtime `remultiplayer_re0.dll` (32-Bit, D3D9-Hook, ImGui-Menü, Lua, `coopnet`, `mem.*`) | ✅ **läuft im Spiel** (erster Test am 2. November 2026: Menü, Eingabe, Neu laden, Alt+Tab, Testbot ok) |
-| RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Speicher-Werkzeug, Diagnose) | ✅ gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
+| RE0-Skript `games/re0hd/lua` (Verbindung, Chat, Geister-Koop, Raum-Kennung, Entwickler-Konsole, MT-Explorer) | ✅ läuft im Spiel: Partner folgt dem Mitspieler (Mod 0.4.0), Raum-Kennung `aRoomXxNN` (Mod 0.5.0). Gegen Mock getestet (`tests/lua/re0hd_mock_test.lua`) |
 
 **Meilenstein 1 („Geister-Spieler“)** läuft in RE2 im Spiel. Offen sind die Prüfung von Figur und Bereich (Mod 0.2.0) und ein Test mit einem echten Mitspieler.
 
 ## Sofort als Nächstes
 
-**RE0 HD:** Schritt 1 läuft im Spiel. Als Nächstes Schritt 2: mit Cheat Engine Position, Lebenspunkte und die aktive Figur suchen und im Menü mit dem Speicher-Werkzeug prüfen (Fakten in `games/re0hd/research/README.md`). Wunsch des Users: Ultrawide-Fix für seinen 32:9-Monitor (siehe `docs/ROADMAP.md`).
+**RE0 HD:** Geister-Koop läuft (Partner folgt dem Mitspieler), seit Mod 0.5.0 mit Raum-Kennung. Offen: Test mit einem echten Mitspieler, echter Join auf den Spielstand des Hosts (Weg B), Lebenspunkte, Ultrawide-Fix für den 32:9-Monitor des Users (siehe `docs/ROADMAP.md`). Fakten in `games/re0hd/research/README.md`, die Entwickler-Konsole ist in `games/re0hd/lua/autorun/re0hd_coop/devconsole.lua` beschrieben.
 
 **RE2:**
 

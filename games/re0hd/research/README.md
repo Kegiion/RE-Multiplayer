@@ -64,6 +64,8 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 - **Was funktioniert:** passende Partner-Taste zur Kamera drücken (8 Richtungen), bei Abweichung sanft nachziehen, im Stand Position und Drehung festhalten. Der Partner läuft dann einer Spur flüssig nach, auch über Kamerawechsel (Test des Users, 2. November 2026). Umgesetzt in `lua/autorun/re0hd_coop/puppet.lua`.
 - Wird der Partner in eine Wand oder an eine unerreichbare Stelle gesetzt, bleibt er dort hängen und die KI folgt nicht mehr.
 
+**Aktueller Raum** (bestätigt am 2. November 2026): Bei `0x00E2D8C0` (= `re0hd.exe+A2D8C0`) steht der Zeiger auf `sGameArea`. Dort bei `+3834` steht das aktuelle Raum-Objekt, bei `+3830` die Stufe (`aStageTr`), bei `+382C` ein weiteres Objekt (unklar). Die **Klasse des Raum-Objekts ist die Raum-Kennung**: `aRoomTr02` = Flur im Zug, `aRoomTr04` = Raum 201 (Test des Users). Das Objekt bleibt beim Raumwechsel an derselben Adresse, nur seine Klasse (vtable) wechselt. Stufen laut Klassenliste: `Bt`, `Ch`, `Dm`, `Pl`, `Sh`, `Tr` (Tr = Zug, die übrigen unbestätigt). Weitere Klassen rund um Räume: `sRoomControl` (Zeiger bei `0x00DCBEB4`), `sDoorLoad` (`0x00DCBEB8`), `cRoomScheduler`, `cRoomPhase*`.
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)
@@ -90,5 +92,4 @@ Adressen gelten nur für eine bestimmte Version der exe. Die Version erkennen wi
 - Position von Rebecca und Billy (x, y, z, Blickrichtung)
 - Lebenspunkte beider Figuren
 - Welche Figur gerade gesteuert wird (Partnerwechsel)
-- Aktueller Raum bzw. Bereich
 - Steuerung der Partner-KI (Bewegungsbefehle bzw. Eingaben für den Partner)

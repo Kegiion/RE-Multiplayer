@@ -2,6 +2,10 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.5.0
+
+- **Raumwechsel:** Die Mod erkennt jetzt den aktuellen Raum und schickt ihn mit. Seid ihr in verschiedenen Räumen, übernimmt die Spiel-KI deinen Partner, bis ihr wieder zusammen seid. Im Menü steht bei beiden Spielern der Raum (z. B. `Tr04`).
+
 ## 0.4.1
 
 - **Neuer Name: RE:Multiplayer.** Die Dateien im Spielordner heißen jetzt `remultiplayer/` statt `remods/` (Runtime `remultiplayer_re0.dll`, Log `remultiplayer/remultiplayer_re0.log`).

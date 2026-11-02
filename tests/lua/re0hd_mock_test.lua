@@ -246,4 +246,23 @@ devconsole.update(200)
 res = json.load_file("claude_out.json")
 assert(res and res.ok == false and res.error:find("kaputt"), "Fehler nicht gemeldet")
 os.remove("claude_out.json")
+
+-- ---- Raum-Kennung (game.lua mit "richtiger" exe-Version neu laden) ------------
+remultiplayer.exe_timestamp = 0x6799D40F
+package.loaded["re0hd_coop.game"] = nil
+local game = require("re0hd_coop.game")
+assert(game.supported)
+assert(game.room_id() == nil, "Raum ohne sGameArea")
+memory[0x00E2D8C0] = 0x7000            -- sGameArea
+memory[0x7000 + 0x3834] = 0x8000       -- aktueller Raum
+memory[0x8000] = 0x00C10000            -- vtable
+local room_class = "aRoomTr02"
+mt.class_of = function(a) if a == 0x8000 then return room_class end end
+assert(game.room_id() == "Tr02", "Raum falsch: " .. tostring(game.room_id()))
+room_class = "aRoomTr04"
+assert(game.room_id() == "Tr02", "Kennung wird pro vtable zwischengespeichert")
+memory[0x8000] = 0x00C10100            -- Raumwechsel: andere Klasse an derselben Adresse
+assert(game.room_id() == "Tr04", "Raumwechsel nicht erkannt")
+assert(game.same_room("Tr04", "Tr04") == true and game.same_room("Tr04", "Tr02") == false)
+assert(game.same_room("Tr04", "") == nil and game.same_room(nil, "Tr04") == nil)
 print("re0hd_mock_test: alles ok")

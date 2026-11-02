@@ -11,7 +11,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.4.1"
+local MOD_VERSION = "0.5.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -90,6 +90,8 @@ local coop = {
     remote_seq = nil,
     remote_time = 0,
     same_character = false,
+    local_area = nil,     -- eigener Raum (z. B. "Tr04") oder nil
+    same_room = nil,      -- true/false, nil = unbekannt
 }
 
 session:on("PLAYER_STATE", function(s, peer, msg)
@@ -98,6 +100,9 @@ session:on("PLAYER_STATE", function(s, peer, msg)
         return
     end
     coop.remote_seq = msg.seq
+    if coop.remote and coop.remote.area ~= msg.area then
+        coop.puppet:reset() -- Spur aus dem alten Raum gilt nicht mehr
+    end
     coop.remote = msg
     coop.remote_time = s:time()
     coop.puppet:push(msg, s:time())
@@ -111,12 +116,19 @@ end)
 local function coop_frame(now)
     coop.local_state = game.get_local_state()
     local ls = coop.local_state
+    local area = ls and ls.area
+    if ls and area ~= coop.local_area then
+        -- Eigener Raumwechsel: Koordinaten der alten Spuren passen nicht mehr
+        coop.local_area = area
+        coop.puppet:reset()
+        coop.solo:reset()
+    end
 
     if ls and session:is_active() and #session:ready_peers() > 0 and now - coop.last_send >= SEND_INTERVAL then
         coop.last_send = now
         coop.seq = (coop.seq + 1) % 4294967296
         session:send("PLAYER_STATE", {
-            seq = coop.seq, area = "", x = ls.x, y = ls.y, z = ls.z,
+            seq = coop.seq, area = area or "", x = ls.x, y = ls.y, z = ls.z,
             qx = ls.qx, qy = ls.qy, qz = ls.qz, qw = ls.qw, character = ls.character, flags = 0,
         }, false)
     end
@@ -124,12 +136,16 @@ local function coop_frame(now)
     local remote_fresh = coop.remote ~= nil and now - coop.remote_time < REMOTE_TIMEOUT
     coop.same_character = remote_fresh and ls ~= nil and coop.remote.character ~= 0
         and coop.remote.character == ls.character
+    coop.same_room = nil
+    if remote_fresh then
+        coop.same_room = game.same_room(area, coop.remote.area)
+    end
 
     if coop.solo_active then
         coop.puppet:release()
         coop.solo:push(ls, now)
         coop.solo:update(now)
-    elseif config.puppet and remote_fresh and not coop.same_character then
+    elseif config.puppet and remote_fresh and not coop.same_character and coop.same_room ~= false then
         coop.solo:release()
         coop.puppet:update(now)
     else
@@ -255,11 +271,16 @@ local function draw_coop_ui()
         return
     end
     local ls = coop.local_state
-    imgui.text("Du steuerst: " .. (ls and CHARACTER_NAMES[ls.character] or "(keine Figur - Menue/Ladebildschirm?)"))
+    imgui.text("Du steuerst: " .. (ls and CHARACTER_NAMES[ls.character] or "(keine Figur - Menue/Ladebildschirm?)")
+        .. "   Raum: " .. (coop.local_area or "?"))
     if coop.remote then
         local age = session:time() - coop.remote_time
-        imgui.text(string.format("Mitspieler steuert: %s  (letzte Daten vor %.1f s)",
-            CHARACTER_NAMES[coop.remote.character] or "?", age))
+        local remote_area = coop.remote.area ~= "" and coop.remote.area or "?"
+        imgui.text(string.format("Mitspieler steuert: %s   Raum: %s  (letzte Daten vor %.1f s)",
+            CHARACTER_NAMES[coop.remote.character] or "?", remote_area, age))
+    end
+    if coop.same_room == false then
+        imgui.text("Ihr seid in verschiedenen Raeumen - dein Partner folgt solange der Spiel-KI.")
     end
     if coop.same_character then
         imgui.text_colored("Ihr steuert beide dieselbe Figur! Einer muss mit V die Figur wechseln.", 0xFF4040FF)
@@ -281,7 +302,6 @@ local function draw_coop_ui()
         imgui.text(string.format("  Partner: %s, Abstand %s", coop.solo.mode,
             coop.solo.dist and string.format("%.0f", coop.solo.dist) or "-"))
     end
-    imgui.text("Hinweis: Bleibt vorerst im selben Raum (Raumwechsel kommt als Naechstes).")
 end
 
 local function write_diag(status)

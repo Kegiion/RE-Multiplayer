@@ -57,7 +57,7 @@ public sealed class GameViewModel : ObservableObject
         get
         {
             var installed = !State.Installed ? "–"
-                : State.InstalledVersion?.ToString() ?? "unbekannt (alter Installer)";
+                : State.InstalledVersion?.ToString() ?? "unbekannt (nicht über den Manager installiert)";
             var latest = State.Latest != null
                 ? State.Latest.Version + (State.Latest.Prerelease ? " (Beta)" : "")
                 : State.ReleaseError != null ? "nicht abrufbar"

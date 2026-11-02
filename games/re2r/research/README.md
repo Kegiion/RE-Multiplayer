@@ -54,6 +54,7 @@ Am 2. November 2026 per Entwickler-Konsole im Spiel geprüft (Leon, Eingangshall
 | Modell | Zuerst unsichtbar (keine Unterobjekte). `SurvivorCostumeChanger.change(SurvivorType, Costume)` mit (0, 0) lädt `Hair`, `Face`, `Body` → Leon steht sichtbar im Spiel | ✅ |
 | Bewegen | `Transform.set_Position` / `set_Rotation`. `Quaternion.new` nimmt (w, x, y, z) | ✅ |
 | Löschen | `go:call("destroy", go)`, ab dem nächsten Frame `get_Valid() == false` | ✅ |
+| Mod 0.4.1 mit Testbot | Puppe `ready`, sichtbar, folgt der Position des Testbots (Eingangshalle) | ✅ 2. November 2026 |
 | Animation | Puppe steht still, keine Animation | ❓ nächster Schritt |
 | Szenenwechsel | Ob das Spiel die Puppe beim Laden löscht | ❓ (Mod 0.4.0 erzeugt sie dann neu) |
 

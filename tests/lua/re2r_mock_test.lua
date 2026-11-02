@@ -12,7 +12,7 @@ re = {
     on_script_reset = function(fn) table.insert(callbacks.reset, fn) end,
 }
 log = { info = function() end }
-local files = {}
+local files = { ["re2r_coop_config.json"] = { devconsole = true } } -- gespeicherter Haken
 json = {
     load_file = function(p) return files[p] end,
     dump_file = function(p, t) files[p] = t; return true end,
@@ -307,8 +307,12 @@ coopnet.find_types, coopnet.list_singletons = nil, nil
 
 assert(find_text("Mitspieler: Claire"), "Mitspieler nicht in der UI")
 
--- Entwickler-Konsole: aus -> Befehl wird ignoriert
+-- Entwickler-Konsole: gespeicherter Haken muss nach dem Laden gelten
 local devconsole = require("re2r_coop.devconsole")
+assert(devconsole.enabled == true, "gespeicherter Konsolen-Haken nicht uebernommen")
+devconsole.enabled = false
+run_ui()
+-- aus -> Befehl wird ignoriert
 assert(find_text("%(aus%)"), "Konsolen-Status fehlt")
 files["claude_cmd.json"] = { id = 5, code = "out(game.ID, 1 + 1); return { a = 1 }" }
 run_frame()

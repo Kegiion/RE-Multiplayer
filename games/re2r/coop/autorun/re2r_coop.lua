@@ -11,7 +11,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.4.0"
+local MOD_VERSION = "0.4.1"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 
@@ -50,7 +50,6 @@ local config = {
 }
 
 local function load_config()
-devconsole.enabled = config.devconsole
     local ok, data = pcall(json.load_file, CONFIG_FILE)
     if ok and type(data) == "table" then
         for k, v in pairs(data) do
@@ -66,6 +65,7 @@ local function save_config()
 end
 
 load_config()
+devconsole.enabled = config.devconsole
 
 -- --- Sitzung -----------------------------------------------------------
 

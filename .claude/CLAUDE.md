@@ -20,6 +20,8 @@ Koop-Multiplayer-Mods für Resident-Evil-Spiele. Einstieg für neue Sessions: `H
 | `games/re0hd` | RE0 HD Remaster (MT Framework, **32-Bit**, D3D9). Eigener Loader (`dinput8.dll`) + Runtime `remods_re0.dll` mit eingebautem Lua und ImGui |
 | `third_party` | Fremdbibliotheken als Quellcode (ENet, Lua 5.4.3, REFramework-Header, Dear ImGui) |
 | `tools` | `luarun` (Lua-Testläufer), Testbot |
+| `tools/modmanager` | Mod-Manager `REMods-Manager.exe` (C#, .NET 10, WPF): Spiele finden, Mods aus GitHub-Releases installieren/aktualisieren/deinstallieren, Fehler melden, Selbst-Update. Spiele-Liste `games.json` |
+| `tools/release` | `release-meta.ps1` für den Release-Workflow |
 | `tests` | ctest: C++- und Lua-Tests (laufen auch unter Linux) |
 
 ## Bauen
@@ -31,6 +33,11 @@ Auf dem PC des Users gibt es **keinen Compiler**. Gebaut wird über GitHub Actio
 - Job `linux`: Tests
 
 Artifacts holen: `gh run download <run-id> -n RE0HD-Coop -D <ziel>`.
+
+Weitere Workflows:
+
+- `modmanager.yml`: Mod-Manager testen (Linux + Windows) und bauen, Artifact `REMods-Manager` (exe) und `REMods-Manager-Bilder` (Bildschirmfotos). Läuft nur bei Änderungen unter `tools/modmanager/**` bzw. `tools/release/**`.
+- `release.yml` (nur von Hand): `gh workflow run release.yml -f mod=re0hd|re2r|manager [-f prerelease=true]`. Version aus `MOD_VERSION` bzw. `tools/modmanager/Directory.Build.props`, Patch Notes aus dem Abschnitt `## <Version>` in `games/<spiel>/CHANGELOG.md` bzw. `tools/modmanager/CHANGELOG.md`. Der Mod-Manager holt sich darüber Updates.
 
 Lokal (falls Visual Studio vorhanden):
 
@@ -49,5 +56,7 @@ cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re
 
 - `third_party/lua` ist exakt REFrameworks Lua 5.4.3: **nicht aktualisieren** (RE2-Plugin arbeitet auf REFrameworks `lua_State`).
 - Bei Änderungen an bestehenden Netzwerk-Nachrichten `protocol.VERSION` erhöhen.
+- Vor einem Release den Abschnitt `## <Version>` im passenden `CHANGELOG.md` schreiben (wird zu den Patch Notes im Mod-Manager).
+- Mod-Manager: bei jeder Änderung `<Version>` in `tools/modmanager/Directory.Build.props` erhöhen.
 - Versionen bei jeder Änderung erhöhen: RE0-Runtime `kRuntimeVersion` (`games/re0hd/runtime/src/runtime.hpp`), Lua-Mods ihr `MOD_VERSION`. Der Git-Commit wird zusätzlich als Build-ID angezeigt.
 - Vor jedem Push sollte die CI grün sein. Ohne lokalen Compiler: pushen und den Actions-Lauf prüfen.

@@ -9,6 +9,7 @@ Unsere Mods für die Resident-Evil-Reihe. Das Hauptziel ist ein **Koop-Multiplay
 | Mod | Spiel | Status |
 |---|---|---|
 | [RE2 Koop](games/re2r/README.md) | Resident Evil 2 (2019) | Meilenstein 1: Mitspieler wird als Markierung angezeigt |
+| [Mod-Manager](tools/modmanager/README.md) | alle | Eine exe zum Installieren, Aktualisieren und Deinstallieren aller Mods |
 | [RE0 Koop](games/re0hd/README.md) | Resident Evil 0 HD Remaster | Schritt 1: eigene Runtime mit Menü, Lua und Netzwerk (Spieldaten noch unbekannt) |
 
 ## Projektaufbau
@@ -25,7 +26,7 @@ REMods/
 │   └── re-engine/
 │       ├── coopnet-plugin/   REFramework-Plugin (DLL) für alle RE-Engine-Spiele
 │       └── lua/remods_coop/  Gemeinsame Lua-Bibliothek: Protokoll, Sitzung
-├── tools/                    remods_luarun + Testbot (simulierter Mitspieler)
+├── tools/                    remods_luarun, Testbot (simulierter Mitspieler), modmanager/ (Mod-Manager)
 ├── tests/                    Automatische Tests (laufen ohne Spiel)
 ├── third_party/              Fremdbibliotheken (ENet, Lua 5.4.3, REFramework-API, Dear ImGui)
 └── docs/                     Architektur, Roadmap, Zusammenarbeit

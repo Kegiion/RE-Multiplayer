@@ -74,14 +74,16 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                    <Border x:Name="Badge" CornerRadius="10" Padding="10,2" Margin="12,1,0,0" BorderThickness="1"
+                                <!-- WrapPanel: bei schmalem Fenster rutscht das Badge unter den Namen statt unter die Knoepfe -->
+                                <WrapPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                                               Margin="0,0,12,0" />
+                                    <Border x:Name="Badge" CornerRadius="10" Padding="10,2" Margin="0,3,0,0" BorderThickness="1"
                                             BorderBrush="{StaticResource LineBrush}" VerticalAlignment="Center">
                                         <TextBlock x:Name="BadgeText" Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" />
                                     </Border>
-                                </StackPanel>
+                                </WrapPanel>
 
                                 <TextBlock Grid.Row="1" Text="{Binding FolderText}" ToolTip="{Binding FolderText}"
                                            Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis" Margin="0,6,16,0" />

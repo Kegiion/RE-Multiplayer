@@ -55,8 +55,27 @@ Am 2. November 2026 per Entwickler-Konsole im Spiel geprüft (Leon, Eingangshall
 | Bewegen | `Transform.set_Position` / `set_Rotation`. `Quaternion.new` nimmt (w, x, y, z) | ✅ |
 | Löschen | `go:call("destroy", go)`, ab dem nächsten Frame `get_Valid() == false` | ✅ |
 | Mod 0.4.1 mit Testbot | Puppe `ready`, sichtbar, folgt der Position des Testbots (Eingangshalle) | ✅ 2. November 2026 |
-| Animation | Puppe steht still, keine Animation | ❓ nächster Schritt |
-| Szenenwechsel | Ob das Spiel die Puppe beim Laden löscht | ❓ (Mod 0.4.0 erzeugt sie dann neu) |
+| Ordner | Im ActorFolder (`get_Folder` = nil) löscht das Spiel die Puppe beim Nachladen von Bereichen, ca. 0,8 s lang auch jede neu erzeugte (Unsichtbarwerden, Zittern). Mit `set_FolderSelf(<Ordner des Spielers>)` (`RopewayManagers/TemporaryObjects/Survivor/Player`) bleibt sie erhalten | ✅ |
+| Mod 0.5.0 mit Testbot | Puppe geht, joggt, zielt und dreht sich passend zur Bewegung, ohne Springen und Verschwinden (Animation übers Netzwerk) | ✅ 2. November 2026 |
+| Szenenwechsel (Tür, Ladebildschirm) | Ob die Puppe im Spieler-Ordner erhalten bleibt | ❓ (Mod 0.5.0 erzeugt sie nach 1 s neu) |
+
+## Animation der Puppe
+
+Am 2. November 2026 per Entwickler-Konsole geprüft (Leon, Polizeistation). Code: `games/re2r/coop/autorun/re2r_coop/anim.lua`.
+
+| Was | Befund | Status |
+|---|---|---|
+| Ebenen | `via.motion.Motion` hat 6 Ebenen (`TreeLayer`). Genutzt: 0 = Körper, 1 = Dummy, 2 = Waffenhaltung, 3 = Zielen beginnen | ✅ |
+| Animations-Bäume | `getLayer(i).get_MotionBankID/get_MotionID` zeigt auf einen Baum: Bank 1 = `LCM_TREE` (160 Idle, 190/196 Gehen, 192 Gehen-Stopp, 200/220 Joggen-Start, 230 Joggen, 224 Joggen-Stopp), Bank 2 = `HLD_TREE` (120 Zielen gehen, 140 Zielen beginnen, 160/165 Zielen). Die Knoten (`getMotionNode`) spielen Leons Bewegungen aus den dynamischen Bänken (1000 = `BareHand`, 2000 = Pistole) | ✅ |
+| Animationsdateien | Das Actor-Prefab hat keine. Nötig: `set_MotionBankAsset` (`SectionRoot/Animation/Player/common/pl_common.motbank`), dynamische Bänke `pl00/bank/BareHand.motbank` und `wp0000.motbank`, `set_TargetBankType(1)`, `setupMotionBank()`. Laden per Pfad: `sdk.create_resource("via.motion.MotionBankResource", pfad):create_holder("via.motion.MotionBankResourceHolder")` | ✅ |
+| Wechsel | `changeMotion(bank, motion, frame, interpFrame, InterpolationMode, InterpolationCurve)` nur beim Wechsel. Bild nicht jeden Frame setzen, sonst bleibt die Überblendung hängen (nur Idle). Leere Ebene: `changeMotion(0, 0xFFFFFFFF, …)` | ✅ |
+| Überblendung | je Übergang 6 bis 36 Bilder, Modus 1 FrontFade / 2 CrossFade / 3 SyncCrossFade, Kurve 0 bis 3. Ohne sie zuckt die Puppe | ✅ |
+| Tempo | `get_Speed` der Ebene war beim Gehen, Joggen und Zielen immer 1 | ✅ |
+| Steuer-Variablen | `Motion.get_VariablesHub()`, 47 Variablen (`getVariableFromIndex`, `get_Name`, `get_TypeKind`: 2 = Boolean, 11 = Single, 16 = Trigger). Sie bestimmen die Mischung im Baum. Ohne sie spielt die Puppe im Geh-Baum immer Knoten 240 (Rutschen). Laufend ändern sich `MoveDir`, `TargetMoveDir`, `WatchDir`, `TargetWatchDir`, `CameraDir`, `SlopeAngle`, `Pitch` (−58 bis 16), `WatchStickPowerH`. An der Puppe mit `set_F32`/`set_Bool` setzbar, die eigene Steuerung der Puppe überschreibt sie nicht | ✅ |
+| `trySetNodeParameter` | wird vom Spiel nicht aufgerufen (Hook ohne Treffer) | ✅ |
+| Root-Motion | Bei der Puppe auf `Continuance` (2), auf `None` (0) stellen. Position und Drehung kommen aus dem Netzwerk, die Drehung geglättet (`ghost.lua`) | ✅ |
+| Ereignisse | `Fire`, `Damage`, `Dead`, `EndReload` usw. werden noch nicht übertragen. Schießen, Nachladen, Treffer | ❓ |
+| Claire, andere Waffen | Bank-Pfade werden übertragen, sollte also gehen | ❓ |
 
 ## Weitere Kandidaten aus der Diagnose
 

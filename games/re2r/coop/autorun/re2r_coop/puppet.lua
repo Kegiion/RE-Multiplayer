@@ -15,10 +15,15 @@
 --   - ohne Modell, bis SurvivorCostumeChanger.change(SurvivorType, Costume)
 --     Hair/Face/Body nachlaedt; danach sichtbar
 --   - via.GameObject.destroy(go): ab dem naechsten Frame get_Valid() == false
--- UNBESTAETIGT: andere Figuren als Leon, Verhalten bei Szenenwechseln,
---   Animation (die Puppe steht noch still).
+--   - Im ActorFolder (get_Folder liefert nil) loescht das Spiel die Puppe beim
+--     Nachladen von Bereichen, ca. 0,8 s lang auch jede neu erzeugte. Im
+--     Ordner des Spielers (set_FolderSelf, RopewayManagers/TemporaryObjects/
+--     Survivor/Player) bleibt sie erhalten (87 s ohne Neuerzeugung).
+-- Animation: siehe re2r_coop/anim.lua (Leon im Spiel bestaetigt).
+-- UNBESTAETIGT: andere Figuren als Leon, Verhalten bei Szenenwechseln.
 
 local game = require("re2r_coop.game")
+local anim = require("re2r_coop.anim")
 
 local puppet = {}
 
@@ -26,9 +31,11 @@ puppet.PREFAB_PATH = "ObjectRoot/Prefab/Character/Survivor/Actor/%s.pfb"
 puppet.COSTUME = 0
 puppet.RETRY_AFTER = 5.0       -- Sekunden bis zum naechsten Versuch nach Fehler
 puppet.LOAD_TIMEOUT = 20.0     -- Sekunden, die das Prefab zum Laden haben darf
+puppet.RESPAWN_DELAY = 1.0     -- Sekunden Pause, wenn das Spiel die Puppe geloescht hat
 
--- instances[peer_id] = { state=, character=, prefab=, go=, transform=, since=, error= }
--- state: "loading" -> "costume" -> "ready" | "failed"
+-- instances[peer_id] = { state=, character=, prefab=, go=, transform=, motion=, since=, error=,
+--                        banks_key=, banks_id=, anim_error=, anim_changes= }
+-- state: "loading" -> "ready" | "failed"; "deleted" = vom Spiel geloescht, wartet RESPAWN_DELAY
 puppet.instances = {}
 
 local try_call = game.try_call
@@ -62,7 +69,9 @@ local function fail(inst, now, err)
 end
 
 local function start_loading(inst, now)
-    inst.go, inst.transform, inst.error = nil, nil, nil
+    anim.forget(inst.motion)
+    inst.go, inst.transform, inst.motion, inst.error = nil, nil, nil, nil
+    inst.banks_key, inst.banks_id, inst.anim_error, inst.vars_seq = nil, nil, nil, nil
     inst.since = now
     local path = puppet.prefab_path(inst.character)
     if path == nil then
@@ -95,7 +104,14 @@ local function spawn(inst, r, now)
         return fail(inst, now, "instantiate lieferte nil")
     end
     inst.go = go
+    -- In den Ordner des Spielers, sonst raeumt das Spiel sie beim Nachladen auf.
+    local player_folder = try_call(game.get_player(), "get_Folder")
+    if player_folder ~= nil then
+        try_call(go, "set_FolderSelf", player_folder)
+    end
     inst.transform = try_call(go, "get_Transform")
+    inst.motion = anim.get_motion(go)
+    inst.anim_changes = 0
 
     local changer = try_call(go, "getComponent(System.Type)", sdk.typeof(game.ns("survivor.SurvivorCostumeChanger")))
     if changer == nil then
@@ -106,12 +122,39 @@ local function spawn(inst, r, now)
     inst.state, inst.since = "ready", now
 end
 
+-- Geglaettete Drehung aus ghost (r.rot), sonst die zuletzt empfangene.
 function puppet.rotation_of(r)
+    local q = r.rot
+    if q ~= nil then
+        return Quaternion.new(q.w, q.x, q.y, q.z)
+    end
     local t = r.target or {}
     return Quaternion.new(t.qw or 1, t.qx or 0, t.qy or 0, t.qz or 0)
 end
 
-local function sync(peer_id, r, visible, now)
+-- Animationen des Mitspielers uebernehmen (a = Eintrag aus remote_anim).
+local function sync_anim(inst, a)
+    if a == nil or a.banks == nil or inst.motion == nil then
+        return
+    end
+    local key = anim.banks_key(a.banks)
+    if inst.banks_key ~= key then
+        -- Nur einmal pro Bank-Satz versuchen, auch wenn es fehlschlaegt.
+        inst.banks_key, inst.banks_id = key, a.banks_id
+        local ok, err = pcall(anim.apply_banks, inst.motion, a.banks)
+        inst.anim_error = (not ok) and tostring(err) or nil
+    end
+    inst.banks_id = a.banks_id
+    if inst.anim_error == nil and a.state ~= nil and a.state.banks_id == a.banks_id then
+        if inst.vars_seq ~= a.state.seq then
+            inst.vars_seq = a.state.seq
+            anim.apply_vars(inst.motion, a.state)
+        end
+        inst.anim_changes = inst.anim_changes + anim.apply_layers(inst.motion, a.state)
+    end
+end
+
+local function sync(peer_id, r, visible, now, a)
     local inst = puppet.instances[peer_id]
     local character = r.character
 
@@ -135,6 +178,13 @@ local function sync(peer_id, r, visible, now)
         return
     end
 
+    if inst.state == "deleted" then
+        if now - inst.since >= puppet.RESPAWN_DELAY then
+            start_loading(inst, now)
+        end
+        return
+    end
+
     if inst.state == "loading" then
         if try_call(inst.prefab, "get_Ready") then
             spawn(inst, r, now)
@@ -146,21 +196,30 @@ local function sync(peer_id, r, visible, now)
 
     -- ready: Das Spiel kann die Figur z. B. beim Szenenwechsel loeschen.
     if not is_valid(inst.go) then
-        start_loading(inst, now)
+        anim.forget(inst.motion)
+        inst.go, inst.transform, inst.motion = nil, nil, nil
+        inst.state, inst.since = "deleted", now
+        inst.respawns = (inst.respawns or 0) + 1
         return
     end
     pcall(inst.go.call, inst.go, "set_DrawSelf", visible)
     if visible and inst.transform ~= nil then
         inst.transform:call("set_Position", Vector3f.new(r.pos.x, r.pos.y, r.pos.z))
         inst.transform:call("set_Rotation", puppet.rotation_of(r))
+        local ok, err = pcall(sync_anim, inst, a)
+        if not ok then
+            inst.anim_error = tostring(err)
+        end
     end
 end
 
 -- Jeden Frame pro Mitspieler aufrufen. r ist der Eintrag aus ghost.remote,
--- visible = ob die Figur gerade zu sehen sein soll. Fehler im Spielzugriff
--- setzen die Puppe auf "failed" (neuer Versuch nach RETRY_AFTER).
-function puppet.sync(peer_id, r, visible, now)
-    local ok, err = pcall(sync, peer_id, r, visible, now)
+-- visible = ob die Figur gerade zu sehen sein soll, a (optional) die
+-- Animationsdaten { banks=, banks_id=, state= } aus ANIM_BANKS/ANIM_STATE.
+-- Fehler im Spielzugriff setzen die Puppe auf "failed" (neuer Versuch nach
+-- RETRY_AFTER), Animationsfehler nur auf anim_error.
+function puppet.sync(peer_id, r, visible, now, a)
+    local ok, err = pcall(sync, peer_id, r, visible, now, a)
     if not ok then
         local inst = puppet.instances[peer_id]
         if inst ~= nil then
@@ -172,6 +231,7 @@ end
 function puppet.remove(peer_id)
     local inst = puppet.instances[peer_id]
     if inst ~= nil then
+        anim.forget(inst.motion)
         destroy_go(inst.go)
         puppet.instances[peer_id] = nil
     end
@@ -191,6 +251,14 @@ function puppet.status_text(peer_id)
     end
     if inst.state == "failed" then
         return "Fehler: " .. tostring(inst.error)
+    end
+    if inst.state == "ready" then
+        if inst.anim_error ~= nil then
+            return "ready, Animationsfehler: " .. inst.anim_error
+        elseif inst.banks_key ~= nil then
+            return string.format("ready, animiert (%d Wechsel, %d x neu erzeugt)", inst.anim_changes or 0, inst.respawns or 0)
+        end
+        return "ready, keine Animationsdaten"
     end
     return inst.state
 end

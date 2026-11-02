@@ -8,12 +8,15 @@
 --   re2r_coop/game.lua RE2-spezifischer Zugriff auf Spieldaten
 --   re2r_coop/ghost.lua Anzeige des Mitspielers (Markierung)
 --   re2r_coop/puppet.lua Mitspieler als Spielfigur (Meilenstein 2)
+--   re2r_coop/anim.lua Animationen lesen und auf die Puppe uebertragen
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.4.2"
+local MOD_VERSION = "0.5.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
+local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
+local BANKS_RESEND_INTERVAL = 3.0 -- Sekunden: ANIM_BANKS zur Sicherheit wiederholen
 
 -- Ohne Plugin geht nichts: nur eine Hilfe im Menue anzeigen.
 if coopnet == nil then
@@ -32,6 +35,7 @@ local Session = require("remultiplayer_coop.session")
 local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
 local puppet = require("re2r_coop.puppet")
+local anim = require("re2r_coop.anim")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -81,6 +85,31 @@ session:on("PLAYER_STATE", function(s, peer, msg)
     ghost.on_state(peer, msg, s:time())
 end)
 
+-- remote_anim[peer_id] = { banks=, banks_id=, state=, seq= }
+local remote_anim = {}
+
+local function seq_newer(seq, last)
+    if last == nil then
+        return true
+    end
+    local diff = (seq - last) % 4294967296
+    return diff ~= 0 and diff < 2147483648
+end
+
+session:on("ANIM_BANKS", function(_, peer, msg)
+    local a = remote_anim[peer.id] or {}
+    remote_anim[peer.id] = a
+    a.banks, a.banks_id = anim.banks_from_msg(msg), msg.banks_id
+end)
+
+session:on("ANIM_STATE", function(_, peer, msg)
+    local a = remote_anim[peer.id] or {}
+    remote_anim[peer.id] = a
+    if seq_newer(msg.seq, a.seq) then
+        a.seq, a.state = msg.seq, msg
+    end
+end)
+
 session:on("CHAT", function(s, peer, msg)
     s:log("%s: %s", peer.name or "?", msg.text)
 end)
@@ -88,6 +117,7 @@ end)
 session:subscribe("peer_left", function(_, peer)
     ghost.remove(peer.id)
     puppet.remove(peer.id)
+    remote_anim[peer.id] = nil
 end)
 
 -- Bei "Reset Scripts" bleiben erzeugte Figuren sonst verwaist in der Welt.
@@ -105,6 +135,12 @@ local state = {
     last_frame = nil,
     local_state = nil,
     last_error = nil,
+    -- eigene Animationsdateien
+    banks = nil,
+    banks_key = nil,
+    banks_id = os.time() % 65536, -- Startwert zufaellig, damit ein Reset nicht alte IDs wiederholt
+    banks_checked = -math.huge,
+    banks_sent = -math.huge,
 }
 
 local function report_error(where, err)
@@ -113,6 +149,35 @@ local function report_error(where, err)
         state.last_error = text
         session:log("FEHLER %s", text)
     end
+end
+
+-- Eigene Animationen senden: ANIM_BANKS bei Aenderung und regelmaessig,
+-- ANIM_STATE zusammen mit PLAYER_STATE.
+local function send_anim(now)
+    local motion = anim.get_motion(game.get_player())
+    if motion == nil then
+        return
+    end
+    if now - state.banks_checked >= BANKS_CHECK_INTERVAL then
+        state.banks_checked = now
+        local banks = anim.read_banks(motion)
+        local key = anim.banks_key(banks)
+        if banks ~= nil and key ~= state.banks_key then
+            state.banks, state.banks_key = banks, key
+            state.banks_id = (state.banks_id + 1) % 65536
+            state.banks_sent = -math.huge
+        end
+    end
+    if state.banks == nil then
+        return
+    end
+    if now - state.banks_sent >= BANKS_RESEND_INTERVAL then
+        state.banks_sent = now
+        session:send("ANIM_BANKS", anim.banks_to_msg(state.banks, state.banks_id), true)
+    end
+    local msg = anim.read_layers(motion)
+    msg.seq, msg.banks_id = state.seq, state.banks_id
+    session:send("ANIM_STATE", msg, false)
 end
 
 local function frame()
@@ -131,13 +196,17 @@ local function frame()
         local msg = state.local_state
         msg.seq = state.seq
         session:send("PLAYER_STATE", msg, false)
+        local ok, err = pcall(send_anim, now)
+        if not ok then
+            report_error("anim", err)
+        end
     end
 
     ghost.update(dt)
     for id, r in pairs(ghost.remote) do
         local visible = config.show_puppets and state.local_state ~= nil and r.target ~= nil
             and not ghost.is_stale(r, now) and not ghost.other_area(r, state.local_state)
-        puppet.sync(id, r, visible, now)
+        puppet.sync(id, r, visible, now, remote_anim[id])
     end
     if config.show_ghosts then
         ghost.draw(state.local_state, now)
@@ -204,6 +273,9 @@ local function draw_connection_ui(status)
             session:leave()
             ghost.clear()
             puppet.clear()
+            for id in pairs(remote_anim) do
+                remote_anim[id] = nil
+            end
         end
     end
 end

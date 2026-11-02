@@ -21,6 +21,22 @@ assert(msg.character == 1 and msg.flags == 3)
 -- kompakt: 1 Typ + 4 seq + 1+6 area + 7*4 floats + 2 Bytes
 assert(#raw == 1 + 4 + 7 + 28 + 2, "unerwartete Groesse " .. #raw)
 
+-- Roundtrip ANIM_STATE: leere Ebene = 0xFFFFFFFF
+raw = protocol.encode("ANIM_STATE", { seq = 7, banks_id = 3, bank0 = 1, motion0 = 190, frame0 = 12.5,
+    interp0 = 24, imode0 = 3, icurve0 = 1,
+    bank3 = 0, motion3 = 4294967295 })
+msg = assert(protocol.decode(raw))
+assert(msg.type == "ANIM_STATE" and msg.seq == 7 and msg.banks_id == 3)
+assert(msg.bank0 == 1 and msg.motion0 == 190 and msg.frame0 == 12.5)
+assert(msg.interp0 == 24 and msg.imode0 == 3 and msg.icurve0 == 1)
+assert(msg.motion3 == 4294967295 and msg.motion1 == 0)
+assert(#raw == 1 + 4 + 2 + 4 * (2 + 4 + 4 + 4 + 1 + 1) + 4 + 12 * 4, "unerwartete Groesse " .. #raw)
+
+-- Roundtrip ANIM_BANKS
+msg = assert(protocol.decode(protocol.encode("ANIM_BANKS", { banks_id = 65535,
+    main = "SectionRoot/Animation/Player/common/pl_common.motbank", dyn1 = "a.motbank" })))
+assert(msg.banks_id == 65535 and msg.main:find("pl_common") and msg.dyn1 == "a.motbank" and msg.dyn4 == "")
+
 -- Fehlende Felder werden zu 0 / ""
 msg = assert(protocol.decode(protocol.encode("PLAYER_STATE", {})))
 assert(msg.x == 0 and msg.area == "")

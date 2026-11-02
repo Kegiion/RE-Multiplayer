@@ -3,6 +3,8 @@
 -- Ein simulierter Mitspieler fuer Tests ohne zweiten PC: verbindet sich mit
 -- deinem Spiel (dort "Hosten" klicken) und laeuft dir mit 1 Sekunde
 -- Verzoegerung hinterher. Im Spiel siehst du ihn als Markierung "Testbot".
+-- Animationen (ANIM_BANKS/ANIM_STATE) spielt er mit derselben Verzoegerung
+-- nach, falls das Spiel welche sendet.
 -- Chat-Nachrichten beantwortet er mit einem Echo.
 --
 -- Aufruf: remultiplayer_luarun testbot.lua [ip] [port] [spiel]
@@ -16,6 +18,8 @@ Bot.__index = Bot
 Bot.DELAY = 1.0          -- Sekunden Verzoegerung beim Hinterherlaufen
 Bot.SIDE_OFFSET = 0.8    -- Meter seitlich versetzt, damit er sichtbar bleibt
 Bot.SEND_INTERVAL = 0.05
+Bot.BANKS_RESEND_INTERVAL = 3.0
+Bot.HISTORY_SIZE = 400
 
 function Bot.new(net, opts)
     opts = opts or {}
@@ -23,6 +27,9 @@ function Bot.new(net, opts)
     self.net = net
     self.print = opts.print or print
     self.history = {}
+    self.anim_history = {}
+    self.banks = nil
+    self.banks_sent = -math.huge
     self.seq = 0
     self.last_send = 0
     self.last_report = 0
@@ -36,9 +43,19 @@ function Bot.new(net, opts)
     self.session:on("PLAYER_STATE", function(s, _, msg)
         self.received = self.received + 1
         table.insert(self.history, { t = s:time(), msg = msg })
-        if #self.history > 400 then
+        if #self.history > Bot.HISTORY_SIZE then
             table.remove(self.history, 1)
         end
+    end)
+    self.session:on("ANIM_STATE", function(s, _, msg)
+        table.insert(self.anim_history, { t = s:time(), msg = msg })
+        if #self.anim_history > Bot.HISTORY_SIZE then
+            table.remove(self.anim_history, 1)
+        end
+    end)
+    self.session:on("ANIM_BANKS", function(_, _, msg)
+        self.banks = msg
+        self.banks_sent = -math.huge -- sofort weitergeben
     end)
     self.session:on("CHAT", function(s, peer, msg)
         self.print(string.format("[Chat] %s: %s", peer.name or "?", msg.text))
@@ -51,16 +68,17 @@ function Bot.new(net, opts)
 end
 
 -- Zustand von vor DELAY Sekunden (oder der aelteste, den wir haben).
-function Bot:delayed_state(now)
+function Bot:delayed_state(now, history)
+    history = history or self.history
     local chosen = nil
-    for _, entry in ipairs(self.history) do
+    for _, entry in ipairs(history) do
         if now - entry.t >= Bot.DELAY then
             chosen = entry.msg
         else
             break
         end
     end
-    return chosen or (self.history[1] and self.history[1].msg)
+    return chosen or (history[1] and history[1].msg)
 end
 
 function Bot:step()
@@ -79,6 +97,7 @@ function Bot:step()
                 qx = src.qx, qy = src.qy, qz = src.qz, qw = src.qw,
                 character = src.character, flags = src.flags,
             }, false)
+            self:send_anim(now)
         end
     end
 
@@ -89,6 +108,23 @@ function Bot:step()
             self.print(string.format("Deine Position: %.2f %.2f %.2f  (Bereich '%s', %d Updates empfangen)",
                 latest.msg.x, latest.msg.y, latest.msg.z, latest.msg.area, self.received))
         end
+    end
+end
+
+function Bot:send_anim(now)
+    local s = self.session
+    if self.banks ~= nil and now - self.banks_sent >= Bot.BANKS_RESEND_INTERVAL then
+        self.banks_sent = now
+        s:send("ANIM_BANKS", self.banks, true)
+    end
+    local src = self:delayed_state(now, self.anim_history)
+    if src ~= nil then
+        local msg = {}
+        for k, v in pairs(src) do
+            msg[k] = v
+        end
+        msg.seq = self.seq
+        s:send("ANIM_STATE", msg, false)
     end
 end
 

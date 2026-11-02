@@ -10,6 +10,9 @@ local host = Session.new({ net = net_a, game = "re2r", name = "Leon" })
 local from_bot, chats = {}, {}
 host:on("PLAYER_STATE", function(_, _, msg) table.insert(from_bot, msg) end)
 host:on("CHAT", function(_, _, msg) table.insert(chats, msg.text) end)
+local anim_states, anim_banks = {}, {}
+host:on("ANIM_STATE", function(_, _, msg) table.insert(anim_states, msg) end)
+host:on("ANIM_BANKS", function(_, _, msg) table.insert(anim_banks, msg) end)
 assert(host:host(PORT))
 
 local bot = Bot.new(net_b, { print = function() end })
@@ -17,12 +20,18 @@ assert(bot.session:join("127.0.0.1", PORT))
 
 local seq = 0
 local deadline = net_a.time() + 4
-while net_a.time() < deadline and #from_bot < 5 do
+local banks_sent = false
+while net_a.time() < deadline and (#from_bot < 5 or #anim_states < 5 or #anim_banks == 0) do
     host:update()
     bot:step()
     if #host:ready_peers() > 0 then
         seq = seq + 1
         host:send("PLAYER_STATE", { seq = seq, area = "test", x = 10, y = 1, z = 20, qw = 1 }, false)
+        host:send("ANIM_STATE", { seq = seq, banks_id = 9, bank0 = 1, motion0 = 190, frame0 = 3 }, false)
+        if not banks_sent then
+            banks_sent = true
+            host:send("ANIM_BANKS", { banks_id = 9, main = "main.motbank", dyn1 = "dyn.motbank" }, true)
+        end
     end
     sleep_ms(10)
 end
@@ -30,6 +39,10 @@ assert(#from_bot >= 5, "Bot sendet nichts")
 local m = from_bot[#from_bot]
 assert(math.abs(m.x - (10 + Bot.SIDE_OFFSET)) < 1e-4 and m.y == 1 and m.z == 20, "falsche Bot-Position")
 assert(m.area == "test")
+assert(#anim_states >= 5, "Bot sendet keine Animationen")
+local am = anim_states[#anim_states]
+assert(am.banks_id == 9 and am.bank0 == 1 and am.motion0 == 190 and am.frame0 == 3, "falsche Bot-Animation")
+assert(anim_banks[1].main == "main.motbank" and anim_banks[1].dyn1 == "dyn.motbank", "falsche Bot-Baenke")
 
 host:send("CHAT", { text = "ping" }, true)
 deadline = net_a.time() + 2

@@ -17,8 +17,10 @@
 - [ ] Figur erkennen (Leon/Claire)
 
 ### Meilenstein 2: Sichtbarer Mitspieler
-- Eine zweite Spielfigur (Leon/Claire-Modell) erzeugen und an die empfangene Position setzen
-- Animationen übertragen (Laufen, Zielen, Schießen)
+- [x] Eine zweite Spielfigur (Leon/Claire-Modell) erzeugen und an die empfangene Position setzen (Mod 0.4.1)
+- [x] Animationen übertragen: Gehen, Joggen, Zielen, Drehen (Mod 0.5.0, mit Testbot im Spiel bestätigt, Leon)
+- [ ] Test mit echtem Mitspieler und mit Claire
+- [ ] Schießen, Nachladen, Treffer-Reaktionen prüfen (einmalige Animationen, die sich wiederholen)
 - Forschungsthemen: Wie spawnt RE2 Charaktere (Prefabs)? Wie kann man eine Figur ohne Steuerung betreiben?
 
 ### Meilenstein 3: Gegner

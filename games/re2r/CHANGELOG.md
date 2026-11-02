@@ -2,6 +2,14 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.5.0
+
+- **Animationen:** Die Puppe des Mitspielers geht, joggt, zielt und dreht sich jetzt mit, statt zu gleiten. Übertragen werden die Animationsdateien der Figur, die laufenden Animationen samt Überblendung und die Steuer-Variablen (Laufrichtung, Blickrichtung, Treppe, Zielhöhe).
+- Die Puppe springt und verschwindet nicht mehr: Sie liegt jetzt im Ordner des Spielers, den das Spiel beim Nachladen nicht aufräumt. Ihre Drehung wird geglättet.
+- Schießen, Nachladen und Treffer werden noch nicht übertragen.
+- **Neue Protokollversion 2:** Beide Spieler brauchen RE2 Koop 0.5.0.
+- Der Testbot spielt auch die Animationen nach.
+
 ## 0.4.2
 
 - **Neuer Name: RE:Multiplayer.** Das Plugin heißt jetzt `reframework/plugins/remultiplayer_coopnet.dll`, die Lua-Bibliothek `reframework/autorun/remultiplayer_coop/`. Die alten Dateien entfernt der Mod-Manager beim Aktualisieren.

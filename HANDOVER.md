@@ -34,7 +34,7 @@
 1. ✅ Erster Test im Spiel (2. November 2026). Die Diagnose-Dateien liegen in `games/re2r/research/`, die Auswertung steht in `games/re2r/research/README.md`.
 2. ✅ Figur und Bereich (Mod 0.3.1): Leon = `SurvivorType` 0 (`PL0000`), Bereich = `Map.ID`-Zone (z. B. `st1_411_0`). Zonenwechsel bis in die Polizeistation (`st4_101_0`) beobachtet, `Invalid` in Zwischensequenzen gilt als unbekannt (Mod 0.3.2). Offen: Claire bestätigen.
    Seit Mod 0.3.0 gibt es dafür die **Entwickler-Konsole**: Ist sie im Menü angehakt, führt `python tools/re2r_console.py "<lua>"` Code im laufenden Spiel aus (Details in `games/re2r/research/README.md`).
-3. **Meilenstein 2** (sichtbare zweite Spielfigur) läuft: Das Actor-Prefab (`…/Survivor/Actor/pl0000.pfb`) plus `SurvivorCostumeChanger.change` erzeugt einen sichtbaren Leon (im Spiel bestätigt). Mod 0.4.1 (`re2r_coop/puppet.lua`) setzt die Puppe auf die Position des Mitspielers, mit dem Testbot im Spiel bestätigt. Als Nächstes: Animationen übertragen.
+3. **Meilenstein 2** (sichtbare zweite Spielfigur) läuft: Das Actor-Prefab (`…/Survivor/Actor/pl0000.pfb`) plus `SurvivorCostumeChanger.change` erzeugt einen sichtbaren Leon (im Spiel bestätigt). Mod 0.4.1 (`re2r_coop/puppet.lua`) setzt die Puppe auf die Position des Mitspielers, mit dem Testbot im Spiel bestätigt. Mod 0.5.0 (`re2r_coop/anim.lua`, Nachrichten `ANIM_BANKS`/`ANIM_STATE`, Protokoll 2) überträgt die Animationen: Gehen, Joggen, Zielen und Drehen sind mit dem Testbot im Spiel bestätigt. Fakten in `games/re2r/research/README.md` („Animation der Puppe“). Als Nächstes: Schießen, Nachladen, Treffer (Ereignis-Variablen), Test mit echtem Mitspieler und Claire.
 
 ## Wichtige technische Fakten (nicht neu herausfinden)
 

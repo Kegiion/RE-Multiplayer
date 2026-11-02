@@ -56,6 +56,8 @@ Definiert in `shared/re-engine/lua/remultiplayer_coop/protocol.lua`. Jede Nachri
 | 1 | HELLO | reliable | Protokollversion, Spiel, Mod-Version, Name |
 | 2 | PLAYER_STATE | unreliable | seq, Bereich, Position, Rotation, Figur, Flags |
 | 3 | CHAT | reliable | Text (zum Testen) |
+| 4 | ANIM_BANKS | reliable | Nummer des Satzes, Pfade der Animationsdateien (Haupt-Bank, bis zu 4 weitere). Bei Änderung und alle 3 s |
+| 5 | ANIM_STATE | unreliable | seq, Bank-Satz, Ebenen 0 bis 3 (Bank, Animation, Bild, Überblendung), 12 Steuer-Variablen, Schalter-Bitfeld |
 
 ## Neues Spiel hinzufügen (RE-Engine)
 

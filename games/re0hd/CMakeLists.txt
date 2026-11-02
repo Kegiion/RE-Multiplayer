@@ -48,10 +48,10 @@ install(DIRECTORY lua/lib/ DESTINATION remods/lib COMPONENT re0hd-coop)
 # Versionen fuer die Anzeige im Installer
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/lua/autorun/re0hd_coop.lua RE0_MOD_VERSION_LINE
     REGEX "^local MOD_VERSION = \"[^\"]+\"")
-string(REGEX REPLACE ".*\"([^\"]+)\".*" "\1" RE0_MOD_VERSION "${RE0_MOD_VERSION_LINE}")
+string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" RE0_MOD_VERSION "${RE0_MOD_VERSION_LINE}")
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/runtime/src/runtime.hpp RE0_RUNTIME_VERSION_LINE
     REGEX "kRuntimeVersion = \"[^\"]+\"")
-string(REGEX REPLACE ".*\"([^\"]+)\".*" "\1" RE0_RUNTIME_VERSION "${RE0_RUNTIME_VERSION_LINE}")
+string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" RE0_RUNTIME_VERSION "${RE0_RUNTIME_VERSION_LINE}")
 
 set(RE0_PAYLOAD_RC "")
 set(RE0_PAYLOAD_INDEX "")

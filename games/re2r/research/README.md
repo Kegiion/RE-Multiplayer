@@ -80,6 +80,19 @@ Am 2. November 2026 per Entwickler-Konsole geprüft (Leon, Polizeistation). Code
 | Treffer, Tod | `Damage`, `Dead` werden noch nicht übertragen | ❓ |
 | Claire, andere Waffen | Bank-Pfade werden übertragen, sollte also gehen | ❓ |
 
+## Zweite echte Spielfigur (Claire, wie der Partner in RE0)
+
+Am 3. November 2026 per Entwickler-Konsole geprüft (Leon-Spielstand, Polizeistation):
+
+| Was | Befund | Status |
+|---|---|---|
+| Prefab | `SurvivorManager.<PrefabInfoList>` enthält `ObjectRoot/Prefab/Character/Player/pl1000.pfb` (Claire, nicht geladen). Eigenes `via.Prefab` mit `set_Path` + `set_Standby(true)` → nach 0,06 s `get_Ready` | ✅ |
+| Erzeugen | `instantiate(pos, rot, <Ordner des Spielers>)` → GameObject `pl1000` mit 90 Komponenten (`PlayerController`, `PlayerCondition`, `PlayerActionOrderer`, `via.physics.CharacterController`, `SurvivorCharacterController`, `app.Collision.HitController` …). Kein Absturz, `PlayerManager.get_CurrentPlayer` bleibt Leon | ✅ |
+| Modell | zuerst unsichtbar, `SurvivorCostumeChanger.change(1, 0)` lädt Hair/Face/Body → Claire sichtbar mit Idle-Animation | ✅ |
+| Eingaben | Claire läuft mit dem Controller des Users mit (Gehen-Animationen, bis 2,1 m bewegt). Es gibt nur ein globales `app.ropeway.InputSystem` (`isOn/isDown/isUp(Kind)`, `getStick`, `getAnalogTrigger`, `InputUnitList`, `getInputUnit(PadKind)`). Für den Koop müssten diese Abfragen abgefangen werden, während Claire aktualisiert wird | ✅ |
+| Kollision | Der User fühlte sich „hin und her geschoben“, wahrscheinlich von Claire | ❓ |
+| Kamera, HUD, Inventar, Gegner mit zwei Spielern | | ❓ |
+
 ## Werkzeuge zum Selbst-Ansehen
 
 - `powershell -File tools/spielfoto.ps1 -Prozess re2 -Datei <pfad.jpg>`: Foto des RE2-Fensters (Fenstermodus nötig).

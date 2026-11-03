@@ -2,6 +2,10 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.0
+
+- **Beitreten geht jetzt von selbst:** Wer beitritt, bekommt automatisch den Spielstand des Hosts. Das Spiel geht kurz über den Titelbildschirm, lädt und setzt dich beim Host ab. Abschaltbar mit dem Haken „Beim Beitreten automatisch laden“. Voraussetzung: Du hast in dieser Sitzung schon einmal einen eigenen Spielstand geladen.
+
 ## 0.8.0
 
 - **Dem Spielstand des Hosts beitreten:** Wer beitritt, findet im Menü „Spielstand des Hosts holen“. Der Host schickt seinen aktuellen Stand (ohne zu speichern, ca. 1 MB). Danach lädt der Mitspieler im Pausenmenü einen beliebigen eigenen Spielstand und landet beim Host: gleicher Ort, Inventar, Kiste, Gegner, Story-Fortschritt.

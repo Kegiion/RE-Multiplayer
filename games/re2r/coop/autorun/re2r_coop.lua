@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.8.0"
+local MOD_VERSION = "0.9.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -59,6 +59,7 @@ local config = {
     real_partner = false, -- VERSUCH: Mitspieler als echte, steuerbare Spielfigur
     show_debug = false,
     devconsole = false, -- Entwickler-Konsole fuer Claude
+    auto_join = true, -- beim Beitreten automatisch den Spielstand des Hosts laden
 }
 
 local function load_config()
@@ -160,6 +161,14 @@ end)
 
 -- Lade-Hook fuer den Join (nur im Spiel, sdk.hook)
 pcall(savejoin.install_hook)
+savejoin.auto = config.auto_join
+
+-- Wer beitritt, holt sich automatisch den Spielstand des Hosts.
+session:subscribe("peer_joined", function(s)
+    if not s.is_host and config.auto_join and savejoin.state ~= "ready" then
+        savejoin.request(s)
+    end
+end)
 
 -- Bei "Reset Scripts" bleiben erzeugte Figuren sonst verwaist in der Welt.
 if re.on_script_reset then
@@ -235,6 +244,9 @@ local function frame()
 
     session:update()
     savejoin.update(session)
+    if not session.is_host then
+        savejoin.update_auto(now)
+    end
 
     state.local_state = game.get_local_state()
 
@@ -401,6 +413,12 @@ local function draw_join_ui(status)
     end
     imgui.separator()
     imgui.text("Spielstand des Hosts uebernehmen")
+    local changed
+    changed, config.auto_join = imgui.checkbox("Beim Beitreten automatisch laden", config.auto_join)
+    if changed then
+        savejoin.auto = config.auto_join
+        save_config()
+    end
     local st = savejoin.state
     if st == "idle" or st == "failed" or st == "applied" then
         if imgui.button("Spielstand des Hosts holen") then
@@ -420,7 +438,7 @@ local function draw_join_ui(status)
     if savejoin.message ~= "" then
         imgui.text(savejoin.message)
     end
-    if st == "ready" then
+    if st == "ready" and not config.auto_join then
         imgui.text("Pause -> Spiel laden -> beliebiger Spielstand. Du landest beim Host.")
     end
 end

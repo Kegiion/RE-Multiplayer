@@ -71,21 +71,27 @@ function Bot.new(net, opts)
             self.save_rx = nil
             if data then
                 self.save_data = data
+                for _, id in ipairs(self.save_waiting) do
+                    self:send_save(id)
+                end
+                self.save_waiting = {}
                 self.print(string.format("Spielstand gespeichert (%d KB). Im Spiel jetzt \"Spielstand des Hosts holen\".", #data // 1024))
             else
                 self.print("Spielstand fehlerhaft: " .. tostring(err))
             end
         end
     end)
+    self.save_waiting = {} -- Anfragen, die eintrafen, bevor der Bot einen Stand hatte
     self.session:on("SAVE_REQUEST", function(s, peer)
         if self.save_data == nil then
-            s:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = "Testbot hat noch keinen Spielstand" }, true, peer.id)
+            if self.mirror then
+                self.save_waiting[#self.save_waiting + 1] = peer.id
+            else
+                s:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = "Testbot hat noch keinen Spielstand" }, true, peer.id)
+            end
             return
         end
-        local begin, chunks = transfer.split(self.save_data, os.time() % 100000, "Testbot-Spiegel")
-        s:send("SAVE_BEGIN", begin, true, peer.id)
-        self.save_out[#self.save_out + 1] = { peer = peer.id, chunks = chunks, next = 1 }
-        self.print(string.format("Schicke Spielstand zurueck (%d Stuecke)", #chunks))
+        self:send_save(peer.id)
     end)
     self.session:on("PLAYER_STATE", function(s, _, msg)
         self.received = self.received + 1
@@ -132,6 +138,13 @@ function Bot:delayed_state(now, history)
         end
     end
     return chosen or (history[1] and history[1].msg)
+end
+
+function Bot:send_save(peer_id)
+    local begin, chunks = transfer.split(self.save_data, os.time() % 100000, "Testbot-Spiegel")
+    self.session:send("SAVE_BEGIN", begin, true, peer_id)
+    self.save_out[#self.save_out + 1] = { peer = peer_id, chunks = chunks, next = 1 }
+    self.print(string.format("Schicke Spielstand zurueck (%d Stuecke)", #chunks))
 end
 
 function Bot:send_saves()

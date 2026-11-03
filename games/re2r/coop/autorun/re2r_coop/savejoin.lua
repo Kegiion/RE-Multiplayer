@@ -100,11 +100,12 @@ end
 
 function M.request(session)
     M.state, M.message, M.receiver, M.pending, M.result = "requested", "Warte auf den Host ...", nil, nil, nil
+    M.auto_waiting, M.loader = false, nil
     session:send("SAVE_REQUEST", { reserved = 0 }, true)
 end
 
 function M.cancel()
-    M.state, M.message, M.receiver, M.pending = "idle", "", nil, nil
+    M.state, M.message, M.receiver, M.pending, M.loader = "idle", "", nil, nil, nil
 end
 
 local function finish(session)
@@ -206,6 +207,121 @@ function M.install_hook()
     end)
     M.hooked = true
     return true
+end
+
+-- --- Automatisch laden (Freund) ----------------------------------------------
+--
+-- Bestaetigt am 3. November 2026: Aus dem laufenden Spiel direkt
+-- goLoadGameData aufzurufen haengt (der Hauptablauf steht noch auf IN_GAME).
+-- Funktioniert: goResetGameToStoryContinue (zurueck zum Titel, MainState 3),
+-- dann requestLoadGameData(Modus, Platz), warten bis die Datei gelesen ist
+-- (saveLoadStep wieder 1), dann MainFlowManager.goLoadGameData -> nach ca.
+-- 2,4 s IN_GAME (6). Das Titelmenue (GUI_TitleMenu) bleibt dabei sichtbar und
+-- wird ausgeblendet. Steuerung danach normal.
+
+M.MAIN_TITLE = 3
+M.MAIN_IN_GAME = 6
+M.MAIN_PAUSE = 9
+M.LOAD_TIMEOUT = 60
+
+M.auto = false       -- setzt das Hauptskript aus der Konfiguration
+M.loader = nil       -- laufender automatischer Ladevorgang
+
+local function managers()
+    local mfm = sdk.get_managed_singleton(game.ns("gamemastering.MainFlowManager"))
+    local sdm = sdk.get_managed_singleton(game.ns("gamemastering.SaveDataManager"))
+    return mfm, sdm
+end
+
+local function main_state(mfm)
+    return mfm:get_field("_CurrentMainState")
+end
+
+local function hide_title_menu()
+    local scene = sdk.call_native_func(sdk.get_native_singleton("via.SceneManager"),
+        sdk.find_type_definition("via.SceneManager"), "get_CurrentScene")
+    local guis = scene:call("findComponents(System.Type)", sdk.typeof("via.gui.GUI"))
+    for _, c in ipairs(guis and guis:get_elements() or {}) do
+        local go = c:call("get_GameObject")
+        if go:call("get_Name") == "GUI_TitleMenu" then
+            go:call("set_DrawSelf", false)
+            go:call("set_UpdateSelf", false)
+        end
+    end
+end
+
+-- Startet das automatische Laden (Stand muss bereitliegen).
+function M.start_auto_load(now)
+    local mfm, sdm = managers()
+    if mfm == nil or sdm == nil then
+        M.state, M.message = "failed", "Spiel nicht bereit (Manager fehlen)"
+        return false
+    end
+    local index = sdm:get_field("<LoadGameDataIndex>k__BackingField")
+    if index == nil or index < 0 then
+        M.message = "Lade einmal selbst einen Spielstand (Pause -> Spiel laden), dann geht es los."
+        return false
+    end
+    local ok, mode = pcall(sdm.call, sdm, "getSaveModeFromCurrentScenarioType")
+    M.loader = { phase = "reset", since = now, start = now, index = index, mode = ok and mode or 1 }
+    M.message = "Lade den Spielstand des Hosts ..."
+    return true
+end
+
+local function step_loader(now)
+    local L = M.loader
+    local mfm, sdm = managers()
+    local main = main_state(mfm)
+    if now - L.start > M.LOAD_TIMEOUT then
+        M.loader = nil
+        M.state, M.message = "failed", "Automatisches Laden dauert zu lange (Zustand " .. tostring(main) .. ")"
+        return
+    end
+    if L.phase == "reset" then
+        if main == M.MAIN_TITLE then
+            L.phase, L.since = "title", now
+        elseif not L.reset_called then
+            L.reset_called = true
+            mfm:call("goResetGameToStoryContinue")
+        end
+    elseif L.phase == "title" then
+        -- Titel kurz zur Ruhe kommen lassen
+        if now - L.since >= 1.0 then
+            sdm:call("requestLoadGameData", L.mode, L.index)
+            L.phase, L.since, L.saw_read = "read", now, false
+        end
+    elseif L.phase == "read" then
+        local step = sdm:call("get_saveLoadStep")
+        if step ~= 1 then
+            L.saw_read = true
+        end
+        if now - L.since >= 0.3 and ((L.saw_read and step == 1) or now - L.since > 3.0) then
+            mfm:call("goLoadGameData")
+            L.phase, L.since = "loading", now
+        end
+    elseif L.phase == "loading" then
+        if main == M.MAIN_IN_GAME and game.get_local_state() ~= nil then
+            pcall(hide_title_menu)
+            M.loader = nil
+        end
+    end
+end
+
+-- Jeden Frame (Freund): automatisch anfordern war schon, hier laden.
+function M.update_auto(now)
+    if M.loader ~= nil then
+        local ok, err = pcall(step_loader, now)
+        if not ok then
+            M.loader = nil
+            M.state, M.message = "failed", "Automatisches Laden: " .. tostring(err)
+        end
+        return
+    end
+    if M.auto and M.state == "ready" and M.pending ~= nil and not M.auto_waiting then
+        if not M.start_auto_load(now) then
+            M.auto_waiting = true -- erst wieder nach neuem Versuch
+        end
+    end
 end
 
 return M

@@ -12,15 +12,17 @@
 --   - mit Leons eigenen Eingaben als Quelle laeuft, zielt und schiesst Claire mit
 --   - Sackgassen: PlayerCondition.get_PadKind umbiegen, ActiveUserPadKind
 --     global umschalten (trifft wegen der Threads auch Leon)
--- UNBESTAETIGT: Umrechnung der Sticks auf die eigene Kamera (cam_yaw),
---   analoge Trigger (getAnalogTrigger wurde im Test nie aufgerufen).
+--   - Sticks werden mit (cam_yaw_sender - cam_yaw_empfaenger) gedreht
+--     (YAW_SIGN = -1): mittlere Abweichung beim Laufen mit Kameradrehung
+--     0,25 m statt 0,9 m mit dem anderen Vorzeichen (Testbot, 3. November 2026)
+-- UNBESTAETIGT: analoge Trigger (getAnalogTrigger wurde im Test nie aufgerufen).
 
 local game = require("re2r_coop.game")
 
 local M = {}
 
--- Vorzeichen der Kamera-Umrechnung (UNBESTAETIGT, ggf. auf -1 drehen).
-M.YAW_SIGN = 1
+-- Vorzeichen der Kamera-Umrechnung (im Spiel gemessen, siehe oben).
+M.YAW_SIGN = -1
 
 local KIND_MOVE, KIND_WATCH = 1, 2
 local STICK_PROPS = { "Axis", "AxisOld", "RawAxis", "Direction", "Angle", "AngleOld", "AngularVelocity",

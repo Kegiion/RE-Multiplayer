@@ -2,6 +2,11 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.7.1
+
+- Die echte Spielfigur des Mitspielers wird sanft auf seine Position nachgezogen, statt ständig zu springen.
+- Die Laufrichtung stimmt jetzt auch, wenn einer von euch beim Laufen die Kamera dreht.
+
 ## 0.7.0
 
 - **Versuch: Mitspieler als echte Spielfigur.** Neuer Haken im Menü (standardmäßig aus, vorher speichern). Statt der Puppe wird die echte, spielbare Figur des Mitspielers erzeugt, und das Spiel steuert sie mit seinen eigenen Abläufen. Die Tasten und Sticks kommen vom Mitspieler. Noch ungetestet im Spiel: Kamera-Umrechnung der Sticks, Positionskorrektur, Kamera, HUD, Inventar und Gegner.

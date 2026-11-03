@@ -9,9 +9,14 @@
 -- (Player/pl1000.pfb) laesst sich in Leons Spiel im Ordner des Spielers
 -- erzeugen, SurvivorCostumeChanger.change(1, 0) laedt ihr Modell,
 -- PlayerManager.get_CurrentPlayer bleibt Leon.
--- UNBESTAETIGT: Positionskorrektur per Transform.set_Position (der
--- CharacterController koennte sie ueberschreiben), Kamera, HUD, Inventar,
--- Gegner, Treffer.
+-- Bestaetigt mit Testbot (3. November 2026): Die Figur laeuft aus eigener
+-- Kraft mit den Eingaben des Mitspielers (Gehen-Animationen), bleibt aber
+-- nicht exakt auf seiner Position (0,3 bis 1 m, wachsend). Transform.set_Position
+-- wirkt trotz CharacterController. Hartes Zuruecksetzen ab 1,5 m sah aus wie
+-- staendiges Teleportieren, deshalb jetzt sanftes Nachziehen.
+-- Sanfte Korrektur bestaetigt (keine Spruenge mehr), mit richtigem
+-- Kamera-Vorzeichen mittlere Abweichung 0,25 m, hoechstens 1,0 m.
+-- UNBESTAETIGT: Kamera, HUD, Inventar, Gegner, Treffer.
 
 local game = require("re2r_coop.game")
 local remote_input = require("re2r_coop.remote_input")
@@ -20,7 +25,9 @@ local partner = {}
 
 partner.PREFAB_PATH = "ObjectRoot/Prefab/Character/Player/%s.pfb"
 partner.COSTUME = 0
-partner.CORRECT_DISTANCE = 1.5 -- Meter Abweichung, ab der wir auf die Netzwerkposition setzen
+partner.SOFT_MIN_DISTANCE = 0.1 -- Meter: darunter nicht korrigieren
+partner.SOFT_RATE = 3.0         -- Anteil der Abweichung pro Sekunde, der nachgezogen wird
+partner.SNAP_DISTANCE = 3.0     -- Meter: ab hier direkt auf die Netzwerkposition setzen
 partner.RETRY_AFTER = 5.0
 partner.LOAD_TIMEOUT = 20.0
 
@@ -144,15 +151,21 @@ local function sync(peer_id, r, enabled, now)
         start_loading(inst, now)
         return
     end
-    -- Weicht die Figur zu weit ab, auf die Netzwerkposition setzen.
+    -- Abweichung von der Netzwerkposition sanft nachziehen, bei grossem
+    -- Abstand (Teleport, Raumwechsel) direkt setzen.
+    local dt = inst.last_sync and math.min(now - inst.last_sync, 0.1) or 0
+    inst.last_sync = now
     local p = inst.transform and inst.transform:call("get_Position")
     if p ~= nil then
-        local dx, dy, dz = p.x - r.pos.x, p.y - r.pos.y, p.z - r.pos.z
-        inst.drift = math.sqrt(dx * dx + dy * dy + dz * dz)
-        if inst.drift > partner.CORRECT_DISTANCE then
+        local ex, ey, ez = r.pos.x - p.x, r.pos.y - p.y, r.pos.z - p.z
+        inst.drift = math.sqrt(ex * ex + ey * ey + ez * ez)
+        if inst.drift > partner.SNAP_DISTANCE then
             inst.transform:call("set_Position", Vector3f.new(r.pos.x, r.pos.y, r.pos.z))
             inst.transform:call("set_Rotation", rotation_of(r))
             inst.corrections = (inst.corrections or 0) + 1
+        elseif inst.drift > partner.SOFT_MIN_DISTANCE and dt > 0 then
+            local k = math.min(1, partner.SOFT_RATE * dt)
+            inst.transform:call("set_Position", Vector3f.new(p.x + ex * k, p.y + ey * k, p.z + ez * k))
         end
     end
 end
@@ -196,7 +209,7 @@ function partner.status_text(peer_id)
         return "Fehler: " .. tostring(inst.error)
     end
     if inst.state == "ready" then
-        return string.format("ready, Abweichung %.2f m, %d Korrekturen", inst.drift or 0, inst.corrections or 0)
+        return string.format("ready, Abweichung %.2f m, %d Spruenge", inst.drift or 0, inst.corrections or 0)
     end
     return inst.state
 end

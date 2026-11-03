@@ -2,6 +2,12 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.7.0
+
+- **Versuch: Mitspieler als echte Spielfigur.** Neuer Haken im Menü (standardmäßig aus, vorher speichern). Statt der Puppe wird die echte, spielbare Figur des Mitspielers erzeugt, und das Spiel steuert sie mit seinen eigenen Abläufen. Die Tasten und Sticks kommen vom Mitspieler. Noch ungetestet im Spiel: Kamera-Umrechnung der Sticks, Positionskorrektur, Kamera, HUD, Inventar und Gegner.
+- Die eigenen Eingaben werden bis 60× pro Sekunde mitgeschickt (neue Nachricht `INPUT_STATE`). Die Protokollversion bleibt 3.
+- Der Testbot schickt auch die Eingaben verzögert zurück.
+
 ## 0.6.0
 
 - **Schießen und Nachladen:** Die Puppe zielt, schießt und lädt nach wie ihr Spieler. Übertragen werden jetzt alle 6 Animations-Ebenen, schnelle Schüsse hintereinander kommen einzeln an.

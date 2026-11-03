@@ -99,6 +99,14 @@ local messages = {
             { "data", "s2" },       -- bis 65535 Bytes
         },
     },
+    -- Eingaben des Spielers (RE2: steuert beim Gegenueber eine echte zweite
+    -- Spielfigur). Unzuverlaessig, bis 60x pro Sekunde. Die Felder werden
+    -- unten erzeugt (input_state_fields). VERSION bleibt absichtlich 3
+    -- (abgestimmt mit RE0): alte Staende ignorieren unbekannte IDs.
+    INPUT_STATE = {
+        id = 9,
+        fields = {},
+    },
 }
 
 protocol.ANIM_LAYERS = 6
@@ -118,6 +126,26 @@ local function anim_state_fields()
     return fields
 end
 messages.ANIM_STATE.fields = anim_state_fields()
+
+local function input_state_fields()
+    local fields = {
+        { "seq", "I4" },
+        { "on_lo", "I4" }, { "on_hi", "I4" }, -- 64-Bit-Knopfmaske (RE2: InputDefine.Kind)
+    }
+    for _, s in ipairs({ "l", "r" }) do
+        for _, f in ipairs({ "x", "y", "mag", "ang", "dx", "dy", "dz" }) do
+            fields[#fields + 1] = { s .. f, "f" }
+        end
+        for _, f in ipairs({ "pw", "pwh", "pwv" }) do
+            fields[#fields + 1] = { s .. f, "B" }
+        end
+    end
+    fields[#fields + 1] = { "al", "f" }
+    fields[#fields + 1] = { "ar", "f" }
+    fields[#fields + 1] = { "cam_yaw", "f" } -- Blickrichtung der Kamera (Radiant), Sticks sind kamerarelativ
+    return fields
+end
+messages.INPUT_STATE.fields = input_state_fields()
 
 protocol.MSG = {}
 local by_id = {}

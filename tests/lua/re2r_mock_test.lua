@@ -570,6 +570,44 @@ run_frame(); run_frame(); run_frame()
 assert(devconsole.store.n == 3, "Task lief nicht bis zum Ende: " .. tostring(devconsole.store.n))
 devconsole.enabled = false
 
+-- Echte zweite Spielfigur: Eingaben (remote_input) und INPUT_STATE
+do
+    local protocol = require("remultiplayer_coop.protocol")
+    local ri = require("re2r_coop.remote_input")
+    local big = (1 << 39) | 320 -- UI_R_STICK + HOLD + ATTACK
+    local lo, hi = ri.split64(big)
+    assert(lo == 320 and hi == 128, "split64 falsch")
+    assert(ri.join64(lo, hi) == big, "join64 falsch")
+
+    local msg = { seq = 7, on_lo = lo, on_hi = hi, al = 0.5, ar = 0.0, cam_yaw = 1.25 }
+    for _, st in ipairs({ "l", "r" }) do
+        for _, f in ipairs({ "x", "y", "mag", "ang", "dx", "dy", "dz" }) do msg[st .. f] = 0.25 end
+        for _, f in ipairs({ "pw", "pwh", "pwv" }) do msg[st .. f] = 2 end
+    end
+    local back = assert(protocol.decode(protocol.encode("INPUT_STATE", msg)))
+    assert(back.type == "INPUT_STATE" and back.on_lo == 320 and back.on_hi == 128 and back.lpw == 2)
+    assert(math.abs(back.cam_yaw - 1.25) < 1e-6 and math.abs(back.al - 0.5) < 1e-6)
+
+    -- gedrueckt / gehalten / losgelassen werden pro Frame aus der Maske berechnet
+    ri.receive(back)
+    ri.step()
+    assert(ri.on == big and ri.down == big and ri.up == 0, "Druck nicht erkannt")
+    ri.step()
+    assert(ri.down == 0 and ri.up == 0, "Druck doppelt erkannt")
+    ri.receive({ on_lo = 64, on_hi = 0, cam_yaw = 0 })
+    ri.step()
+    assert(ri.on == 64 and ri.up == (big & ~64), "Loslassen nicht erkannt")
+    ri.attach(nil)
+    assert(not ri.attached() and ri.on == 0, "attach(nil) setzt nicht zurueck")
+
+    -- ohne InputSystem im Mock: read_local liefert nil statt Fehler
+    assert(ri.read_local() == nil)
+    -- partner: ohne Haken passiert nichts
+    local partner = require("re2r_coop.partner")
+    assert(partner.prefab_path(1) == "ObjectRoot/Prefab/Character/Player/pl1000.pfb")
+    assert(partner.prefab_path(255) == nil and not partner.has(1))
+end
+
 -- Fehler im Spielzugriff duerfen das Skript nicht abschiessen
 sdk.get_managed_singleton = function() error("kaputt") end
 run_frame()

@@ -3,8 +3,8 @@
 -- Ein simulierter Mitspieler fuer Tests ohne zweiten PC: verbindet sich mit
 -- deinem Spiel (dort "Hosten" klicken) und laeuft dir mit 1 Sekunde
 -- Verzoegerung hinterher. Im Spiel siehst du ihn als Markierung "Testbot".
--- Animationen (ANIM_BANKS/ANIM_STATE) spielt er mit derselben Verzoegerung
--- nach, falls das Spiel welche sendet.
+-- Animationen (ANIM_BANKS/ANIM_STATE) und Eingaben (INPUT_STATE) spielt er
+-- mit derselben Verzoegerung nach, falls das Spiel welche sendet.
 -- Chat-Nachrichten beantwortet er mit einem Echo.
 --
 -- Aufruf: remultiplayer_luarun testbot.lua [ip] [port] [spiel]
@@ -20,6 +20,7 @@ Bot.SIDE_OFFSET = 0.8    -- Meter seitlich versetzt, damit er sichtbar bleibt
 Bot.SEND_INTERVAL = 0.05
 Bot.BANKS_RESEND_INTERVAL = 3.0
 Bot.HISTORY_SIZE = 400
+Bot.INPUT_HISTORY_SIZE = 200 -- bis 60 Eingaben pro Sekunde, reicht fuer DELAY
 
 function Bot.new(net, opts)
     opts = opts or {}
@@ -28,6 +29,9 @@ function Bot.new(net, opts)
     self.print = opts.print or print
     self.history = {}
     self.anim_history = {}
+    self.input_history = {}
+    self.input_seq = 0
+    self.input_last = nil
     self.banks = nil
     self.banks_sent = -math.huge
     self.seq = 0
@@ -51,6 +55,12 @@ function Bot.new(net, opts)
         table.insert(self.anim_history, { t = s:time(), msg = msg })
         if #self.anim_history > Bot.HISTORY_SIZE then
             table.remove(self.anim_history, 1)
+        end
+    end)
+    self.session:on("INPUT_STATE", function(s, _, msg)
+        table.insert(self.input_history, { t = s:time(), msg = msg })
+        if #self.input_history > Bot.INPUT_HISTORY_SIZE then
+            table.remove(self.input_history, 1)
         end
     end)
     self.session:on("ANIM_BANKS", function(_, _, msg)
@@ -101,6 +111,10 @@ function Bot:step()
         end
     end
 
+    if s:is_active() and #s:ready_peers() > 0 then
+        self:send_input(now)
+    end
+
     if now - self.last_report >= 2.0 then
         self.last_report = now
         local latest = self.history[#self.history]
@@ -126,6 +140,22 @@ function Bot:send_anim(now)
         msg.seq = self.seq
         s:send("ANIM_STATE", msg, false)
     end
+end
+
+-- Eingaben verzoegert zurueckschicken, jede hoechstens einmal.
+function Bot:send_input(now)
+    local src = self:delayed_state(now, self.input_history)
+    if src == nil or src == self.input_last then
+        return
+    end
+    self.input_last = src
+    local msg = {}
+    for k, v in pairs(src) do
+        msg[k] = v
+    end
+    self.input_seq = (self.input_seq + 1) % 4294967296
+    msg.seq = self.input_seq
+    self.session:send("INPUT_STATE", msg, false)
 end
 
 -- Als Modul geladen (Tests)? Dann nicht die Endlosschleife starten.

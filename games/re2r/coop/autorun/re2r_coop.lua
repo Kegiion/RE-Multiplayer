@@ -9,14 +9,17 @@
 --   re2r_coop/ghost.lua Anzeige des Mitspielers (Markierung)
 --   re2r_coop/puppet.lua Mitspieler als Spielfigur (Meilenstein 2)
 --   re2r_coop/anim.lua Animationen lesen und auf die Puppe uebertragen
+--   re2r_coop/partner.lua VERSUCH: Mitspieler als echte zweite Spielfigur
+--   re2r_coop/remote_input.lua Eingaben fuer die echte zweite Spielfigur
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.6.0"
+local MOD_VERSION = "0.7.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
 local BANKS_RESEND_INTERVAL = 3.0 -- Sekunden: ANIM_BANKS zur Sicherheit wiederholen
+local INPUT_INTERVAL = 1 / 60 -- Sekunden: eigene Eingaben bis 60x pro Sekunde senden
 
 -- Ohne Plugin geht nichts: nur eine Hilfe im Menue anzeigen.
 if coopnet == nil then
@@ -37,6 +40,8 @@ local ghost = require("re2r_coop.ghost")
 local puppet = require("re2r_coop.puppet")
 local anim = require("re2r_coop.anim")
 local weapon = require("re2r_coop.weapon")
+local partner = require("re2r_coop.partner")
+local remote_input = require("re2r_coop.remote_input")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -50,6 +55,7 @@ local config = {
     port = 27350,
     show_ghosts = true,
     show_puppets = true, -- Mitspieler als Spielfigur
+    real_partner = false, -- VERSUCH: Mitspieler als echte, steuerbare Spielfigur
     show_debug = false,
     devconsole = false, -- Entwickler-Konsole fuer Claude
 }
@@ -112,6 +118,17 @@ session:on("ANIM_STATE", function(_, peer, msg)
     end
 end)
 
+local remote_input_seq = {}
+
+session:on("INPUT_STATE", function(_, peer, msg)
+    if seq_newer(msg.seq, remote_input_seq[peer.id]) then
+        remote_input_seq[peer.id] = msg.seq
+        if partner.has(peer.id) then
+            remote_input.receive(msg)
+        end
+    end
+end)
+
 session:on("CHAT", function(s, peer, msg)
     s:log("%s: %s", peer.name or "?", msg.text)
 end)
@@ -119,13 +136,16 @@ end)
 session:subscribe("peer_left", function(_, peer)
     ghost.remove(peer.id)
     puppet.remove(peer.id)
+    partner.remove(peer.id)
     remote_anim[peer.id] = nil
+    remote_input_seq[peer.id] = nil
 end)
 
 -- Bei "Reset Scripts" bleiben erzeugte Figuren sonst verwaist in der Welt.
 if re.on_script_reset then
     re.on_script_reset(function()
         puppet.clear()
+        partner.clear()
     end)
 end
 
@@ -144,6 +164,8 @@ local state = {
     banks_checked = -math.huge,
     banks_sent = -math.huge,
     anim_tracker = {}, -- Neustarts der Aktions-Ebenen (anim.track)
+    input_seq = 0,
+    input_sent = -math.huge,
 }
 
 local function report_error(where, err)
@@ -221,10 +243,30 @@ local function frame()
         end
     end
 
+    -- Eigene Eingaben senden (fuer die echte zweite Spielfigur beim Gegenueber).
+    if state.local_state ~= nil and session:is_active() and #session:ready_peers() > 0
+        and now - state.input_sent >= INPUT_INTERVAL then
+        state.input_sent = now
+        local ok, err = pcall(function()
+            local msg = remote_input.read_local()
+            if msg ~= nil then
+                state.input_seq = (state.input_seq + 1) % 4294967296
+                msg.seq = state.input_seq
+                session:send("INPUT_STATE", msg, false)
+            end
+        end)
+        if not ok then
+            report_error("input", err)
+        end
+    end
+
     ghost.update(dt)
     for id, r in pairs(ghost.remote) do
-        local visible = config.show_puppets and state.local_state ~= nil and r.target ~= nil
+        local present = state.local_state ~= nil and r.target ~= nil
             and not ghost.is_stale(r, now) and not ghost.other_area(r, state.local_state)
+        local real = config.real_partner and present
+        partner.sync(id, r, real, now)
+        local visible = config.show_puppets and present and not partner.has(id)
         puppet.sync(id, r, visible, now, remote_anim[id])
     end
     if config.show_ghosts then
@@ -292,6 +334,7 @@ local function draw_connection_ui(status)
             session:leave()
             ghost.clear()
             puppet.clear()
+            partner.clear()
             for id in pairs(remote_anim) do
                 remote_anim[id] = nil
             end
@@ -335,6 +378,8 @@ local function draw_debug_ui(status)
     changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
     if changed then save_config() end
     changed, config.show_puppets = imgui.checkbox("Mitspieler als Spielfigur anzeigen", config.show_puppets)
+    if changed then save_config() end
+    changed, config.real_partner = imgui.checkbox("VERSUCH: Mitspieler als echte Spielfigur (vorher speichern!)", config.real_partner)
     if changed then save_config() end
     changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
     if changed then save_config() end
@@ -382,6 +427,7 @@ local function draw_debug_ui(status)
                 id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0,
                 game.character_name(r.character), tostring(r.area)))
             imgui.text("  Figur im Spiel: " .. puppet.status_text(id))
+            imgui.text("  Echte Figur: " .. partner.status_text(id))
         end
         local st = status.stats or {}
         imgui.text(string.format("Gesendet: %d Nachr. / %d B   Empfangen: %d Nachr. / %d B",

@@ -104,6 +104,17 @@ Am 3. November 2026 per Entwickler-Konsole geprüft (Leon-Spielstand, Polizeista
 | Kollision | Der User fühlte sich „hin und her geschoben“, wahrscheinlich von Claire | ❓ |
 | Kamera, HUD, Inventar, Gegner mit zwei Spielern | | ❓ |
 
+## Spielstände (für den Join auf den Stand des Hosts)
+
+Am 3. November 2026 untersucht:
+
+| Was | Befund | Status |
+|---|---|---|
+| Dateien | `<Steam>\userdata\<Konto>\883710\remote\win64_save\`: `data000.bin` (System, 730 KB), `data001Slot.bin`, `data002Slot.bin` (je ca. 1,7 MB, Speicherplätze), `data021Slot.bin` (1 KB, Platz 21 = Checkpoint, `SaveDataManager.RogueCheckPointDataNumber`), `data00-1.bin` (5 KB) | ✅ |
+| Format | Alle beginnen mit `DSSS` + Version 2, danach vollständig verschlüsselt (Entropie 8,0). Steam-ID nicht im Klartext | ✅ |
+| Kontobindung | Ob ein fremdes Konto die Datei lesen kann | ❓ |
+| Im Speicher | `gamemastering.SaveDataManager`: `GameSaveDataValue` (`SaveDataManager.GameSaveData`) ist der Spielstand als Objekt. `GameSaveManagerDic` (`UInt32` → `IGameSaveData`) sind alle beteiligten Manager (z. B. `PlayerManager.saveGameSaveData()` / `loadGameSaveData(SaveDataBase)`). `saveGameSaveData()` sammelt, `loadGameSaveData()` verteilt. Laden über `requestLoadGameData(SaveMode, Index)`, aktueller Platz `LoadGameDataIndex` (2) | ✅ (nur gelesen) |
+
 ## Werkzeuge zum Selbst-Ansehen
 
 - `powershell -File tools/spielfoto.ps1 -Prozess re2 -Datei <pfad.jpg>`: Foto des RE2-Fensters (Fenstermodus nötig).

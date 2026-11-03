@@ -204,12 +204,13 @@ end
 -- ---- Titelbildschirm und Laden ohne Menue ---------------------------------------
 -- Bestaetigt am 3. November 2026 (Aufnahme beim Laden und Test im Spiel):
 --   sGameArea + 382C: Bereichs-Objekt, Klasse aTitle im Titelbildschirm, sonst aGame
---   cSaveManager + 4 Befehl, + 10 Parameter: Befehl 5 = Platz laden (nach einem Frame fertig)
+--   cSaveManager + 4 Befehl, + 8 Schritt (Start mit 1), + 10 Parameter: Befehl 5 = Datei einlesen und Platz uebernehmen
 --   sGameArea + 3828 = DTI von aInGameStart startet das Spiel mit dem geladenen Platz
 local OFF_AREA_MAIN = 0x382C
 local OFF_AREA_REQUEST = 0x3828
 local OFF_SAVE_COMMAND = 0x4
 local OFF_SAVE_PARAM = 0x10
+local OFF_SAVE_STEP = 0x8
 local SAVE_CMD_LOAD = 5
 local INGAMESTART_DTI = 0x00DCBFE4 -- DTI von aInGameStart in dieser exe-Version
 -- cSaveManager::Platz uebernehmen (thiscall, Argument Platz 0..19, ret 4). Im Disassembler
@@ -217,6 +218,8 @@ local INGAMESTART_DTI = 0x00DCBFE4 -- DTI von aInGameStart in dieser exe-Version
 -- Abbild (+C8) und verteilt ihn an sGameInfo, sFlagManager, sPlayer usw. Das Titelmenue
 -- ruft das beim Laden vor dem Start auf (Abbild-Vergleich: sGameInfo+3C Spielzeit gesetzt).
 local APPLY_SLOT_FN = 0x006127D0
+local OFF_START_MODE = 0x74 -- sGameInfo: Startart fuer aInGameStart
+local START_MODE_LOAD = 1
 
 local function area_main_class()
     if not game.supported or not mt then
@@ -239,13 +242,21 @@ function game.save_busy()
     return cmd == nil or cmd ~= 0
 end
 
--- Platz (0-basiert) aus der Datei laden, wie das Menue "Spiel laden". true, wenn der Befehl abgesetzt wurde.
+-- Spielstand-Datei ins Datei-Abbild einlesen (Befehl 5 mit Parameter 16h: danach nur alle
+-- Plaetze ins zweite Abbild kopieren, nichts uebernehmen). Der Platz wird erst danach
+-- geschrieben und mit apply_save_slot uebernommen. Ohne Einlesen waere das Datei-Abbild
+-- nach einem frischen Start leer, und beim naechsten Speichern wuerden die eigenen
+-- Spielstaende ueberschrieben. Befehle starten erst mit Schritt (+8) = 1, bei Schritt 0
+-- beendet der Handler (0x612E30) sie sofort (Disassembler, 3. November 2026).
+-- true, wenn der Befehl abgesetzt wurde. slot wird nicht mehr gebraucht.
+local SAVE_PARAM_COPY_ALL = 0x16
 function game.load_save_slot(slot)
-    local ssm, csm = save_manager()
+    local _, csm = save_manager()
     if not csm or game.save_busy() then
         return false
     end
-    mem.write_u32(csm + OFF_SAVE_PARAM, slot)
+    mem.write_u32(csm + OFF_SAVE_PARAM, SAVE_PARAM_COPY_ALL)
+    mem.write_u32(csm + OFF_SAVE_STEP, 1)
     mem.write_u32(csm + OFF_SAVE_COMMAND, SAVE_CMD_LOAD)
     return true
 end
@@ -281,6 +292,13 @@ function game.start_game()
     local raw = mt.dti_raw and mt.dti_raw("aInGameStart")
     if raw and raw.addr then
         dti = raw.addr
+    end
+    -- Startart in sGameInfo + 74 (aInGameStart 0x405140 verzweigt danach): 0 = neues
+    -- Spiel (0x4057A0), 1 = Spielstand laden (0x405460, uebernimmt den aktuellen Platz).
+    -- Ohne das startete beim Test am 3. November 2026 ein neues Spiel.
+    local gi = mem.read_u32(GAMEINFO_INSTANCE)
+    if not gi or gi == 0 or not mem.write_u32(gi + OFF_START_MODE, START_MODE_LOAD) then
+        return false
     end
     local ga = mem.read_u32(GAMEAREA_INSTANCE)
     return ga ~= nil and ga ~= 0 and mem.write_u32(ga + OFF_AREA_REQUEST, dti)

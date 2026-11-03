@@ -84,6 +84,12 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 - **Auto-Laden (im Spiel bestätigt):** Im Titelbildschirm `cSaveManager + 10` = Platz, `+4` = 5 schreiben. Der Befehl ist nach einem Frame fertig (`+4` wieder 0). Danach `sGameArea + 3828` = DTI von `aInGameStart`. Das Spiel lädt den Platz ohne Menü.
 - Im Titelbildschirm liefert der DirectInput-Hook keine gedrückten Tasten über `input.key_down` (Ursache unklar, `GetDeviceState` wird aufgerufen).
 
+**Befehle und Spielstart (Disassembler, im Spiel bestätigt am 3. November 2026):**
+- Sprungtabelle bei `0x613408`: Befehl 1 → `0x612AD0` (Speichern), 2 → `0x612C40`, 3/4 → `0x613080`, 5 → `0x612E30` (Datei einlesen und übernehmen), 6 → `0x612D20`.
+- Ein Befehl startet nur mit Schritt `+8 = 1`. Bei Schritt 0 beendet der Handler ihn sofort, ohne etwas zu tun.
+- Befehl 5, Schritt 1: Datei lesen. Schritt 2: prüfen. Schritt 3 nach Parameter: Platz 0..19 übernehmen (`0x6127D0`), `0x15`/`0x18` alle übernehmen, `0x16` nur alle Plätze ins zweite Abbild kopieren (so liest die Mod die Datei ein, ohne etwas zu übernehmen).
+- Spielstart: `aInGameStart` (`0x405140`) verzweigt nach `sGameInfo+74`: 0 = neues Spiel (`0x4057A0`), 1 = Spielstand laden (`0x405460`, übernimmt `sSaveManager+24`), 2 und 3 unbekannt.
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)

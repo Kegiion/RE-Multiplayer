@@ -13,7 +13,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.9.2"
+local MOD_VERSION = "0.9.3"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then

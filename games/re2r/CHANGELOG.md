@@ -2,6 +2,12 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.8.0
+
+- **Dem Spielstand des Hosts beitreten:** Wer beitritt, findet im Menü „Spielstand des Hosts holen“. Der Host schickt seinen aktuellen Stand (ohne zu speichern, ca. 1 MB). Danach lädt der Mitspieler im Pausenmenü einen beliebigen eigenen Spielstand und landet beim Host: gleicher Ort, Inventar, Kiste, Gegner, Story-Fortschritt.
+- Noch offen: Rätsel- und Schalterzustände, die es im geladenen Stand des Mitspielers noch gar nicht gibt, bleiben im Grundzustand. Getestet ist der Ablauf mit dem Testbot auf einem PC, noch nicht zwischen zwei PCs.
+- Für Tests: Der Testbot kann mit `--host` selbst hosten und spiegelt den Spielstand des Spiels zurück.
+
 ## 0.7.1
 
 - Die echte Spielfigur des Mitspielers wird sanft auf seine Position nachgezogen, statt ständig zu springen.

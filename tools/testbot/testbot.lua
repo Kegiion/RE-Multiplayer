@@ -7,10 +7,17 @@
 -- mit derselben Verzoegerung nach, falls das Spiel welche sendet.
 -- Chat-Nachrichten beantwortet er mit einem Echo.
 --
+-- Spielstand-Spiegel (Join-Test ohne zweiten PC, nur mit --host): Sobald das Spiel verbunden ist,
+-- fordert der Bot dessen Spielstand an (SAVE_REQUEST) und merkt ihn sich.
+-- Fragt das Spiel spaeter selbst an, schickt er ihm genau diesen Stand zurueck.
+--
 -- Aufruf: remultiplayer_luarun testbot.lua [ip] [port] [spiel]
---         (Standard: 127.0.0.1 27350 re2r)
+--         remultiplayer_luarun testbot.lua --host [port] [spiel]
+--         (Standard: 127.0.0.1 27350 re2r; mit --host wartet der Bot selbst
+--         auf das Spiel, dort dann "Beitreten" klicken)
 
 local Session = require("remultiplayer_coop.session")
+local transfer = require("remultiplayer_coop.transfer")
 
 local Bot = {}
 Bot.__index = Bot
@@ -44,6 +51,42 @@ function Bot.new(net, opts)
         mod_version = opts.mod_version or "testbot",
         name = opts.name or "Testbot",
     })
+    -- Spielstand-Spiegel
+    self.save_data, self.save_info, self.save_rx = nil, nil, nil
+    self.save_out = {}
+    self.mirror = opts.mirror -- nur im Host-Modus den Stand des Spiels anfordern
+    self.session:subscribe("peer_joined", function(s, peer)
+        if self.mirror and self.save_data == nil then
+            s:send("SAVE_REQUEST", { reserved = 0 }, true, peer.id)
+        end
+    end)
+    self.session:on("SAVE_BEGIN", function(_, _, msg)
+        if msg.size > 0 then
+            self.save_rx = transfer.receiver(msg)
+        end
+    end)
+    self.session:on("SAVE_CHUNK", function(s, _, msg)
+        if self.save_rx and self.save_rx:add(msg) and self.save_rx:complete() then
+            local data, err = self.save_rx:result()
+            self.save_rx = nil
+            if data then
+                self.save_data = data
+                self.print(string.format("Spielstand gespeichert (%d KB). Im Spiel jetzt \"Spielstand des Hosts holen\".", #data // 1024))
+            else
+                self.print("Spielstand fehlerhaft: " .. tostring(err))
+            end
+        end
+    end)
+    self.session:on("SAVE_REQUEST", function(s, peer)
+        if self.save_data == nil then
+            s:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = "Testbot hat noch keinen Spielstand" }, true, peer.id)
+            return
+        end
+        local begin, chunks = transfer.split(self.save_data, os.time() % 100000, "Testbot-Spiegel")
+        s:send("SAVE_BEGIN", begin, true, peer.id)
+        self.save_out[#self.save_out + 1] = { peer = peer.id, chunks = chunks, next = 1 }
+        self.print(string.format("Schicke Spielstand zurueck (%d Stuecke)", #chunks))
+    end)
     self.session:on("PLAYER_STATE", function(s, _, msg)
         self.received = self.received + 1
         table.insert(self.history, { t = s:time(), msg = msg })
@@ -91,9 +134,27 @@ function Bot:delayed_state(now, history)
     return chosen or (history[1] and history[1].msg)
 end
 
+function Bot:send_saves()
+    for i = #self.save_out, 1, -1 do
+        local out = self.save_out[i]
+        for _ = 1, 8 do
+            local c = out.chunks[out.next]
+            if c == nil then
+                break
+            end
+            self.session:send("SAVE_CHUNK", c, true, out.peer)
+            out.next = out.next + 1
+        end
+        if out.next > #out.chunks then
+            table.remove(self.save_out, i)
+        end
+    end
+end
+
 function Bot:step()
     local s = self.session
     s:update()
+    self:send_saves()
     local now = s:time()
 
     if s:is_active() and #s:ready_peers() > 0 and now - self.last_send >= Bot.SEND_INTERVAL then
@@ -163,18 +224,25 @@ if TESTBOT_AS_MODULE then
     return Bot
 end
 
-local address = arg and arg[1] or "127.0.0.1"
-local port = tonumber(arg and arg[2]) or 27350
-local game = arg and arg[3] or "re2r"
+local host_mode = arg and arg[1] == "--host"
+local first = host_mode and 2 or 1
+local address = (not host_mode and arg and arg[1]) or "127.0.0.1"
+local port = tonumber(arg and arg[first + (host_mode and 0 or 1)]) or 27350
+local game = arg and arg[first + (host_mode and 1 or 2)] or "re2r"
 
-local bot = Bot.new(net_a, { game = game })
+local bot = Bot.new(net_a, { game = game, mirror = host_mode })
 local last_log = 0
 local next_attempt = 0
 
-print(string.format("RE:Multiplayer Testbot - verbinde zu %s:%d (Spiel %s). Beenden mit Strg+C.", address, port, game))
+if host_mode then
+    print(string.format("RE:Multiplayer Testbot - hostet auf Port %d (Spiel %s). Im Spiel \"Beitreten\" auf 127.0.0.1:%d. Beenden mit Strg+C.", port, game, port))
+    assert(bot.session:host(port))
+else
+    print(string.format("RE:Multiplayer Testbot - verbinde zu %s:%d (Spiel %s). Beenden mit Strg+C.", address, port, game))
+end
 while true do
     local now = bot.session:time()
-    if bot.session:mode() == "idle" and now >= next_attempt then
+    if not host_mode and bot.session:mode() == "idle" and now >= next_attempt then
         bot.history = {}
         bot.session:join(address, port)
         next_attempt = now + 3

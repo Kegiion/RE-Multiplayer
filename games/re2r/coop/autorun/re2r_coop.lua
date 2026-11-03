@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.7.1"
+local MOD_VERSION = "0.8.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -42,6 +42,7 @@ local anim = require("re2r_coop.anim")
 local weapon = require("re2r_coop.weapon")
 local partner = require("re2r_coop.partner")
 local remote_input = require("re2r_coop.remote_input")
+local savejoin = require("re2r_coop.savejoin")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -129,6 +130,21 @@ session:on("INPUT_STATE", function(_, peer, msg)
     end
 end)
 
+-- Join auf den Spielstand des Hosts (re2r_coop/savejoin.lua)
+-- Beantwortet wird jede Anfrage (normal fragt nur der Freund beim Host an,
+-- der Testbot-Spiegel fragt aber auch beim Spiel an, wenn es beitritt).
+session:on("SAVE_REQUEST", function(s, peer)
+    savejoin.on_request(s, peer)
+end)
+
+session:on("SAVE_BEGIN", function(s, _, msg)
+    savejoin.on_begin(s, msg)
+end)
+
+session:on("SAVE_CHUNK", function(s, _, msg)
+    savejoin.on_chunk(s, msg)
+end)
+
 session:on("CHAT", function(s, peer, msg)
     s:log("%s: %s", peer.name or "?", msg.text)
 end)
@@ -139,7 +155,11 @@ session:subscribe("peer_left", function(_, peer)
     partner.remove(peer.id)
     remote_anim[peer.id] = nil
     remote_input_seq[peer.id] = nil
+    savejoin.forget_peer(peer.id)
 end)
+
+-- Lade-Hook fuer den Join (nur im Spiel, sdk.hook)
+pcall(savejoin.install_hook)
 
 -- Bei "Reset Scripts" bleiben erzeugte Figuren sonst verwaist in der Welt.
 if re.on_script_reset then
@@ -214,6 +234,7 @@ local function frame()
     state.last_frame = now
 
     session:update()
+    savejoin.update(session)
 
     state.local_state = game.get_local_state()
 
@@ -373,6 +394,37 @@ local function draw_status_ui(status)
     end
 end
 
+-- Join auf den Spielstand des Hosts (nur beim Freund, der beigetreten ist).
+local function draw_join_ui(status)
+    if status.mode ~= "connected" or session.is_host or #session:ready_peers() == 0 then
+        return
+    end
+    imgui.separator()
+    imgui.text("Spielstand des Hosts uebernehmen")
+    local st = savejoin.state
+    if st == "idle" or st == "failed" or st == "applied" then
+        if imgui.button("Spielstand des Hosts holen") then
+            savejoin.request(session)
+        end
+    elseif st == "requested" or st == "receiving" then
+        imgui.text(string.format("Empfange ... %d %%", math.floor(savejoin.progress() * 100)))
+        imgui.same_line()
+        if imgui.button("Abbrechen") then
+            savejoin.cancel()
+        end
+    elseif st == "ready" then
+        if imgui.button("Abbrechen") then
+            savejoin.cancel()
+        end
+    end
+    if savejoin.message ~= "" then
+        imgui.text(savejoin.message)
+    end
+    if st == "ready" then
+        imgui.text("Pause -> Spiel laden -> beliebiger Spielstand. Du landest beim Host.")
+    end
+end
+
 local function draw_debug_ui(status)
     local changed
     changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
@@ -445,6 +497,7 @@ re.on_draw_ui(function()
         draw_connection_ui(status)
         imgui.separator()
         draw_status_ui(status)
+        draw_join_ui(status)
         imgui.separator()
         draw_debug_ui(status)
 

@@ -2,6 +2,10 @@
 
 Neueste Version oben. Der Release-Workflow übernimmt den Abschnitt `## <Version>` (Version aus `Directory.Build.props`).
 
+## 1.1.1
+
+- **RE2: REFramework lässt sich wieder installieren.** REFramework liefert keine Pakete pro Spiel mehr (`RE2.zip`), sondern nur noch `REFramework.zip`. Der Manager nimmt jetzt dieses Paket und weicht bei Bedarf auf den alten Namen aus.
+
 ## 1.1.0
 
 - **Neuer Name: RE:Multiplayer.** Die exe heißt jetzt `RE-Multiplayer.exe`, das Repo `Kegiion/RE-Multiplayer`.

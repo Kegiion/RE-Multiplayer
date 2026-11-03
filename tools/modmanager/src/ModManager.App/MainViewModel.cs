@@ -271,8 +271,9 @@ public sealed class MainViewModel : ObservableObject
                 Status = $"{g.Name}: lade {fw!.Name} …";
                 var fwRelease = await github.GetLatestReleaseAsync(fw.Repo)
                                 ?? throw new GitHubException($"{fw.Name}: kein Release gefunden.");
-                var fwAsset = fwRelease.Assets.FirstOrDefault(a => a.Name.Equals(fw.Asset, StringComparison.OrdinalIgnoreCase))
-                              ?? throw new GitHubException($"{fw.Name}: {fw.Asset} fehlt im neuesten Release.");
+                var fwName = fw.PickAsset(fwRelease.Assets.Select(a => a.Name))
+                             ?? throw new GitHubException($"{fw.Name}: {fw.Asset} fehlt im neuesten Release.");
+                var fwAsset = fwRelease.Assets.First(a => a.Name == fwName);
                 frameworkZip = Path.Combine(AppInfo.DownloadDir, $"{fw.Name}-{fwAsset.Name}");
                 await github.DownloadAsync(fwAsset, frameworkZip, report);
                 ManagerLog.Info($"{fw.Name} {fwRelease.TagName} geladen");

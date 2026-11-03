@@ -112,8 +112,20 @@ public sealed class FrameworkRule
 
     public string Asset { get; set; } = "";
 
+    /// <summary>Weitere Asset-Namen, falls Asset fehlt (z. B. alter Name pro Spiel). Manager 1.1.0 ignoriert das Feld.</summary>
+    public List<string> AssetFallbacks { get; set; } = [];
+
     /// <summary>Diese Dateien werden aus dem ZIP in den Spielordner kopiert.</summary>
     public List<string> Files { get; set; } = [];
+
+    /// <summary>Erster vorhandener Name aus Asset und AssetFallbacks, sonst null.</summary>
+    public string? PickAsset(IEnumerable<string> available)
+    {
+        var names = available.ToList();
+        return new[] { Asset }.Concat(AssetFallbacks)
+            .Select(want => names.FirstOrDefault(n => n.Equals(want, StringComparison.OrdinalIgnoreCase)))
+            .FirstOrDefault(n => n != null);
+    }
 }
 
 /// <summary>Liste aller unterstuetzten Spiele (games.json).</summary>

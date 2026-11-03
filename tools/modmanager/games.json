@@ -77,7 +77,10 @@
       "framework": {
         "name": "REFramework",
         "repo": "praydog/REFramework-nightly",
-        "asset": "RE2.zip",
+        "asset": "REFramework.zip",
+        "assetFallbacks": [
+          "RE2.zip"
+        ],
         "files": [
           "dinput8.dll"
         ]

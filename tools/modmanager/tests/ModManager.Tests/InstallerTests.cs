@@ -213,7 +213,7 @@ public class InstallerTests
             ["reframework/autorun/re2r_coop.lua"] = TempDir.Text("--"),
             ["reframework/autorun/re2r_coop/ghost.lua"] = TempDir.Text("--"),
         });
-        var fw = tmp.Zip("RE2.zip", new Dictionary<string, byte[]>
+        var fw = tmp.Zip("REFramework.zip", new Dictionary<string, byte[]>
         {
             ["dinput8.dll"] = TempDir.Text("REFramework"),
             ["openvr_api.dll"] = TempDir.Text("vr"),

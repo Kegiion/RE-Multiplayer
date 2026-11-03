@@ -19,6 +19,17 @@ public class CatalogTests
     }
 
     [Fact]
+    public void FrameworkAssetFallsBackToOldName()
+    {
+        var fw = GameCatalog.LoadEmbedded().Games.Single(g => g.Id == "re2r").Framework!;
+        // Seit REFramework-Nightly 01436 nur noch der universelle Build
+        Assert.Equal("REFramework.zip", fw.PickAsset(["csharp-api.zip", "REFramework.zip", "VR.zip"]));
+        Assert.Equal("RE2.zip", fw.PickAsset(["RE2.zip", "RE3.zip"]));
+        Assert.Equal("REFramework.zip", fw.PickAsset(["RE2.zip", "refamework.zip", "REFramework.zip"]));
+        Assert.Null(fw.PickAsset(["VR.zip"]));
+    }
+
+    [Fact]
     public void RejectsUnknownSchemaAndBadPaths()
     {
         Assert.Throws<InvalidDataException>(() => GameCatalog.Parse("{\"schema\": 99, \"games\": []}"));

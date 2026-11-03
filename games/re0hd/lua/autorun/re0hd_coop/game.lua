@@ -26,6 +26,7 @@ local OFF_ROOM = 0x3834                -- sGameArea: aktueller Raum (aRoomXxNN)
 -- Partner-Tasten (DIK-Codes, Standardbelegung KC_partner* = Pfeiltasten).
 -- Sie wirken relativ zur Kamera: hoch = vom Betrachter weg.
 game.PARTNER_KEYS = { up = 0xC8, down = 0xD0, left = 0xCB, right = 0xCD }
+game.CHANGE_KEY = 0x2F -- V (KC_change, Standardbelegung): Figur wechseln
 
 game.supported = remultiplayer ~= nil and remultiplayer.exe_timestamp == EXE_TIMESTAMP
 
@@ -261,6 +262,13 @@ function game.camera_heading()
         return nil
     end
     return math.atan(tx - px, tz - pz)
+end
+
+-- Taste "Figur wechseln" druecken/loslassen
+function game.set_change_key(down)
+    if input and input.set_key then
+        input.set_key(game.CHANGE_KEY, down)
+    end
 end
 
 -- Partner-Taste druecken/loslassen (ueber den DirectInput-Hook der Runtime)

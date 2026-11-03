@@ -12,7 +12,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.6.0"
+local MOD_VERSION = "0.7.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -33,7 +33,9 @@ local devconsole = require("re0hd_coop.devconsole")
 local Puppet = require("re0hd_coop.puppet")
 local savesync = require("re0hd_coop.savesync")
 
-local SEND_INTERVAL = 0.05   -- 20 Positionsupdates pro Sekunde
+local SEND_INTERVAL = 1 / 30 -- 30 Positionsupdates pro Sekunde
+local SWITCH_RETRY = 3.0     -- s zwischen zwei automatischen Figurwechseln
+local SWITCH_PRESS = 0.15    -- s, so lange wird V gedrueckt
 local REMOTE_TIMEOUT = 1.0   -- s ohne Daten: Partner wieder der KI ueberlassen
 local SOLO_DELAY = 2.0       -- s Abstand beim Spur-Test allein
 
@@ -47,6 +49,7 @@ local config = {
     devconsole = false, -- Entwickler-Konsole fuer Claude
     puppet = true,      -- Mitspieler steuert den Partner
     join_slot = 20,     -- Platz (1..20) fuer den Spielstand des Hosts
+    auto_switch = true, -- als Mitspieler automatisch die andere Figur nehmen
 }
 
 local function load_config()
@@ -83,7 +86,7 @@ end)
 -- --- Geister-Koop: eigene Figur senden, Partner folgt dem Mitspieler -----
 
 local coop = {
-    puppet = Puppet.new(game, { delay = 0.2 }),
+    puppet = Puppet.new(game, { delay = 0.2, adaptive = true }),
     solo = Puppet.new(game, { delay = SOLO_DELAY }),
     solo_active = false,  -- Spur-Test allein (nicht gespeichert)
     seq = 0,
@@ -95,7 +98,30 @@ local coop = {
     same_character = false,
     local_area = nil,     -- eigener Raum (z. B. "Tr04") oder nil
     same_room = nil,      -- true/false, nil = unbekannt
+    switch_until = nil,   -- V wird gerade gedrueckt (bis zu diesem Zeitpunkt)
+    last_switch = -100,
+    switches = 0,
 }
+
+-- Steuern beide dieselbe Figur (typisch direkt nach dem Join auf den Spielstand
+-- des Hosts), wechselt der Mitspieler (nicht der Host) automatisch mit V.
+local function auto_switch_frame(now)
+    if coop.switch_until then
+        if now >= coop.switch_until then
+            game.set_change_key(false)
+            coop.switch_until = nil
+        end
+        return
+    end
+    if config.auto_switch and coop.same_character and not session.is_host
+        and now - coop.last_switch >= SWITCH_RETRY then
+        coop.last_switch = now
+        coop.switch_until = now + SWITCH_PRESS
+        coop.switches = coop.switches + 1
+        game.set_change_key(true)
+        session:log("Ihr steuert dieselbe Figur - wechsle automatisch (V)")
+    end
+end
 
 session:on("PLAYER_STATE", function(s, peer, msg)
     -- Veraltete (ueberholte) Pakete verwerfen; Ueberlauf der Nummer beachten
@@ -143,6 +169,8 @@ local function coop_frame(now)
     if remote_fresh then
         coop.same_room = game.same_room(area, coop.remote.area)
     end
+
+    auto_switch_frame(now)
 
     if coop.solo_active then
         coop.puppet:release()
@@ -387,15 +415,25 @@ local function draw_coop_ui()
         imgui.text("Ihr seid in verschiedenen Raeumen - dein Partner folgt solange der Spiel-KI.")
     end
     if coop.same_character then
-        imgui.text_colored("Ihr steuert beide dieselbe Figur! Einer muss mit V die Figur wechseln.", 0xFF4040FF)
+        if config.auto_switch and not session.is_host then
+            imgui.text_colored("Ihr steuert beide dieselbe Figur - die Mod wechselt automatisch (V).", 0xFF40E0FF)
+        else
+            imgui.text_colored("Ihr steuert beide dieselbe Figur! Einer muss mit V die Figur wechseln.", 0xFF4040FF)
+        end
     end
 
     local changed
     changed, config.puppet = imgui.checkbox("Mitspieler steuert meinen Partner", config.puppet)
     if changed then save_config() end
+    changed, config.auto_switch = imgui.checkbox("Als Mitspieler automatisch die andere Figur nehmen", config.auto_switch)
+    if changed then save_config() end
     if config.puppet and coop.remote then
+        local net = coop.puppet.net
         imgui.text(string.format("  Partner: %s, Abstand %s", coop.puppet.mode,
             coop.puppet.dist and string.format("%.0f", coop.puppet.dist) or "-"))
+        imgui.text(string.format("  Netz: Paket alle %s ms, Schwankung %.0f ms, Puffer %.0f ms",
+            net.interval and string.format("%.0f", net.interval * 1000) or "-", net.jitter * 1000,
+            coop.puppet:delay() * 1000))
     end
 
     changed, coop.solo_active = imgui.checkbox("Spur-Test allein (Partner laeuft dir mit 2 s Abstand nach)", coop.solo_active)

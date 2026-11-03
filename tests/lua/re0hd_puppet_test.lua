@@ -85,4 +85,33 @@ do
     assert(q:update(1) == "warten")
 end
 
+-- Anpassbarer Puffer und Ueberbruecken von Luecken
+do
+    local partner = { x = 0, y = 0, z = 0 }
+    local game = {
+        camera_heading = function() return 0 end,
+        set_partner_key = function() end,
+        partner_object = function() return 1 end,
+        read_state = function() return { x = partner.x, y = 0, z = partner.z } end,
+        place_partner = function(s) partner.x, partner.z = s.x, s.z end,
+    }
+    local p = Puppet.new(game, { delay = 0.2, adaptive = true })
+    -- Pakete alle 33 ms mit +-15 ms Schwankung, Ziel laeuft mit 200/s in z
+    local t, z = 0, 0
+    for i = 1, 120 do
+        local dt = 1 / 30 + ((i % 2 == 0) and 0.015 or -0.015)
+        t = t + dt
+        z = z + 200 * dt
+        p:push({ x = 0, y = 0, z = z, qw = 1 }, t)
+    end
+    local d = p:delay()
+    assert(d > 0.12 and d < 0.3, string.format("Puffer unplausibel: %.3f", d))
+    assert(p.net.jitter > 0.005, "Schwankung nicht gemessen")
+    -- Letztes Paket bei t: kurz danach laeuft das Ziel weiter, spaeter steht es
+    local s1 = p:_sample(t + 0.1)
+    assert(s1.vz > 150 and s1.z > z + 10, "Luecke nicht ueberbrueckt")
+    local s2 = p:_sample(t + 0.5)
+    assert(s2.vz == 0 and math.abs(s2.z - z) < 1e-6, "Ziel laeuft bei langer Luecke weiter")
+end
+
 print("re0hd_puppet_test: alles ok")

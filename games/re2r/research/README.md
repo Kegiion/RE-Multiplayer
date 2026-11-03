@@ -119,6 +119,7 @@ Am 3. November 2026 untersucht:
 | `SaveService.exportToMemory`/`importFromMemory` | Statisch, mit `ExportToMemoryParam` (`TargetSlotTbl`, `MemoryArray`) bzw. `ImportFromMemoryParam`. Ob verschlüsselt, ist unbekannt | ❓ |
 | Ladeablauf | `requestLoadGameData(SaveMode, Index)` → ca. 1 s später `SaveDataManager.loadGameSaveData()` (Datei eingelesen, Liste mit 32 Teilen, kein Spieler) → sofort `PlayerManager.loadGameSaveData` usw. Danach ist `GameSaveDataList` **leer** | ✅ |
 | **Einspielen beim Laden** | Pre-Hook auf `SaveDataManager.loadGameSaveData`: Die 32 Listeneinträge durch die eines vorher aufgenommenen Ladevorgangs ersetzen (es sind jedes Mal neue Objekte). Ergebnis: Die Daten wirken (Spieler steht an der Startposition des anderen Stands, `LoadLocation` = dessen Ort), **aber das Laden der Umgebung hängt** (`IsFinishedLoadScene` bleibt false, MainState 4), wenn der Ort des eingespielten Stands nicht zum geladenen Platz passt (Straße eingespielt beim Laden der Eingangshalle). Ein `requestLoadGameData` von der Konsole holt das Spiel nicht heraus, Neustart nötig | ✅ 3. November 2026 (teilweise) |
+| Einspielen am selben Ort | Auch Platz 1 → Platz 2 (beide Eingangshalle) hängt. `LoadGameDataFlow.StateValue = LOAD_LEVEL_FOLDER_WAIT`. Die gemerkten Objekte sind vollständig (z. B. `GimmickSetManager` 14.260 Objekte), wurden aber vermutlich beim ersten Laden **verändert** (Laufzeit-Zustand). **Folgerung: beim Einlesen eine echte Kopie (Serialisierung) anlegen**, nicht die Objekte selbst merken | ✅ 3. November 2026 |
 
 ## Werkzeuge zum Selbst-Ansehen
 

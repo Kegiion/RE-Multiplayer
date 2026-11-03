@@ -13,7 +13,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.9.3"
+local MOD_VERSION = "0.9.4"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -233,6 +233,15 @@ local function coop_frame(now)
     end
 
     auto_switch_frame(now)
+
+    -- Menue offen (Karte, Inventar, Pause): keine Partner-Tasten, sonst bedienen sie das Menue
+    coop.controls_free = game.controls_free(now)
+    if not coop.controls_free then
+        coop.puppet:release()
+        coop.solo:release()
+        coop.door:release()
+        return
+    end
 
     if coop.solo_active then
         if coop.away then

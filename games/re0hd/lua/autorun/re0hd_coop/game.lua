@@ -382,6 +382,32 @@ function game.set_change_key(down)
     end
 end
 
+-- Darf die Mod gerade Partner-Tasten druecken? Nein, wenn ein Menue offen ist, sonst
+-- landen die Pfeiltasten dort (Test zu zweit am 3. November 2026: Karte scrollte).
+-- sRoomControl + CC = Raum-Phase (bestaetigt am 3. November 2026): 1 = normales Spiel,
+-- 5 = Inventar, B = Karte. Pause: Die Spielzeit steht still (bestaetigt), deshalb
+-- zusaetzlich pruefen, ob sie in den letzten 0,25 s weitergelaufen ist.
+local ROOMCONTROL_INSTANCE = 0x00DCBEB4 -- statischer Zeiger auf sRoomControl
+local OFF_ROOM_PHASE = 0xCC
+local ROOM_PHASE_MAIN = 1
+local PLAYTIME_STALL = 0.25
+local playclock = { value = nil, changed = 0 }
+function game.controls_free(now)
+    if not game.supported then
+        return true
+    end
+    local rc = mem.read_u32(ROOMCONTROL_INSTANCE)
+    local phase = rc and rc ~= 0 and mem.read_u32(rc + OFF_ROOM_PHASE)
+    if phase and phase ~= ROOM_PHASE_MAIN then
+        return false
+    end
+    local pt = game.playtime()
+    if pt ~= playclock.value then
+        playclock.value, playclock.changed = pt, now
+    end
+    return now - playclock.changed < PLAYTIME_STALL
+end
+
 -- Partner-Taste druecken/loslassen (ueber den DirectInput-Hook der Runtime)
 function game.set_partner_key(name, down)
     if input and input.set_key then

@@ -90,6 +90,8 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 - Befehl 5, Schritt 1: Datei lesen. Schritt 2: prüfen. Schritt 3 nach Parameter: Platz 0..19 übernehmen (`0x6127D0`), `0x15`/`0x18` alle übernehmen, `0x16` nur alle Plätze ins zweite Abbild kopieren (so liest die Mod die Datei ein, ohne etwas zu übernehmen).
 - Spielstart: `aInGameStart` (`0x405140`) verzweigt nach `sGameInfo+74`: 0 = neues Spiel (`0x4057A0`), 1 = Spielstand laden (`0x405460`, übernimmt `sSaveManager+24`), 2 und 3 unbekannt.
 
+**Menüs (bestätigt am 3. November 2026):** `sRoomControl` (Zeiger bei `0x00DCBEB4`) `+CC` = Raum-Phase: 1 normales Spiel, 5 Inventar, `0xB` Karte. Die Pause ändert die Phase nicht, aber die Spielzeit (`sGameInfo+3C`) bleibt stehen. Die Partner-Tasten (Pfeiltasten) bedienen offene Menüs, deshalb dürfen sie dort nicht gedrückt werden.
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)

@@ -59,6 +59,8 @@ local game = {
     write_save_slot = function() end,
     describe_save = function() return "" end,
 }
+local menu_open = false
+function game.controls_free() return not menu_open end
 function game.hide_partner(x, y, z) return game.place_partner({ x = x, y = y - 3000, z = z }) end
 package.loaded["re0hd_coop.game"] = game
 
@@ -107,6 +109,14 @@ local function dist(x, z) return math.sqrt((partner.x - x) ^ 2 + (partner.z - z)
 -- 1. Gleicher Raum: Partner geht zu B
 run(3)
 assert(partner.y == 0 and dist(500, 0) < 40, string.format("Partner nicht bei B (%.0f, %.0f)", partner.x, partner.z))
+
+-- 1b. Menue offen: B laeuft weg, aber keine Partner-Taste darf gedrueckt sein
+menu_open = true
+run(1, function() bs.z = bs.z + 4 end)
+assert(not (keys.up or keys.down or keys.left or keys.right), "Partner-Tasten bei offenem Menue gedrueckt")
+menu_open = false
+run(3, function() bs.z = math.max(0, bs.z - 4) end)
+assert(dist(500, 0) < 60, string.format("Partner folgt nach dem Menue nicht (%.0f, %.0f)", partner.x, partner.z))
 
 -- 2. B geht zur Tuer (800, 0) und dann in Raum Tr03
 run(2, function() bs.x = math.min(800, bs.x + 4) end)

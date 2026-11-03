@@ -2,6 +2,10 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.4
+
+- **Menüs bleiben ruhig:** Läuft dein Mitspieler herum, während du die Karte, das Inventar oder die Pause offen hast, scrollt dein Menü nicht mehr mit. Die Mod lässt die Partner-Tasten los, solange ein Menü offen ist.
+
 ## 0.9.3
 
 - **Beitreten lädt jetzt wirklich den Spielstand des Hosts:** Das Spiel startete bisher trotzdem ein neues Spiel. Die Mod stellt jetzt beim Start auf „Spielstand laden“ um (im Spiel bestätigt).

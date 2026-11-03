@@ -65,6 +65,7 @@ local game = {
     camera_heading = function() return 0 end, set_partner_key = function() end, set_change_key = function() end,
     same_room = function() return nil end,
 }
+game.controls_free = game.controls_free or function() return true end
 package.loaded["re0hd_coop.game"] = game
 
 coopnet = net_a

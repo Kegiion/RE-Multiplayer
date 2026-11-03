@@ -212,6 +212,11 @@ local OFF_SAVE_COMMAND = 0x4
 local OFF_SAVE_PARAM = 0x10
 local SAVE_CMD_LOAD = 5
 local INGAMESTART_DTI = 0x00DCBFE4 -- DTI von aInGameStart in dieser exe-Version
+-- cSaveManager::Platz uebernehmen (thiscall, Argument Platz 0..19, ret 4). Im Disassembler
+-- geprueft am 3. November 2026: kopiert den Platz aus dem Datei-Abbild (+23A7C8) ins zweite
+-- Abbild (+C8) und verteilt ihn an sGameInfo, sFlagManager, sPlayer usw. Das Titelmenue
+-- ruft das beim Laden vor dem Start auf (Abbild-Vergleich: sGameInfo+3C Spielzeit gesetzt).
+local APPLY_SLOT_FN = 0x006127D0
 
 local function area_main_class()
     if not game.supported or not mt then
@@ -243,6 +248,22 @@ function game.load_save_slot(slot)
     mem.write_u32(csm + OFF_SAVE_PARAM, slot)
     mem.write_u32(csm + OFF_SAVE_COMMAND, SAVE_CMD_LOAD)
     return true
+end
+
+-- Platz an das Spiel uebergeben (Spielzeit, Flags, Inventar ...), wie das Menue beim Laden.
+-- Braucht Runtime 0.6.0 (mem.call_thiscall).
+function game.apply_save_slot(slot)
+    local _, csm = save_manager()
+    if not csm or not mem.call_thiscall or slot < 0 or slot >= game.SAVE_SLOTS then
+        return false
+    end
+    local ok = mem.call_thiscall(APPLY_SLOT_FN, csm, slot)
+    return ok
+end
+
+-- Spielzeit eines Platzes (Bilder) aus seinen Daten
+function game.save_playtime(data)
+    return string.unpack("<f", data, 0x1C + 1)
 end
 
 -- Diesen Platz als "zuletzt geladen" eintragen (damit startet das Spiel)

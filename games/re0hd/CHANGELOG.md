@@ -2,6 +2,12 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.2
+
+- **Beitreten repariert:** Dein Freund landete nach dem automatischen Laden in einem neuen Spiel. Jetzt übernimmt die Mod den Spielstand genau wie das Spielmenü (Spielzeit, Story-Fortschritt, Inventar) und prüft das, bevor sie startet.
+- **Nicht mehr zu früh:** Der Host schickt seinen Spielstand erst, wenn er wirklich im Spiel steht, nicht schon beim Auswählen des Platzes.
+- Benötigt Runtime 0.6.0 (kommt mit dem Update).
+
 ## 0.9.1
 
 - **Schneller beitreten:** Wartet dein Freund schon, schickt die Mod deinen Spielstand sofort, wenn du im Spiel ankommst. Vorher dauerte es bis zu 3 Sekunden.

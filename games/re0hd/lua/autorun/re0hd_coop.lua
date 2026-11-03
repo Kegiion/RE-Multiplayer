@@ -13,7 +13,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.9.1"
+local MOD_VERSION = "0.9.2"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -295,6 +295,11 @@ local function host_save()
         -- Im Titelbildschirm waere es der Stand der letzten Sitzung: erst nach dem Laden schicken
         return nil, "Der Host ist noch im Titelbildschirm."
     end
+    if not game.get_local_state() then
+        -- Ladebildschirm: Der Platz ist erst uebernommen, wenn die Figur im Spiel steht
+        -- (beim Test am 3. November 2026 kam der Stand sonst schon beim Auswaehlen raus)
+        return nil, "Der Host laedt gerade."
+    end
     local slot = game.current_save_slot()
     local data = slot and game.read_save_slot(slot)
     if not data then
@@ -414,9 +419,13 @@ local function join_cancel()
     join.state, join.data, join.receiver, join.load_phase, join.auto = "idle", nil, nil, nil, false
 end
 
--- Auto-Laden im Titelbildschirm (im Spiel bestaetigt am 3. November 2026):
--- Platz laden (Befehl 5), danach den empfangenen Stand erneut hineinschreiben
--- (das Laden liest die Datei neu ein) und das Spiel starten.
+-- Auto-Laden im Titelbildschirm:
+-- 1. Platz laden (Befehl 5, liest die Datei neu ein)
+-- 2. Den empfangenen Stand erneut hineinschreiben (join_frame macht das jeden Frame)
+-- 3. Platz an das Spiel uebergeben (0x6127D0, wie das Menue) und pruefen, ob die
+--    Spielzeit angekommen ist. Ohne diesen Schritt startete beim Test am
+--    3. November 2026 ein neues Spiel.
+-- 4. Platz als aktuell eintragen und das Spiel starten.
 local function autoload_frame(now, slot)
     if not config.auto_load or not game.is_title() then
         join.load_phase = nil
@@ -437,9 +446,21 @@ local function autoload_frame(now, slot)
     elseif phase == "warten" then
         -- join_frame schreibt den Platz jeden Frame neu, bis er stimmt
         if game.save_slot_matches(slot, join.data) then
+            if not game.apply_save_slot or not game.apply_save_slot(slot) then
+                join_fail("Spielstand konnte nicht uebernommen werden - Runtime zu alt (ab 0.6.0)?")
+                return
+            end
+            local want, have = game.save_playtime(join.data), game.playtime()
+            if not have or math.abs(have - want) > 1 then
+                session:log("Spielstand nicht uebernommen (Spielzeit %s statt %.0f) - versuche es nochmal",
+                    tostring(have), want)
+                join.load_phase = nil
+                return
+            end
             game.set_current_save_slot(slot)
             if game.start_game() then
                 join.load_phase, join.load_since = "start", now
+                session:log("Spielstand des Hosts uebernommen, starte das Spiel")
             end
         end
     elseif phase == "start" and now - join.load_since > 10 then

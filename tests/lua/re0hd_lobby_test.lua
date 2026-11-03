@@ -59,6 +59,14 @@ local game = {
     write_save_slot = function(slot, data) fake.slots[slot] = data; return true end,
     save_slot_matches = function(slot, data) return fake.slots[slot] == data end,
     set_current_save_slot = function(slot) fake.current = slot; return true end,
+    save_playtime = function(data) return string.unpack("<f", data, 0x1C + 1) end,
+    playtime = function() return fake.playtime end,
+    apply_save_slot = function(slot)
+        -- wie 0x6127D0: Platz an das Spiel uebergeben (hier: Spielzeit uebernehmen)
+        fake.applied = slot
+        fake.playtime = string.unpack("<f", fake.slots[slot], 0x1C + 1)
+        return true
+    end,
     current_save_slot = function() return fake.current end,
     start_game = function()
         if not fake.title then return false end
@@ -141,6 +149,7 @@ assert(requests >= 2, "Mod hat nicht nachgefragt, als der Host noch im Titel war
 assert(fake.loaded == 19, "Platz 20 nicht geladen")
 assert(fake.slots[19] == host_save, "Spielstand des Hosts liegt nicht in Platz 20")
 assert(fake.current == 19, "Platz 20 nicht als aktueller Platz eingetragen")
+assert(fake.applied == 19, "Platz 20 nicht an das Spiel uebergeben (0x6127D0)")
 assert(fake.started, "Spiel nicht gestartet")
 
 -- 3. Im Spiel: Status-Anzeige statt Lobby

@@ -17,6 +17,11 @@ bool safe_read(void* dst, uintptr_t src, size_t n);
 // schreibgeschuetztem Speicher.
 bool safe_write(uintptr_t dst, const void* src, size_t n);
 
+// Ruft eine Funktion des Spiels im __thiscall-Format auf (this in ecx, bis zu
+// 4 Argumente auf dem Stack). Zugriffsfehler werden abgefangen (false).
+// Nur fuer Funktionen verwenden, deren Aufbau im Disassembler geprueft ist!
+bool safe_call_thiscall(uintptr_t fn, uintptr_t self, const uint32_t* args, int count, uint32_t* result);
+
 template <typename T>
 bool safe_get(uintptr_t addr, T& out) {
     return safe_read(&out, addr, sizeof(T));

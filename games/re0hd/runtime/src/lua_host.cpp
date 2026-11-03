@@ -490,6 +490,28 @@ int l_mem_readable(lua_State* L) {
     return 1;
 }
 
+// mem.call_thiscall(fn, this, ...) -> ok, eax
+// Ruft eine Funktion von re0hd.exe auf (nur Adressen im Code der exe). Bis zu 4 Argumente.
+int l_mem_call_thiscall(lua_State* L) {
+    const uintptr_t fn = check_addr(L, 1);
+    const uintptr_t self = check_addr(L, 2);
+    const int count = lua_gettop(L) - 2;
+    luaL_argcheck(L, count >= 0 && count <= 4, 3, "hoechstens 4 Argumente");
+    uint32_t args[4]{};
+    for (int i = 0; i < count; ++i) {
+        args[i] = static_cast<uint32_t>(luaL_checkinteger(L, 3 + i));
+    }
+    const auto& exe = exe_info();
+    luaL_argcheck(L, fn >= exe.base + 0x1000 && fn < exe.base + exe.size, 1, "Adresse liegt nicht im Code von re0hd.exe");
+    uint32_t result = 0;
+    const bool ok = safe_call_thiscall(fn, self, args, count, &result);
+    log_fmt(ok ? LogLevel::Info : LogLevel::Error, "mem.call_thiscall(0x%08X, this=0x%08X, %d Arg.): %s",
+            static_cast<unsigned>(fn), static_cast<unsigned>(self), count, ok ? "ok" : "ZUGRIFFSFEHLER");
+    lua_pushboolean(L, ok);
+    lua_pushinteger(L, result);
+    return 2;
+}
+
 int l_mem_base(lua_State* L) {
     lua_pushinteger(L, static_cast<lua_Integer>(exe_info().base));
     return 1;
@@ -739,6 +761,7 @@ void register_api(lua_State* L) {
         {"write_f32", l_mem_write<float>},
         {"readable", l_mem_readable},
         {"base", l_mem_base},
+        {"call_thiscall", l_mem_call_thiscall},
         {"module", l_mem_module},
         {"scan", l_mem_scan},
         {nullptr, nullptr},

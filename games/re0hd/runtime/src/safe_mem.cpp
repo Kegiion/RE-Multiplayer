@@ -56,4 +56,36 @@ bool safe_write(uintptr_t dst, const void* src, size_t n) {
 #endif
 }
 
+#if defined(_M_IX86) && defined(_MSC_VER)
+namespace {
+using Fn0 = uint32_t(__thiscall*)(uintptr_t);
+using Fn1 = uint32_t(__thiscall*)(uintptr_t, uint32_t);
+using Fn2 = uint32_t(__thiscall*)(uintptr_t, uint32_t, uint32_t);
+using Fn3 = uint32_t(__thiscall*)(uintptr_t, uint32_t, uint32_t, uint32_t);
+using Fn4 = uint32_t(__thiscall*)(uintptr_t, uint32_t, uint32_t, uint32_t, uint32_t);
+}  // namespace
+
+bool safe_call_thiscall(uintptr_t fn, uintptr_t self, const uint32_t* a, int count, uint32_t* result) {
+    __try {
+        uint32_t r = 0;
+        switch (count) {
+            case 0: r = reinterpret_cast<Fn0>(fn)(self); break;
+            case 1: r = reinterpret_cast<Fn1>(fn)(self, a[0]); break;
+            case 2: r = reinterpret_cast<Fn2>(fn)(self, a[0], a[1]); break;
+            case 3: r = reinterpret_cast<Fn3>(fn)(self, a[0], a[1], a[2]); break;
+            case 4: r = reinterpret_cast<Fn4>(fn)(self, a[0], a[1], a[2], a[3]); break;
+            default: return false;
+        }
+        *result = r;
+        return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+#else
+bool safe_call_thiscall(uintptr_t, uintptr_t, const uint32_t*, int, uint32_t*) {
+    return false;  // nur im 32-Bit-Build fuer RE0
+}
+#endif
+
 }  // namespace remultiplayer

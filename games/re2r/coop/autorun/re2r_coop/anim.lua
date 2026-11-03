@@ -38,7 +38,8 @@
 --     nur ein Bild lang an. Bei schnellen Schuessen springt Ebene 4 je Schuss
 --     fuer genau ein Bild auf 2/1120 und zurueck auf 2/1100. Mit 20 Paketen
 --     pro Sekunde sieht die Gegenseite das fast nie, deshalb zaehlt anim.track
---     jeden Start einer Animation auf den Aktions-Ebenen (restartN).
+--     jeden Start einer Animation auf den Aktions-Ebenen (restartN). Mit dem
+--     Testbot bestaetigt: 7 schnelle Schuesse -> 7 Schuesse bei der Puppe.
 -- UNBESTAETIGT: Claire, andere Waffen, Ebene 5, Zwischensequenzen.
 
 local game = require("re2r_coop.game")

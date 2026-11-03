@@ -1,10 +1,12 @@
 #include "lua_host.hpp"
 
+// winsock2 muss vor windows.h und iphlpapi.h stehen (sonst fehlen IP_ADAPTER_ADDRESSES & Co.)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #include <windows.h>
 
 #include <iphlpapi.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 
 #include <lua.hpp>
 

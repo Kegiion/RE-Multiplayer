@@ -32,6 +32,9 @@ WNDPROC g_orig_wndproc = nullptr;
 bool g_context = false;
 bool g_dx9_ready = false;
 bool g_menu_open = false;
+bool g_cursor_request = false;  // Lua will diesen Frame den Mauszeiger (z. B. Titelbildschirm)
+bool g_block_keyboard = false;  // Stand aus dem letzten Frame (Menue offen oder Texteingabe aktiv)
+bool g_block_mouse = false;     // Stand aus dem letzten Frame (Menue offen oder Maus ueber eigenem Fenster)
 float g_scale = 0.0f;           // 0 = noch nicht berechnet
 bool g_rescale_pending = false;  // nach einem Device-Reset neu berechnen
 ULONGLONG g_start_tick = 0;
@@ -67,7 +70,9 @@ LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     }
     // Solange das Menue offen ist, bekommt das Spiel keine Maus/Tastatur
     // ueber Fenster-Nachrichten (Alt-Tasten bleiben erlaubt).
-    if (g_menu_open && is_input_message(msg) && msg != WM_SYSKEYDOWN && msg != WM_SYSKEYUP) {
+    const bool mouse_msg = msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST;
+    const bool key_msg = msg == WM_KEYDOWN || msg == WM_KEYUP || msg == WM_CHAR;
+    if ((mouse_msg && g_block_mouse) || (key_msg && g_block_keyboard)) {
         return 0;
     }
     return CallWindowProcW(g_orig_wndproc, hwnd, msg, wparam, lparam);
@@ -185,7 +190,15 @@ void handle_toggle_key() {
     if ((insert || f8) && GetForegroundWindow() == g_hwnd) {
         g_menu_open = !g_menu_open;
     }
-    input::set_blocked(g_menu_open);  // Spiel sieht Tastatur/Maus nicht, solange das Menue offen ist
+}
+
+// Was das Spiel nicht sehen soll: alles bei offenem Menue, sonst die Tastatur
+// waehrend einer Texteingabe und die Maus ueber unseren Fenstern (Titelbildschirm).
+void update_input_block() {
+    const ImGuiIO& io = ImGui::GetIO();
+    g_block_keyboard = g_menu_open || io.WantTextInput;
+    g_block_mouse = g_menu_open || (g_cursor_request && io.WantCaptureMouse);
+    input::set_blocked(g_block_keyboard, g_block_mouse);
 }
 
 void draw_banner() {
@@ -282,16 +295,18 @@ void on_present(IDirect3DDevice9* device) {
         return;
     }
 
-    ImGui::GetIO().MouseDrawCursor = g_menu_open;
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    g_cursor_request = false;  // Lua fordert ihn bei Bedarf jeden Frame neu an
     lua_host::run_frame(true);
     draw_banner();
     if (g_menu_open) {
         draw_menu();
     }
+    ImGui::GetIO().MouseDrawCursor = g_menu_open || g_cursor_request;
+    update_input_block();
 
     ImGui::Render();
     if (SUCCEEDED(device->BeginScene())) {
@@ -299,6 +314,18 @@ void on_present(IDirect3DDevice9* device) {
         device->EndScene();
     }
     busy = false;
+}
+
+void request_cursor() {
+    g_cursor_request = true;
+}
+
+bool menu_open() {
+    return g_menu_open;
+}
+
+float scale() {
+    return g_scale > 0.0f ? g_scale : 1.0f;
 }
 
 void on_before_reset() {

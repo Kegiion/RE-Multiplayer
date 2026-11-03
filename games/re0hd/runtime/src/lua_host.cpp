@@ -2,6 +2,10 @@
 
 #include <windows.h>
 
+#include <iphlpapi.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #include <lua.hpp>
 
 #include <imgui.h>
@@ -13,11 +17,13 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "coop/net/lua_bindings.hpp"
 #include "input_hook.hpp"
 #include "log.hpp"
 #include "mt_explorer.hpp"
+#include "overlay.hpp"
 #include "runtime.hpp"
 #include "safe_mem.hpp"
 
@@ -171,9 +177,12 @@ int l_imgui_text_colored(lua_State* L) {
     return 0;
 }
 
+// imgui.button(label [, breite, hoehe]) -> geklickt
 int l_imgui_button(lua_State* L) {
     const char* label = luaL_checkstring(L, 1);
-    lua_pushboolean(L, g_imgui_active && ImGui::Button(label));
+    const auto w = static_cast<float>(luaL_optnumber(L, 2, 0));
+    const auto h = static_cast<float>(luaL_optnumber(L, 3, 0));
+    lua_pushboolean(L, g_imgui_active && ImGui::Button(label, ImVec2(w, h)));
     return 1;
 }
 
@@ -287,6 +296,68 @@ int l_imgui_end_child(lua_State*) {
         ImGui::EndChild();
     }
     return 0;
+}
+
+// imgui.set_next_window_pos(x, y [, pivot_x, pivot_y]) - in Pixeln, Pivot 0..1 (1,1 = rechte untere Ecke)
+int l_imgui_set_next_window_pos(lua_State* L) {
+    const auto x = static_cast<float>(luaL_checknumber(L, 1));
+    const auto y = static_cast<float>(luaL_checknumber(L, 2));
+    const auto px = static_cast<float>(luaL_optnumber(L, 3, 0));
+    const auto py = static_cast<float>(luaL_optnumber(L, 4, 0));
+    if (g_imgui_active) {
+        ImGui::SetNextWindowPos(ImVec2(x, y), ImGuiCond_Always, ImVec2(px, py));
+    }
+    return 0;
+}
+
+// imgui.set_next_window_size(breite, hoehe) - 0 = automatisch
+int l_imgui_set_next_window_size(lua_State* L) {
+    const auto w = static_cast<float>(luaL_checknumber(L, 1));
+    const auto h = static_cast<float>(luaL_checknumber(L, 2));
+    if (g_imgui_active) {
+        ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiCond_Always);
+    }
+    return 0;
+}
+
+int l_imgui_set_next_window_bg_alpha(lua_State* L) {
+    const auto a = static_cast<float>(luaL_checknumber(L, 1));
+    if (g_imgui_active) {
+        ImGui::SetNextWindowBgAlpha(a);
+    }
+    return 0;
+}
+
+// imgui.push_font_scale(faktor) / imgui.pop_font_scale() - groessere Schrift
+int l_imgui_push_font_scale(lua_State* L) {
+    const auto f = static_cast<float>(luaL_checknumber(L, 1));
+    if (g_imgui_active) {
+        ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * f);
+    }
+    return 0;
+}
+
+int l_imgui_pop_font_scale(lua_State*) {
+    if (g_imgui_active) {
+        ImGui::PopFont();
+    }
+    return 0;
+}
+
+int l_imgui_text_wrapped(lua_State* L) {
+    const char* text = luaL_tolstring(L, 1, nullptr);
+    if (g_imgui_active) {
+        ImGui::TextWrapped("%s", text);
+    }
+    return 0;
+}
+
+// imgui.display_size() -> breite, hoehe des Bildes in Pixeln
+int l_imgui_display_size(lua_State* L) {
+    const ImVec2 s = ImGui::GetCurrentContext() != nullptr ? ImGui::GetIO().DisplaySize : ImVec2(0, 0);
+    lua_pushnumber(L, s.x);
+    lua_pushnumber(L, s.y);
+    return 2;
 }
 
 int l_imgui_set_clipboard(lua_State* L) {
@@ -511,6 +582,60 @@ int l_remultiplayer_reload(lua_State*) {
     return 0;
 }
 
+// remultiplayer.show_cursor() - Mauszeiger in diesem Frame zeigen (jeden Frame aufrufen)
+int l_remultiplayer_show_cursor(lua_State*) {
+    overlay::request_cursor();
+    return 0;
+}
+
+int l_remultiplayer_menu_open(lua_State* L) {
+    lua_pushboolean(L, overlay::menu_open());
+    return 1;
+}
+
+int l_remultiplayer_ui_scale(lua_State* L) {
+    lua_pushnumber(L, overlay::scale());
+    return 1;
+}
+
+// remultiplayer.local_ips() -> { "192.168.1.20", ... } - IPv4-Adressen der aktiven Netzwerkadapter
+int l_remultiplayer_local_ips(lua_State* L) {
+    std::vector<std::string> ips;
+    {
+        ULONG size = 16 * 1024;
+        std::vector<unsigned char> buf(size);
+        auto* list = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buf.data());
+        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+        ULONG r = GetAdaptersAddresses(AF_INET, flags, nullptr, list, &size);
+        if (r == ERROR_BUFFER_OVERFLOW) {
+            buf.resize(size);
+            list = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buf.data());
+            r = GetAdaptersAddresses(AF_INET, flags, nullptr, list, &size);
+        }
+        if (r == NO_ERROR) {
+            for (auto* a = list; a != nullptr; a = a->Next) {
+                if (a->OperStatus != IfOperStatusUp || a->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                    continue;
+                }
+                for (auto* u = a->FirstUnicastAddress; u != nullptr; u = u->Next) {
+                    const auto* sin = reinterpret_cast<const sockaddr_in*>(u->Address.lpSockaddr);
+                    char text[INET_ADDRSTRLEN]{};
+                    if (InetNtopA(AF_INET, &sin->sin_addr, text, sizeof(text)) != nullptr &&
+                        std::strncmp(text, "169.254.", 8) != 0) {
+                        ips.emplace_back(text);
+                    }
+                }
+            }
+        }
+    }
+    lua_createtable(L, static_cast<int>(ips.size()), 0);
+    for (size_t i = 0; i < ips.size(); ++i) {
+        lua_pushstring(L, ips[i].c_str());
+        lua_rawseti(L, -2, static_cast<lua_Integer>(i + 1));
+    }
+    return 1;
+}
+
 // ---- Aufbau ---------------------------------------------------------------
 
 void set_funcs(lua_State* L, const char* global, const luaL_Reg* funcs) {
@@ -564,11 +689,33 @@ void register_api(lua_State* L) {
         {"begin_window", l_imgui_begin_window},
         {"end_window", l_imgui_end_window},
         {"set_clipboard", l_imgui_set_clipboard},
+        {"set_next_window_pos", l_imgui_set_next_window_pos},
+        {"set_next_window_size", l_imgui_set_next_window_size},
+        {"set_next_window_bg_alpha", l_imgui_set_next_window_bg_alpha},
+        {"push_font_scale", l_imgui_push_font_scale},
+        {"pop_font_scale", l_imgui_pop_font_scale},
+        {"text_wrapped", l_imgui_text_wrapped},
+        {"display_size", l_imgui_display_size},
         {"begin_child", l_imgui_begin_child},
         {"end_child", l_imgui_end_child},
         {nullptr, nullptr},
     };
     set_funcs(L, "imgui", imgui_funcs);
+    // Fensteroptionen fuer imgui.begin_window(name, open, flags)
+    lua_getglobal(L, "imgui");
+    lua_newtable(L);
+    set_int_field(L, "no_title", ImGuiWindowFlags_NoTitleBar);
+    set_int_field(L, "no_resize", ImGuiWindowFlags_NoResize);
+    set_int_field(L, "no_move", ImGuiWindowFlags_NoMove);
+    set_int_field(L, "no_collapse", ImGuiWindowFlags_NoCollapse);
+    set_int_field(L, "no_decoration", ImGuiWindowFlags_NoDecoration);
+    set_int_field(L, "auto_resize", ImGuiWindowFlags_AlwaysAutoResize);
+    set_int_field(L, "no_saved_settings", ImGuiWindowFlags_NoSavedSettings);
+    set_int_field(L, "no_focus_on_appearing", ImGuiWindowFlags_NoFocusOnAppearing);
+    set_int_field(L, "no_inputs", ImGuiWindowFlags_NoInputs);
+    set_int_field(L, "no_nav", ImGuiWindowFlags_NoNav);
+    lua_setfield(L, -2, "flags");
+    lua_pop(L, 1);
 
     static const luaL_Reg mem_funcs[] = {
         {"read_u8", l_mem_read<uint8_t>},
@@ -608,6 +755,14 @@ void register_api(lua_State* L) {
     set_int_field(L, "pointer_size", sizeof(void*));
     lua_pushcfunction(L, l_remultiplayer_reload);
     lua_setfield(L, -2, "reload");
+    lua_pushcfunction(L, l_remultiplayer_show_cursor);
+    lua_setfield(L, -2, "show_cursor");
+    lua_pushcfunction(L, l_remultiplayer_menu_open);
+    lua_setfield(L, -2, "menu_open");
+    lua_pushcfunction(L, l_remultiplayer_ui_scale);
+    lua_setfield(L, -2, "ui_scale");
+    lua_pushcfunction(L, l_remultiplayer_local_ips);
+    lua_setfield(L, -2, "local_ips");
     lua_setglobal(L, "remultiplayer");
 
     coop::net::register_lua_api(L, session());

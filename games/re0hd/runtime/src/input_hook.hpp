@@ -19,8 +19,8 @@ namespace remultiplayer::input {
 
 bool install();
 
-// Solange true, sieht das Spiel keine Tastatur- und Mauseingaben.
-void set_blocked(bool blocked);
+// Solange true, sieht das Spiel keine Tastatur- bzw. Mauseingaben.
+void set_blocked(bool keyboard, bool mouse);
 
 void register_lua(lua_State* L);
 

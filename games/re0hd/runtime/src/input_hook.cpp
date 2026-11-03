@@ -37,7 +37,8 @@ constexpr int kMaxVtables = 4;
 DeviceVtable g_vtables[kMaxVtables];
 std::atomic<int> g_vtable_count{0};
 
-std::atomic<bool> g_blocked{false};
+std::atomic<bool> g_block_keyboard{false};
+std::atomic<bool> g_block_mouse{false};
 std::atomic<uint8_t> g_inject[256];
 std::atomic<uint8_t> g_real_keys[256];
 
@@ -95,7 +96,7 @@ HRESULT STDMETHODCALLTYPE hk_get_device_state(void* device, DWORD size, LPVOID d
         for (int i = 0; i < 256; ++i) {
             g_real_keys[i].store(bytes[i]);
         }
-        if (g_blocked.load()) {
+        if (g_block_keyboard.load()) {
             std::memset(bytes, 0, 256);
         }
         for (int i = 0; i < 256; ++i) {
@@ -103,7 +104,7 @@ HRESULT STDMETHODCALLTYPE hk_get_device_state(void* device, DWORD size, LPVOID d
                 bytes[i] = 0x80;
             }
         }
-    } else if (type == DI8DEVTYPE_MOUSE && g_blocked.load()) {
+    } else if (type == DI8DEVTYPE_MOUSE && g_block_mouse.load()) {
         std::memset(bytes, 0, size);
     }
     return hr;
@@ -119,7 +120,9 @@ HRESULT STDMETHODCALLTYPE hk_get_device_data(void* device, DWORD object_size, LP
     const BYTE type = device_type(device, vt);
     ++g_data_calls[stat_index(type)];
     // Gepufferte Ereignisse verwerfen, solange das Menue offen ist
-    if ((type == DI8DEVTYPE_KEYBOARD || type == DI8DEVTYPE_MOUSE) && g_blocked.load() && objects != nullptr) {
+    const bool blocked = (type == DI8DEVTYPE_KEYBOARD && g_block_keyboard.load()) ||
+                         (type == DI8DEVTYPE_MOUSE && g_block_mouse.load());
+    if (blocked && objects != nullptr) {
         *count = 0;
     }
     return hr;
@@ -196,8 +199,9 @@ bool install() {
     return g_vtable_count.load() > 0;
 }
 
-void set_blocked(bool blocked) {
-    g_blocked.store(blocked);
+void set_blocked(bool keyboard, bool mouse) {
+    g_block_keyboard.store(keyboard);
+    g_block_mouse.store(mouse);
 }
 
 namespace {
@@ -237,7 +241,7 @@ int l_stats(lua_State* L) {
         lua_pushinteger(L, g_data_calls[i].load());
         lua_setfield(L, -2, data_keys[i]);
     }
-    lua_pushboolean(L, g_blocked.load());
+    lua_pushboolean(L, g_block_keyboard.load() || g_block_mouse.load());
     lua_setfield(L, -2, "blocked");
     return 1;
 }

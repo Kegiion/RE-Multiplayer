@@ -16,7 +16,7 @@ add_library(remultiplayer_re0 SHARED
     runtime/src/mt_explorer.cpp
     runtime/src/safe_mem.cpp
     runtime/src/input_hook.cpp)
-target_link_libraries(remultiplayer_re0 PRIVATE coop_netcore imgui d3d9 dxguid)
+target_link_libraries(remultiplayer_re0 PRIVATE coop_netcore imgui d3d9 dxguid iphlpapi ws2_32)
 target_compile_definitions(remultiplayer_re0 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 
 # Git-Commit als Build-ID (wird im Spiel angezeigt)

@@ -77,6 +77,13 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 - `0x6127D0(Platz)` übernimmt einen Platz: Es kopiert ihn vom Datei-Abbild ins zweite Abbild und verteilt ihn an `sGameInfo`, `sFlagManager`, `sPlayer` usw. Aufgerufen beim Spielstart über `0x405460`.
 - **Join-Test:** Wird der Platz im Datei-Abbild nach jedem Neu-Einlesen wieder überschrieben, lädt das Spiel den fremden Stand (Platz 3 mit dem Stand von Platz 1 geladen: Spielzeit 7,1 statt 19,5 Minuten).
 
+## Titelbildschirm und Laden (bestätigt am 3. November 2026)
+
+- **Titelbildschirm erkennen:** `sGameArea + 382C` zeigt auf ein Objekt der Klasse `aTitle`. Im Spiel steht dort dasselbe Objekt, aber mit der Klasse `aGame`. `+3830` ist dann die Stufe (`aStageTr`, beim Start kurz `aInGameStart`), `+3834` der Raum.
+- **Ablauf beim Laden über das Menü** (Aufnahme): „Spiel laden“ öffnen → `cSaveManager` Befehl 6 (Parameter 24). Platz wählen → Befehl 5 mit dem Platz (0-basiert). Etwa 8 Sekunden später (Bestätigung, Ausblenden) schreibt der Titel `sGameArea + 3828` = DTI von `aInGameStart` (`0x00DCBFE4`). Einen Frame später springt `sGameArea + 3824` von 1 auf 2, das Bereichs-Objekt wird zu `aGame`, und das Spiel startet.
+- **Auto-Laden (im Spiel bestätigt):** Im Titelbildschirm `cSaveManager + 10` = Platz, `+4` = 5 schreiben. Der Befehl ist nach einem Frame fertig (`+4` wieder 0). Danach `sGameArea + 3828` = DTI von `aInGameStart`. Das Spiel lädt den Platz ohne Menü.
+- Im Titelbildschirm liefert der DirectInput-Hook keine gedrückten Tasten über `input.key_down` (Ursache unklar, `GetDeviceState` wird aufgerufen).
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)

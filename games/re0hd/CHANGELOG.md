@@ -2,6 +2,11 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.1
+
+- **Schneller beitreten:** Wartet dein Freund schon, schickt die Mod deinen Spielstand sofort, wenn du im Spiel ankommst. Vorher dauerte es bis zu 3 Sekunden.
+- **Neues Spiel erkannt:** Startest du als Host ein neues Spiel statt eines Spielstands, bekommt dein Freund keinen alten Stand mehr, sondern den Hinweis, dass du einmal an einer Schreibmaschine speichern musst. Danach geht es automatisch weiter.
+
 ## 0.9.0
 
 - **Multiplayer im Titelbildschirm:** Unten rechts gibt es jetzt den Bereich „RE:Multiplayer“ mit „Spiel hosten“ und „Freund beitreten“. Das Einfg-Menü braucht man dafür nicht mehr.

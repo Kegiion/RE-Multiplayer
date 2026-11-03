@@ -146,7 +146,8 @@ function Lobby:_draw_title(sc)
         elseif st == "waiting" then
             imgui.text("Frage den Spielstand an ...")
         elseif st == "waiting_host" then
-            imgui.text_wrapped(host .. " hat noch keinen Spielstand geladen. Sobald er im Spiel ist, geht es los.")
+            imgui.text_wrapped((join.text ~= "" and join.text or (host .. " hat noch keinen Spielstand geladen."))
+                .. " Sobald es einen gibt, geht es automatisch los.")
         elseif st == "receiving" and join.receiver then
             imgui.text(string.format("Empfange Spielstand: %d von %d", join.receiver.count, join.receiver.begin.chunks))
         elseif st == "holding" then

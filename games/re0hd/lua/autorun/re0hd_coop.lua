@@ -13,7 +13,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.9.0"
+local MOD_VERSION = "0.9.1"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -288,36 +288,88 @@ local function join_fail(text)
     session:log("Spielstand: %s", text)
 end
 
-session:on("SAVE_REQUEST", function(s, peer)
-    join.transfer = (join.transfer + 1) % 4294967296
+-- Welchen Spielstand kann der Host schicken? data, info oder nil, Grund
+local PLAYTIME_TOLERANCE = 120 -- Bilder (2 s): so viel darf die laufende Spielzeit unter der des Platzes liegen
+local function host_save()
     if game.is_title() then
         -- Im Titelbildschirm waere es der Stand der letzten Sitzung: erst nach dem Laden schicken
-        s:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0,
-            info = "Der Host ist noch im Titelbildschirm." }, true, peer.id)
-        return
+        return nil, "Der Host ist noch im Titelbildschirm."
     end
     local slot = game.current_save_slot()
     local data = slot and game.read_save_slot(slot)
     if not data then
-        s:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0,
-            info = "Der Host hat noch keinen Spielstand geladen oder gespeichert." }, true, peer.id)
-        s:log("Spielstand angefragt, aber kein Platz geladen")
-        return
+        return nil, "Der Host hat noch keinen Spielstand geladen oder gespeichert."
     end
-    local info = string.format("Platz %d, %s", slot + 1, game.describe_save(data))
+    -- Neues Spiel statt geladenem Stand: Die laufende Spielzeit liegt dann unter der des Platzes
+    local now_frames = game.playtime and game.playtime()
+    local slot_frames = string.unpack("<f", data, 0x1C + 1)
+    if now_frames and now_frames + PLAYTIME_TOLERANCE < slot_frames then
+        return nil, "Der Host spielt ein neues Spiel. Er muss einmal an einer Schreibmaschine speichern."
+    end
+    return data, string.format("Platz %d, %s", slot + 1, game.describe_save(data))
+end
+
+-- Mitspieler, die gefragt haben, als der Host noch nichts schicken konnte
+local pending_save_peers = {}
+
+local function send_save(peer_id, peer_name)
+    join.transfer = (join.transfer + 1) % 4294967296
+    local data, info = host_save()
+    if not data then
+        session:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0, info = info },
+            true, peer_id)
+        pending_save_peers[peer_id] = true
+        return false
+    end
     local begin, chunks = savesync.split(data, join.transfer, info)
-    s:send("SAVE_BEGIN", begin, true, peer.id)
+    session:send("SAVE_BEGIN", begin, true, peer_id)
     for _, chunk in ipairs(chunks) do
-        s:send("SAVE_CHUNK", chunk, true, peer.id)
+        session:send("SAVE_CHUNK", chunk, true, peer_id)
     end
-    s:log("Spielstand an %s geschickt (%s)", peer.name or "?", info)
+    pending_save_peers[peer_id] = nil
+    session:log("Spielstand an %s geschickt (%s)", peer_name or "?", info)
+    return true
+end
+
+session:on("SAVE_REQUEST", function(s, peer)
+    send_save(peer.id, peer.name)
 end)
 
+session:subscribe("peer_left", function(_, peer)
+    pending_save_peers[peer.id] = nil
+end)
+
+-- Host: Wartende Mitspieler bekommen den Spielstand, sobald es einen gibt
+-- (z. B. direkt nach dem Laden), ohne auf ihre naechste Anfrage zu warten.
+local last_push_try = 0
+local function push_save_frame(now)
+    if next(pending_save_peers) == nil or now - last_push_try < 0.5 then
+        return
+    end
+    last_push_try = now
+    if not host_save() then
+        return
+    end
+    for peer_id in pairs(pending_save_peers) do
+        local peer = session.peers[peer_id]
+        if peer and peer.ready then
+            send_save(peer_id, peer.name)
+        else
+            pending_save_peers[peer_id] = nil
+        end
+    end
+end
+
 session:on("SAVE_BEGIN", function(s, peer, msg)
-    if join.state ~= "waiting" then
+    -- "waiting_host": der Host schickt von sich aus, sobald er geladen hat
+    if join.state ~= "waiting" and join.state ~= "waiting_host" then
         return
     end
     if msg.size == 0 then
+        if join.state == "waiting_host" then
+            join.text = msg.info
+            return
+        end
         if join.auto then
             -- Host hat noch nichts geladen: spaeter nochmal fragen
             join.state, join.text, join.retry_at = "waiting_host", msg.info, session:time() + JOIN_RETRY
@@ -397,6 +449,7 @@ end
 
 -- Jeden Frame: empfangenen Spielstand im Platz halten, bis er geladen ist
 local function join_frame(now)
+    push_save_frame(now)
     if join.state == "waiting_host" and now >= join.retry_at then
         join_request(true)
         return

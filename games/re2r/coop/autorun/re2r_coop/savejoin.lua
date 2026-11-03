@@ -100,7 +100,7 @@ end
 
 function M.request(session)
     M.state, M.message, M.receiver, M.pending, M.result = "requested", "Warte auf den Host ...", nil, nil, nil
-    M.auto_waiting, M.loader = false, nil
+    M.auto_retry_at, M.loader = nil, nil
     session:send("SAVE_REQUEST", { reserved = 0 }, true)
 end
 
@@ -257,6 +257,14 @@ function M.start_auto_load(now)
         M.state, M.message = "failed", "Spiel nicht bereit (Manager fehlen)"
         return false
     end
+    -- Nur aus dem laufenden Spiel heraus starten. Aus dem Titelmenue (z. B.
+    -- Kampagne -> Spiel laden) kam der Freund beim ersten echten Test am
+    -- 3. November 2026 nach dem Einspielen nicht ins Spiel.
+    local main = main_state(mfm)
+    if main ~= M.MAIN_IN_GAME and main ~= M.MAIN_PAUSE then
+        M.message = "Lade zuerst einen eigenen Spielstand (Spiel laden). Danach geht es automatisch weiter."
+        return false
+    end
     local index = sdm:get_field("<LoadGameDataIndex>k__BackingField")
     if index == nil or index < 0 then
         M.message = "Lade einmal selbst einen Spielstand (Pause -> Spiel laden), dann geht es los."
@@ -317,9 +325,10 @@ function M.update_auto(now)
         end
         return
     end
-    if M.auto and M.state == "ready" and M.pending ~= nil and not M.auto_waiting then
+    -- Startet, sobald der Freund im Spiel ist (sonst alle 2 s neu pruefen).
+    if M.auto and M.state == "ready" and M.pending ~= nil and now >= (M.auto_retry_at or 0) then
         if not M.start_auto_load(now) then
-            M.auto_waiting = true -- erst wieder nach neuem Versuch
+            M.auto_retry_at = now + 2.0
         end
     end
 end

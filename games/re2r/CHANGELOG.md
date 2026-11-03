@@ -2,6 +2,10 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.1
+
+- Wer im Titelmenü beitritt, wird nicht mehr automatisch geladen (dabei kam man nicht ins Spiel). Stattdessen steht im Menü „Lade zuerst einen eigenen Spielstand“, danach geht es von selbst weiter.
+
 ## 0.9.0
 
 - **Beitreten geht jetzt von selbst:** Wer beitritt, bekommt automatisch den Spielstand des Hosts. Das Spiel geht kurz über den Titelbildschirm, lädt und setzt dich beim Host ab. Abschaltbar mit dem Haken „Beim Beitreten automatisch laden“. Voraussetzung: Du hast in dieser Sitzung schon einmal einen eigenen Spielstand geladen.

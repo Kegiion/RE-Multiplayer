@@ -201,6 +201,70 @@ function game.describe_save(data)
     return string.format("%d. Speicherung, Spielzeit %d:%02d", count, minutes // 60, minutes % 60)
 end
 
+-- ---- Titelbildschirm und Laden ohne Menue ---------------------------------------
+-- Bestaetigt am 3. November 2026 (Aufnahme beim Laden und Test im Spiel):
+--   sGameArea + 382C: Bereichs-Objekt, Klasse aTitle im Titelbildschirm, sonst aGame
+--   cSaveManager + 4 Befehl, + 10 Parameter: Befehl 5 = Platz laden (nach einem Frame fertig)
+--   sGameArea + 3828 = DTI von aInGameStart startet das Spiel mit dem geladenen Platz
+local OFF_AREA_MAIN = 0x382C
+local OFF_AREA_REQUEST = 0x3828
+local OFF_SAVE_COMMAND = 0x4
+local OFF_SAVE_PARAM = 0x10
+local SAVE_CMD_LOAD = 5
+local INGAMESTART_DTI = 0x00DCBFE4 -- DTI von aInGameStart in dieser exe-Version
+
+local function area_main_class()
+    if not game.supported or not mt then
+        return nil
+    end
+    local ga = mem.read_u32(GAMEAREA_INSTANCE)
+    local obj = ga and ga ~= 0 and mem.read_u32(ga + OFF_AREA_MAIN)
+    return obj and obj ~= 0 and mt.class_of(obj) or nil
+end
+
+-- Sind wir im Titelbildschirm?
+function game.is_title()
+    return area_main_class() == "aTitle"
+end
+
+-- Laeuft gerade ein Befehl der Spielstand-Verwaltung?
+function game.save_busy()
+    local _, csm = save_manager()
+    local cmd = csm and mem.read_u32(csm + OFF_SAVE_COMMAND)
+    return cmd == nil or cmd ~= 0
+end
+
+-- Platz (0-basiert) aus der Datei laden, wie das Menue "Spiel laden". true, wenn der Befehl abgesetzt wurde.
+function game.load_save_slot(slot)
+    local ssm, csm = save_manager()
+    if not csm or game.save_busy() then
+        return false
+    end
+    mem.write_u32(csm + OFF_SAVE_PARAM, slot)
+    mem.write_u32(csm + OFF_SAVE_COMMAND, SAVE_CMD_LOAD)
+    return true
+end
+
+-- Diesen Platz als "zuletzt geladen" eintragen (damit startet das Spiel)
+function game.set_current_save_slot(slot)
+    local ssm = save_manager()
+    return ssm ~= nil and mem.write_u32(ssm + OFF_SAVE_CURRENT, slot)
+end
+
+-- Spiel aus dem Titelbildschirm mit dem geladenen Platz starten
+function game.start_game()
+    if not game.is_title() then
+        return false
+    end
+    local dti = INGAMESTART_DTI
+    local raw = mt.dti_raw and mt.dti_raw("aInGameStart")
+    if raw and raw.addr then
+        dti = raw.addr
+    end
+    local ga = mem.read_u32(GAMEAREA_INSTANCE)
+    return ga ~= nil and ga ~= 0 and mem.write_u32(ga + OFF_AREA_REQUEST, dti)
+end
+
 -- Laufende Spielzeit in Bildern oder nil
 function game.playtime()
     if not game.supported then

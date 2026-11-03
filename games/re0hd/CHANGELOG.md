@@ -2,6 +2,15 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.9.0
+
+- **Multiplayer im Titelbildschirm:** Unten rechts gibt es jetzt den Bereich „RE:Multiplayer“ mit „Spiel hosten“ und „Freund beitreten“. Das Einfg-Menü braucht man dafür nicht mehr.
+- **Beitreten mit einem Klick:** Nach „Verbinden“ holt die Mod den Spielstand des Hosts, wartet notfalls, bis er geladen hat, und **startet das Spiel automatisch**. Den Platz muss man nicht mehr selbst laden (im Menü abschaltbar).
+- Beim Hosten stehen deine Adressen im Heimnetz direkt im Fenster.
+- Im Spiel zeigt oben rechts eine kleine Anzeige, mit wem du verbunden bist, samt Ping.
+- Tippen in Textfelder bewegt die Figur nicht mehr. Klicks auf die Fenster gehen nicht mehr an das Spiel.
+- Benötigt Runtime 0.5.0 (kommt mit dem Update).
+
 ## 0.8.0
 
 - **Partner durch Türen:** Geht dein Mitspieler durch eine Tür, läuft dein Partner zu dieser Tür und verschwindet. Gehst du hinterher, taucht er im neuen Raum bei deinem Mitspieler wieder auf, ebenso wenn dein Mitspieler zu dir zurückkommt. Bricht die Verbindung ab, steht der Partner wieder neben dir.

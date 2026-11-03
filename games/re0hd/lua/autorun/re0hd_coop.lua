@@ -8,11 +8,12 @@
 --   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (Figuren, Kamera, Partner-Tasten)
 --   re0hd_coop/puppet.lua  Partner als Puppe des Mitspielers (laeuft dessen Weg nach)
 --   re0hd_coop/savesync.lua Spielstand des Hosts uebertragen (Join)
+--   re0hd_coop/lobby.lua   Multiplayer-Bereich im Titelbildschirm, Status-Anzeige im Spiel
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.8.0"
+local MOD_VERSION = "0.9.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -32,6 +33,7 @@ local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtim
 local devconsole = require("re0hd_coop.devconsole")
 local Puppet = require("re0hd_coop.puppet")
 local savesync = require("re0hd_coop.savesync")
+local Lobby = require("re0hd_coop.lobby")
 
 local SEND_INTERVAL = 1 / 30 -- 30 Positionsupdates pro Sekunde
 local SWITCH_RETRY = 3.0     -- s zwischen zwei automatischen Figurwechseln
@@ -51,6 +53,7 @@ local config = {
     puppet = true,      -- Mitspieler steuert den Partner
     join_slot = 20,     -- Platz (1..20) fuer den Spielstand des Hosts
     auto_switch = true, -- als Mitspieler automatisch die andere Figur nehmen
+    auto_load = true,   -- empfangenen Spielstand im Titelbildschirm automatisch laden
 }
 
 local function load_config()
@@ -265,8 +268,14 @@ end
 -- Laden die Datei neu ein, deshalb wird der Platz nach jedem Einlesen erneut
 -- geschrieben (im Spiel bestaetigt am 3. November 2026).
 
+local JOIN_RETRY = 3.0      -- s: so oft wird nachgefragt, solange der Host noch keinen Spielstand hat
+
 local join = {
-    state = "idle",   -- idle, waiting, receiving, holding, done, error
+    state = "idle",   -- idle, waiting, waiting_host, receiving, holding, done, error
+    auto = false,     -- aus der Lobby: nachfragen, bis der Host geladen hat
+    retry_at = 0,
+    load_phase = nil, -- Auto-Laden: nil, "befehl", "warten", "start"
+    load_since = 0,
     text = "",
     receiver = nil,
     data = nil,
@@ -280,9 +289,15 @@ local function join_fail(text)
 end
 
 session:on("SAVE_REQUEST", function(s, peer)
+    join.transfer = (join.transfer + 1) % 4294967296
+    if game.is_title() then
+        -- Im Titelbildschirm waere es der Stand der letzten Sitzung: erst nach dem Laden schicken
+        s:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0,
+            info = "Der Host ist noch im Titelbildschirm." }, true, peer.id)
+        return
+    end
     local slot = game.current_save_slot()
     local data = slot and game.read_save_slot(slot)
-    join.transfer = (join.transfer + 1) % 4294967296
     if not data then
         s:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0,
             info = "Der Host hat noch keinen Spielstand geladen oder gespeichert." }, true, peer.id)
@@ -303,7 +318,12 @@ session:on("SAVE_BEGIN", function(s, peer, msg)
         return
     end
     if msg.size == 0 then
-        join_fail(msg.info)
+        if join.auto then
+            -- Host hat noch nichts geladen: spaeter nochmal fragen
+            join.state, join.text, join.retry_at = "waiting_host", msg.info, session:time() + JOIN_RETRY
+        else
+            join_fail(msg.info)
+        end
         return
     end
     if msg.size ~= game.SAVE_SLOT_SIZE then
@@ -324,21 +344,63 @@ session:on("SAVE_CHUNK", function(s, peer, msg)
         return
     end
     join.data, join.receiver = data, nil
-    join.state, join.seen_title = "holding", false
+    join.state, join.seen_title, join.load_phase = "holding", false, nil
     s:log("Spielstand empfangen (%s), liegt in Platz %d", join.text, config.join_slot)
 end)
 
-local function join_request()
+local function join_request(auto)
     if not mem.write_bytes then
         join_fail("Die Runtime ist zu alt (ab 0.4.0) - bitte ueber den Mod-Manager aktualisieren.")
         return
     end
-    join.state, join.text, join.data = "waiting", "", nil
+    join.auto = auto == true
+    join.state, join.text, join.data, join.load_phase = "waiting", "", nil, nil
     session:send("SAVE_REQUEST", {}, true)
 end
 
+local function join_cancel()
+    join.state, join.data, join.receiver, join.load_phase, join.auto = "idle", nil, nil, nil, false
+end
+
+-- Auto-Laden im Titelbildschirm (im Spiel bestaetigt am 3. November 2026):
+-- Platz laden (Befehl 5), danach den empfangenen Stand erneut hineinschreiben
+-- (das Laden liest die Datei neu ein) und das Spiel starten.
+local function autoload_frame(now, slot)
+    if not config.auto_load or not game.is_title() then
+        join.load_phase = nil
+        return
+    end
+    local phase = join.load_phase
+    if phase == nil then
+        if game.load_save_slot(slot) then
+            join.load_phase, join.load_since = "befehl", now
+            session:log("Lade den Spielstand des Hosts automatisch (Platz %d)", slot + 1)
+        end
+    elseif phase == "befehl" then
+        if not game.save_busy() then
+            join.load_phase = "warten"
+        elseif now - join.load_since > 10 then
+            join.load_phase = nil -- haengt: nochmal versuchen
+        end
+    elseif phase == "warten" then
+        -- join_frame schreibt den Platz jeden Frame neu, bis er stimmt
+        if game.save_slot_matches(slot, join.data) then
+            game.set_current_save_slot(slot)
+            if game.start_game() then
+                join.load_phase, join.load_since = "start", now
+            end
+        end
+    elseif phase == "start" and now - join.load_since > 10 then
+        join.load_phase = nil -- Spiel ist nicht gestartet: nochmal
+    end
+end
+
 -- Jeden Frame: empfangenen Spielstand im Platz halten, bis er geladen ist
-local function join_frame()
+local function join_frame(now)
+    if join.state == "waiting_host" and now >= join.retry_at then
+        join_request(true)
+        return
+    end
     if join.state ~= "holding" then
         return
     end
@@ -346,6 +408,7 @@ local function join_frame()
     if not game.save_slot_matches(slot, join.data) then
         game.write_save_slot(slot, join.data)
     end
+    autoload_frame(now, slot)
     if coop.local_state == nil then
         join.seen_title = true
     elseif join.seen_title and game.current_save_slot() == slot then
@@ -353,6 +416,11 @@ local function join_frame()
         session:log("Spielstand des Hosts geladen")
     end
 end
+
+local lobby = Lobby.new({
+    session = session, config = config, save_config = save_config, game = game,
+    join = join, join_request = join_request, join_cancel = join_cancel,
+})
 
 local last_error = nil
 local function report_error(text)
@@ -377,9 +445,13 @@ re.on_frame(function()
         coop.puppet:release()
         coop.solo:release()
     end
-    ok, err = pcall(join_frame)
+    ok, err = pcall(join_frame, now)
     if not ok then
         report_error("Spielstand: " .. tostring(err))
+    end
+    ok, err = pcall(lobby.frame, lobby, now)
+    if not ok then
+        report_error("Lobby: " .. tostring(err))
     end
 end)
 
@@ -533,7 +605,11 @@ local function draw_join_ui()
         imgui.same_line()
         imgui.text(string.format("(kommt in Platz %d)", config.join_slot))
     end
-    local changed, text = imgui.input_text("Platz fuer den Host-Spielstand (1-20)", tostring(config.join_slot))
+    local changed
+    changed, config.auto_load = imgui.checkbox("Empfangenen Spielstand im Titelbildschirm automatisch laden", config.auto_load)
+    if changed then save_config() end
+    local text
+    changed, text = imgui.input_text("Platz fuer den Host-Spielstand (1-20)", tostring(config.join_slot))
     if changed then
         local n = tonumber(text)
         if n and n >= 1 and n <= game.SAVE_SLOTS then
@@ -543,6 +619,8 @@ local function draw_join_ui()
     end
     if join.state == "waiting" then
         imgui.text("  Warte auf den Host ...")
+    elseif join.state == "waiting_host" then
+        imgui.text("  " .. join.text .. " Frage gleich nochmal nach ...")
     elseif join.state == "receiving" then
         imgui.text(string.format("  Empfange %s: %d von %d", join.text, join.receiver.count, join.receiver.begin.chunks))
     elseif join.state == "holding" then
@@ -550,7 +628,7 @@ local function draw_join_ui()
         imgui.text(string.format("  Jetzt: Titelbildschirm -> Spiel laden -> Platz %d laden.", config.join_slot))
         imgui.text("  Der Platz wird nur im Speicher ersetzt. Speicherst du danach, landet er in deiner Spielstand-Datei.")
         if imgui.button("Abbrechen") then
-            join.state, join.data = "idle", nil
+            join_cancel()
         end
     elseif join.state == "done" then
         imgui.text_colored("  Spielstand des Hosts geladen.", 0xFF40FF40)

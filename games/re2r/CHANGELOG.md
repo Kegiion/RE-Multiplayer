@@ -2,6 +2,13 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.6.0
+
+- **Schießen und Nachladen:** Die Puppe zielt, schießt und lädt nach wie ihr Spieler. Übertragen werden jetzt alle 6 Animations-Ebenen, schnelle Schüsse hintereinander werden einzeln gezählt (im Spiel noch unbestätigt).
+- **Waffe in der Hand:** Die Puppe hält das Modell der Waffe, die ihr Spieler gerade trägt. Es ist nur das Modell, Schussgeräusch, Mündungsfeuer und Treffer fehlen noch.
+- **Neue Protokollversion 3:** Beide Spieler brauchen RE2 Koop 0.6.0.
+- Für die Entwicklung: Die Entwickler-Konsole kann die Kamera steuern, `tools/spielfoto.ps1` macht Bildschirmfotos des Spielfensters.
+
 ## 0.5.0
 
 - **Animationen:** Die Puppe des Mitspielers geht, joggt, zielt und dreht sich jetzt mit, statt zu gleiten. Übertragen werden die Animationsdateien der Figur, die laufenden Animationen samt Überblendung und die Steuer-Variablen (Laufrichtung, Blickrichtung, Treppe, Zielhöhe).

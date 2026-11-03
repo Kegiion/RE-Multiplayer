@@ -12,7 +12,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.5.0"
+local MOD_VERSION = "0.6.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -36,6 +36,7 @@ local game = require("re2r_coop.game")
 local ghost = require("re2r_coop.ghost")
 local puppet = require("re2r_coop.puppet")
 local anim = require("re2r_coop.anim")
+local weapon = require("re2r_coop.weapon")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -100,6 +101,7 @@ session:on("ANIM_BANKS", function(_, peer, msg)
     local a = remote_anim[peer.id] or {}
     remote_anim[peer.id] = a
     a.banks, a.banks_id = anim.banks_from_msg(msg), msg.banks_id
+    a.weapon = weapon.from_msg(msg)
 end)
 
 session:on("ANIM_STATE", function(_, peer, msg)
@@ -141,6 +143,7 @@ local state = {
     banks_id = os.time() % 65536, -- Startwert zufaellig, damit ein Reset nicht alte IDs wiederholt
     banks_checked = -math.huge,
     banks_sent = -math.huge,
+    anim_tracker = {}, -- Neustarts der Aktions-Ebenen (anim.track)
 }
 
 local function report_error(where, err)
@@ -161,7 +164,10 @@ local function send_anim(now)
     if now - state.banks_checked >= BANKS_CHECK_INTERVAL then
         state.banks_checked = now
         local banks = anim.read_banks(motion)
-        local key = anim.banks_key(banks)
+        if banks ~= nil then
+            banks.weapon = weapon.read(game.get_player())
+        end
+        local key = anim.banks_key(banks) .. "#" .. weapon.key(banks and banks.weapon)
         if banks ~= nil and key ~= state.banks_key then
             state.banks, state.banks_key = banks, key
             state.banks_id = (state.banks_id + 1) % 65536
@@ -173,9 +179,9 @@ local function send_anim(now)
     end
     if now - state.banks_sent >= BANKS_RESEND_INTERVAL then
         state.banks_sent = now
-        session:send("ANIM_BANKS", anim.banks_to_msg(state.banks, state.banks_id), true)
+        session:send("ANIM_BANKS", weapon.to_msg(state.banks.weapon, anim.banks_to_msg(state.banks, state.banks_id)), true)
     end
-    local msg = anim.read_layers(motion)
+    local msg = anim.read_layers(motion, state.anim_tracker)
     msg.seq, msg.banks_id = state.seq, state.banks_id
     session:send("ANIM_STATE", msg, false)
 end
@@ -188,6 +194,19 @@ local function frame()
     session:update()
 
     state.local_state = game.get_local_state()
+
+    -- Neustarts von Schuss/Nachladen jeden Frame erkennen (gesendet wird nur 20x/s).
+    if state.local_state ~= nil and session:is_active() then
+        local ok, err = pcall(function()
+            local motion = anim.get_motion(game.get_player())
+            if motion ~= nil then
+                anim.track(motion, state.anim_tracker)
+            end
+        end)
+        if not ok then
+            report_error("anim.track", err)
+        end
+    end
 
     if state.local_state ~= nil and session:is_active() and #session:ready_peers() > 0
         and now - state.last_send >= SEND_INTERVAL then

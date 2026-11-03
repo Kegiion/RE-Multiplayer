@@ -24,13 +24,14 @@ assert(#raw == 1 + 4 + 7 + 28 + 2, "unerwartete Groesse " .. #raw)
 -- Roundtrip ANIM_STATE: leere Ebene = 0xFFFFFFFF
 raw = protocol.encode("ANIM_STATE", { seq = 7, banks_id = 3, bank0 = 1, motion0 = 190, frame0 = 12.5,
     interp0 = 24, imode0 = 3, icurve0 = 1,
-    bank3 = 0, motion3 = 4294967295 })
+    bank3 = 0, motion3 = 4294967295, bank4 = 2, motion4 = 1100, restart4 = 255 })
 msg = assert(protocol.decode(raw))
 assert(msg.type == "ANIM_STATE" and msg.seq == 7 and msg.banks_id == 3)
 assert(msg.bank0 == 1 and msg.motion0 == 190 and msg.frame0 == 12.5)
 assert(msg.interp0 == 24 and msg.imode0 == 3 and msg.icurve0 == 1)
 assert(msg.motion3 == 4294967295 and msg.motion1 == 0)
-assert(#raw == 1 + 4 + 2 + 4 * (2 + 4 + 4 + 4 + 1 + 1) + 4 + 12 * 4, "unerwartete Groesse " .. #raw)
+assert(msg.bank4 == 2 and msg.motion4 == 1100 and msg.restart4 == 255 and msg.motion5 == 0)
+assert(#raw == 1 + 4 + 2 + protocol.ANIM_LAYERS * (2 + 4 + 4 + 4 + 1 + 1 + 1) + 4 + 12 * 4, "unerwartete Groesse " .. #raw)
 
 -- Roundtrip ANIM_BANKS
 msg = assert(protocol.decode(protocol.encode("ANIM_BANKS", { banks_id = 65535,

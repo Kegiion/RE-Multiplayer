@@ -33,13 +33,22 @@
 --   - RootMotion der Puppe auf None (0) stellen, sonst schiebt die Laufanimation
 --     das Modell nach vorne (Springen/Verschwinden). Die Position kommt aus dem
 --     Netzwerk.
--- UNBESTAETIGT: Claire, andere Waffen, Ebenen 4/5, Zwischensequenzen.
+--   - Schiessen: Ebene 4 (2/1100 HG_Hold_Shoot, davor 1 Bild 2/1120 NoAmmo),
+--     Nachladen: Ebene 3 (2000/1200 HG_Hold_Reload). Der Schalter Fire ist
+--     nur ein Bild lang an. Bei schnellen Schuessen springt Ebene 4 je Schuss
+--     fuer genau ein Bild auf 2/1120 und zurueck auf 2/1100. Mit 20 Paketen
+--     pro Sekunde sieht die Gegenseite das fast nie, deshalb zaehlt anim.track
+--     jeden Start einer Animation auf den Aktions-Ebenen (restartN).
+-- UNBESTAETIGT: Claire, andere Waffen, Ebene 5, Zwischensequenzen.
 
 local game = require("re2r_coop.game")
 
 local anim = {}
 
-anim.LAYER_COUNT = 4
+anim.LAYER_COUNT = 6
+-- Ebenen mit einmaligen Aktionen (Nachladen, Schuss): hier zaehlen wir Neustarts
+-- derselben Animation, damit die Puppe auch Schuss auf Schuss nachspielt.
+anim.RESTART_LAYERS = { [3] = true, [4] = true }
 anim.MAX_DYNAMIC = 4
 anim.NO_MOTION = 4294967295
 anim.ROOT_MOTION_NONE = 0
@@ -194,11 +203,31 @@ function anim.banks_from_msg(msg)
     return banks
 end
 
+-- Jeden Frame fuer den eigenen Spieler aufrufen: zaehlt jeden Start einer
+-- Animation auf den Aktions-Ebenen (Wechsel auf eine andere Animation oder
+-- dieselbe beginnt von vorne). tracker = Tabelle, die der Aufrufer behaelt.
+function anim.track(motion, tracker)
+    for i in pairs(anim.RESTART_LAYERS) do
+        local layer = try_call(motion, "getLayer", i)
+        local id = try_call(layer, "get_MotionID")
+        local frame = try_call(layer, "get_Frame") or 0
+        local t = tracker[i] or { restart = 0 }
+        tracker[i] = t
+        if id ~= nil and id ~= anim.NO_MOTION and t.id ~= nil
+            and (id ~= t.id or frame + 0.5 < (t.frame or 0)) then
+            t.restart = (t.restart + 1) % 256
+        end
+        t.id, t.frame = id, frame
+    end
+end
+
 -- Laufende Animationen als Felder fuer ANIM_STATE (ohne seq/banks_id).
-function anim.read_layers(motion)
+function anim.read_layers(motion, tracker)
     local msg = {}
     for i = 0, anim.LAYER_COUNT - 1 do
         local layer = try_call(motion, "getLayer", i)
+        local t = tracker and tracker[i]
+        msg["restart" .. i] = t and t.restart or 0
         msg["bank" .. i] = try_call(layer, "get_MotionBankID") or 0
         msg["motion" .. i] = try_call(layer, "get_MotionID") or anim.NO_MOTION
         msg["frame" .. i] = try_call(layer, "get_Frame") or 0
@@ -250,14 +279,19 @@ function anim.apply_banks(motion, banks)
 end
 
 -- Animationen aus ANIM_STATE auf die Puppe uebertragen. Nur Ebenen, deren
--- Animation abweicht, bekommen changeMotion (mit dem Bild des Mitspielers).
+-- Animation abweicht oder neu gestartet wurde, bekommen changeMotion (mit dem
+-- Bild des Mitspielers). seen = Tabelle je Puppe (zuletzt gesehene Neustarts).
 -- Gibt die Anzahl der Wechsel zurueck.
-function anim.apply_layers(motion, msg)
+function anim.apply_layers(motion, msg, seen)
     local changes = 0
+    seen = seen or {}
     for i = 0, anim.LAYER_COUNT - 1 do
         local layer = motion:call("getLayer", i)
         local bank, id = msg["bank" .. i] or 0, msg["motion" .. i] or anim.NO_MOTION
-        if layer ~= nil and (layer:call("get_MotionBankID") ~= bank or layer:call("get_MotionID") ~= id) then
+        local restart = msg["restart" .. i] or 0
+        local restarted = seen[i] ~= nil and seen[i] ~= restart
+        seen[i] = restart
+        if layer ~= nil and (restarted or layer:call("get_MotionBankID") ~= bank or layer:call("get_MotionID") ~= id) then
             local frame = id == anim.NO_MOTION and 0 or (msg["frame" .. i] or 0)
             layer:call(anim.CHANGE_SIG, bank, id, frame,
                 msg["interp" .. i] or 0, msg["imode" .. i] or 0, msg["icurve" .. i] or 0)

@@ -24,6 +24,7 @@
 
 local game = require("re2r_coop.game")
 local anim = require("re2r_coop.anim")
+local weapon = require("re2r_coop.weapon")
 
 local puppet = {}
 
@@ -56,6 +57,11 @@ local function is_valid(go)
     return go ~= nil and try_call(go, "get_Valid") == true
 end
 
+local function drop_weapon(inst)
+    weapon.destroy(inst.weapon_go)
+    inst.weapon_go, inst.weapon_key = nil, nil
+end
+
 local function destroy_go(go)
     if is_valid(go) then
         pcall(go.call, go, "destroy", go)
@@ -63,6 +69,7 @@ local function destroy_go(go)
 end
 
 local function fail(inst, now, err)
+    drop_weapon(inst)
     destroy_go(inst.go)
     inst.go, inst.transform = nil, nil
     inst.state, inst.error, inst.since = "failed", tostring(err), now
@@ -70,8 +77,11 @@ end
 
 local function start_loading(inst, now)
     anim.forget(inst.motion)
+    drop_weapon(inst)
     inst.go, inst.transform, inst.motion, inst.error = nil, nil, nil, nil
+    inst.weapon_error = nil
     inst.banks_key, inst.banks_id, inst.anim_error, inst.vars_seq = nil, nil, nil, nil
+    inst.restarts_seen = nil
     inst.since = now
     local path = puppet.prefab_path(inst.character)
     if path == nil then
@@ -132,10 +142,27 @@ function puppet.rotation_of(r)
     return Quaternion.new(t.qw or 1, t.qx or 0, t.qy or 0, t.qz or 0)
 end
 
+-- Waffenmodell in der Hand an die Waffe des Mitspielers anpassen.
+local function sync_weapon(inst, a)
+    local key = weapon.key(a.weapon)
+    if inst.weapon_key == key and (inst.weapon_go == nil or try_call(inst.weapon_go, "get_Valid") == true) then
+        return
+    end
+    drop_weapon(inst)
+    inst.weapon_key = key
+    if a.weapon ~= nil then
+        inst.weapon_go = weapon.attach(inst.transform, a.weapon)
+    end
+end
+
 -- Animationen des Mitspielers uebernehmen (a = Eintrag aus remote_anim).
 local function sync_anim(inst, a)
     if a == nil or a.banks == nil or inst.motion == nil then
         return
+    end
+    local ok, err = pcall(sync_weapon, inst, a)
+    if not ok then
+        inst.weapon_error = tostring(err)
     end
     local key = anim.banks_key(a.banks)
     if inst.banks_key ~= key then
@@ -150,7 +177,8 @@ local function sync_anim(inst, a)
             inst.vars_seq = a.state.seq
             anim.apply_vars(inst.motion, a.state)
         end
-        inst.anim_changes = inst.anim_changes + anim.apply_layers(inst.motion, a.state)
+        inst.restarts_seen = inst.restarts_seen or {}
+        inst.anim_changes = inst.anim_changes + anim.apply_layers(inst.motion, a.state, inst.restarts_seen)
     end
 end
 
@@ -197,6 +225,7 @@ local function sync(peer_id, r, visible, now, a)
     -- ready: Das Spiel kann die Figur z. B. beim Szenenwechsel loeschen.
     if not is_valid(inst.go) then
         anim.forget(inst.motion)
+        drop_weapon(inst)
         inst.go, inst.transform, inst.motion = nil, nil, nil
         inst.state, inst.since = "deleted", now
         inst.respawns = (inst.respawns or 0) + 1
@@ -232,6 +261,7 @@ function puppet.remove(peer_id)
     local inst = puppet.instances[peer_id]
     if inst ~= nil then
         anim.forget(inst.motion)
+        drop_weapon(inst)
         destroy_go(inst.go)
         puppet.instances[peer_id] = nil
     end
@@ -255,6 +285,8 @@ function puppet.status_text(peer_id)
     if inst.state == "ready" then
         if inst.anim_error ~= nil then
             return "ready, Animationsfehler: " .. inst.anim_error
+        elseif inst.weapon_error ~= nil then
+            return "ready, Waffenfehler: " .. inst.weapon_error
         elseif inst.banks_key ~= nil then
             return string.format("ready, animiert (%d Wechsel, %d x neu erzeugt)", inst.anim_changes or 0, inst.respawns or 0)
         end

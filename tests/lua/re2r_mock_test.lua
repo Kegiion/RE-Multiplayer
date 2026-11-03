@@ -129,7 +129,48 @@ player_motion.layers[0].bank, player_motion.layers[0].id, player_motion.layers[0
 player_motion.layers[0].interp, player_motion.layers[0].imode, player_motion.layers[0].icurve = 36, 3, 1
 player_motion.vars.MoveDir.value, player_motion.vars.Pitch.value, player_motion.vars.Jog.value = 0.25, -30, true
 
+-- Waffe des Spielers: Kind "wp0000" am Gelenk r_weapon mit Mesh
+local weapon_mesh = obj({
+    getMesh = function() return holder("wp0000.mesh") end,
+    get_Material = function() return holder("wp0000.mdf2") end,
+})
+local weapon_go = obj({
+    get_Name = function() return "wp0000" end,
+    ["getComponent(System.Type)"] = function(t) if t == "TYPE:via.render.Mesh" then return weapon_mesh end end,
+})
+local weapon_child = obj({
+    get_GameObject = function() return weapon_go end,
+    get_ParentJoint = function() return "r_weapon" end,
+    get_LocalRotation = function() return { x = 0.5, y = -0.5, z = -0.5, w = 0.5 } end,
+    get_LocalPosition = function() return { x = 0, y = 0, z = 0 } end,
+    get_Next = function() return nil end,
+})
+-- Erzeugte Waffenmodelle der Puppe
+local created_weapons = {}
+local function fake_weapon_go()
+    local w
+    local wtr = obj({
+        set_Parent = function(p) w.parent = p end,
+        set_ParentJoint = function(j) w.joint = j end,
+        set_LocalPosition = function(p) w.lpos = p end,
+        set_LocalRotation = function(q) w.lrot = q end,
+    })
+    local mesh = obj({
+        setMesh = function(h) w.mesh = h:call("get_ResourcePath") end,
+        set_Material = function(h) w.mdf = h:call("get_ResourcePath") end,
+    })
+    w = obj({
+        ["createComponent(System.Type)"] = function(t) assert(t == "TYPE:via.render.Mesh"); return mesh end,
+        get_Transform = function() return wtr end,
+        get_Valid = function() return not w.destroyed end,
+        destroy = function(g) g.destroyed = true end,
+    })
+    created_weapons[#created_weapons + 1] = w
+    return w
+end
+
 local transform = obj({
+    get_Child = function() return weapon_child end,
     get_Position = function() return player_pos end,
     get_Rotation = function() return { x = 0, y = 0, z = 0, w = 1 } end,
 })
@@ -239,11 +280,20 @@ sdk = {
         if n == "via.motion.DynamicMotionBank" then return fake_dyn_bank() end
     end,
     create_resource = function(t, path)
-        assert(t == "via.motion.MotionBankResource", t)
-        return { create_holder = function(_, ht) assert(ht == "via.motion.MotionBankResourceHolder"); return holder(path) end }
+        local holders = { ["via.motion.MotionBankResource"] = "via.motion.MotionBankResourceHolder",
+            ["via.render.MeshResource"] = "via.render.MeshResourceHolder",
+            ["via.render.MeshMaterialResource"] = "via.render.MeshMaterialResourceHolder" }
+        assert(holders[t], t)
+        return { create_holder = function(_, ht) assert(ht == holders[t], ht); return holder(path) end }
     end,
     find_type_definition = function(n)
         if n == "app.ropeway.PlayerManager" then return fake_type(n) end
+        if n == "via.GameObject" then
+            return { get_method = function(_, sig)
+                assert(sig == "create(System.String)", sig)
+                return { call = function(_, _, name) assert(name == "coop_weapon"); return fake_weapon_go() end }
+            end }
+        end
         return enums[n]
     end,
     typeof = function(n) return "TYPE:" .. n end,
@@ -300,6 +350,7 @@ assert(b_states[1].area == "St1_101_0", "Bereich falsch: " .. tostring(b_states[
 -- Animationen des Spielers gehen mit
 assert(#b_banks == 1, "ANIM_BANKS fehlt oder doppelt: " .. #b_banks)
 assert(b_banks[1].main == "main.motbank" and b_banks[1].dyn1 == "BareHand.motbank" and b_banks[1].dyn2 == "")
+assert(b_banks[1].weapon_mesh == "wp0000.mesh" and b_banks[1].weapon_mdf == "wp0000.mdf2" and b_banks[1].wqy == -0.5, "Waffe nicht gesendet")
 local a1 = b_anim[#b_anim]
 assert(a1.banks_id == b_banks[1].banks_id, "ANIM_STATE verweist auf falschen Bank-Satz")
 assert(a1.bank0 == 1 and a1.motion0 == 190 and a1.frame0 == 5 and a1.motion3 == NO_MOTION, "falsche Animation gesendet")
@@ -324,8 +375,30 @@ assert(label:find("[Leon]", 1, true), "Figur fehlt: " .. label)
 assert(label:find("anderer Bereich: St1_102_0", 1, true), "Bereichshinweis fehlt: " .. label)
 assert(#prefabs == 0, "Puppe trotz anderem Bereich erzeugt")
 
+-- Neustart-Erkennung beim eigenen Spieler (anim.track)
+local anim_mod = require("re2r_coop.anim")
+local tracker = {}
+local L4p = player_motion.layers[4]
+L4p.bank, L4p.id, L4p.frame = 2, 1100, 10
+anim_mod.track(player_motion.obj, tracker)
+L4p.frame = 20
+anim_mod.track(player_motion.obj, tracker)
+assert(tracker[4].restart == 0, "Neustart ohne Zuruecksprung erkannt")
+L4p.frame = 1
+anim_mod.track(player_motion.obj, tracker)
+assert(tracker[4].restart == 1, "Neustart nicht erkannt")
+assert(anim_mod.read_layers(player_motion.obj, tracker).restart4 == 1, "Neustart nicht gesendet")
+-- schneller Schuss: 1 Bild 2/1120, dann wieder 2/1100 -> zwei Starts
+L4p.id = 1120
+anim_mod.track(player_motion.obj, tracker)
+L4p.id, L4p.frame = 1100, 0.5
+anim_mod.track(player_motion.obj, tracker)
+assert(tracker[4].restart == 3, "Schuss ueber 1120 nicht gezaehlt: " .. tracker[4].restart)
+L4p.bank, L4p.id, L4p.frame = 0, NO_MOTION, 0
+
 -- Gleicher Bereich -> Puppe (Leon-Actor) wird geladen, erzeugt und mitbewegt
-b:send("ANIM_BANKS", { banks_id = 42, main = "pl_common.motbank", dyn1 = "BareHand.motbank", dyn2 = "wp0000.motbank" }, true)
+b:send("ANIM_BANKS", { banks_id = 42, main = "pl_common.motbank", dyn1 = "BareHand.motbank", dyn2 = "wp0000.motbank",
+    weapon_mesh = "wp0000_VP70.mesh", weapon_mdf = "wp0000_VP70.mdf2", wqx = 0.5, wqy = 0.5, wqz = -0.5, wqw = -0.5 }, true)
 for i = 6, 12 do
     b:send("PLAYER_STATE", { seq = i, x = 4, y = 0, z = 6, qx = 0, qy = 1, qz = 0, qw = 0, area = "St1_101_0", character = 0 }, false)
     b:send("ANIM_STATE", { seq = i, banks_id = 42, bank0 = 1, motion0 = 230, frame0 = 7, interp0 = 20, imode0 = 3, icurve0 = 1,
@@ -350,6 +423,12 @@ local ghost_mod = require("re2r_coop.ghost")
 local q = { x = 0, y = 0, z = 0, w = 1 }
 ghost_mod.nlerp(q, { qx = 0, qy = 0, qz = 0, qw = -1 }, 0.5) -- gleiche Drehung, anderes Vorzeichen
 assert(q.w == 1, "nlerp nimmt nicht den kuerzeren Weg")
+-- Waffenmodell an der Hand der Puppe
+assert(#created_weapons == 1, "Waffenmodell nicht (oder mehrfach) erzeugt: " .. #created_weapons)
+local wpn = created_weapons[1]
+assert(wpn.mesh == "wp0000_VP70.mesh" and wpn.mdf == "wp0000_VP70.mdf2", "falsches Waffenmodell")
+assert(wpn.joint == "r_weapon" and wpn.parent ~= nil, "Waffe nicht an der Hand")
+assert(wpn.lrot.w == -0.5 and wpn.lrot.x == 0.5 and wpn.lrot.z == -0.5, "Waffe falsch gedreht")
 -- Animationsdateien und Ebenen uebernommen
 local pm = pup.motion
 assert(pm.asset and pm.asset:call("get_ResourcePath") == "pl_common.motbank", "Haupt-Bank fehlt")
@@ -370,8 +449,24 @@ sleep_ms(20)
 run_frame()
 assert(L0.id == 160 and L0.changes == 2 and pm.layers[3].id == 140 and pm.layers[2].changes == 1, "Animationswechsel nicht uebernommen")
 assert(pm.setups == 1, "Baenke ohne Aenderung neu geladen")
+-- Schuss auf Ebene 4, dann derselbe Schuss neu gestartet (restart4 zaehlt hoch)
+local function shot(seq, restart)
+    b:send("ANIM_STATE", { seq = seq, banks_id = 42, bank0 = 1, motion0 = 160, motion1 = NO_MOTION, bank2 = 10000, motion2 = 2,
+        bank3 = 2, motion3 = 140, bank4 = 2, motion4 = 1100, frame4 = 1, restart4 = restart, motion5 = NO_MOTION }, false)
+    b:update()
+    sleep_ms(20)
+    run_frame()
+end
+local L4 = pm.layers[4]
+local c4 = L4.changes
+shot(14, 0)
+assert(L4.id == 1100 and L4.changes == c4 + 1, "Schuss auf Ebene 4 nicht uebernommen")
+shot(15, 0)
+assert(L4.changes == c4 + 1, "Schuss ohne Neustart doppelt gestartet")
+shot(16, 1)
+assert(L4.changes == c4 + 2, "Neustart des Schusses nicht uebernommen")
 local st_text = require("re2r_coop.puppet").status_text(next(require("re2r_coop.puppet").instances))
-assert(st_text:find("animiert %(4 Wechsel, 0 x neu erzeugt%)"), "Animationsstatus falsch: " .. st_text)
+assert(st_text:find("animiert %(9 Wechsel, 0 x neu erzeugt%)"), "Animationsstatus falsch: " .. st_text)
 
 -- Anderer Bereich -> ausblenden, nicht loeschen
 b:send("PLAYER_STATE", { seq = 13, x = 4, y = 0, z = 6, qw = 1, area = "St1_102_0", character = 0 }, false)
@@ -395,6 +490,8 @@ assert(#spawned == 2 and spawned[2].draw == true, "Puppe nicht neu erzeugt")
 assert(#callbacks.reset == 1, "on_script_reset nicht registriert")
 callbacks.reset[1]()
 assert(spawned[2].destroyed, "Puppe nach Reset nicht geloescht")
+assert(wpn.destroyed, "Waffenmodell der alten Puppe nicht geloescht")
+assert(#created_weapons == 2 and created_weapons[2].destroyed, "Waffenmodell der neuen Puppe nicht erzeugt/geloescht")
 
 -- Chat
 b:send("CHAT", { text = "hallo leon" }, true)

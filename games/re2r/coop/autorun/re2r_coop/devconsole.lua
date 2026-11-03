@@ -13,6 +13,11 @@
 --   task(fn)        fn jeden Frame ausfuehren (bis fn false zurueckgibt oder task(nil))
 --   console.store   Tabelle, die zwischen Befehlen erhalten bleibt
 --   game            re2r_coop.game (Spielzugriff)
+--   camera(fn)      eigene Kamera: fn() liefert (position, ziel) als Vector3f,
+--                   wird jedes Bild vor "LockScene" angewendet. camera(nil) = aus.
+--                   Mit tools/spielfoto.ps1 kann Claude das Bild dann ansehen.
+--                   Bestaetigt am 3. November 2026: vor LockScene gesetzt wirkt
+--                   es, in BeginRendering nicht.
 
 local game = require("re2r_coop.game")
 
@@ -95,6 +100,7 @@ function M.run(id, code)
             end
         end,
         task = function(fn) current_task = fn end,
+        camera = function(fn) M.camera_view, M.camera_error = fn, nil end,
         console = M,
         game = game,
     }, { __index = _G })
@@ -156,6 +162,37 @@ function M.update(now)
     M.run(id, cmd.code)
 end
 
+-- Kamera auf pos richten, Blick auf tgt (RE-Engine-Kamera schaut entlang -Z).
+local function apply_camera()
+    if M.camera_view == nil then
+        return
+    end
+    local ok, err = pcall(function()
+        local pos, tgt = M.camera_view()
+        local cam = sdk.get_primary_camera()
+        local tr = cam:call("get_GameObject"):call("get_Transform")
+        tr:call("set_Position", pos)
+        local dx, dy, dz = tgt.x - pos.x, tgt.y - pos.y, tgt.z - pos.z
+        local len = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if len < 1e-4 then
+            return
+        end
+        local yaw = math.atan(-dx, -dz)
+        local pitch = math.asin(dy / len)
+        local cy, sy = math.cos(yaw / 2), math.sin(yaw / 2)
+        local cp, sp = math.cos(pitch / 2), math.sin(pitch / 2)
+        tr:call("set_Rotation", Quaternion.new(cy * cp, cy * sp, sy * cp, -sy * sp))
+    end)
+    if not ok then
+        M.camera_error = tostring(err)
+        M.camera_view = nil -- bei Fehlern aus, damit der Spieler wieder sieht
+    end
+end
+
+if re ~= nil and re.on_pre_application_entry ~= nil then
+    re.on_pre_application_entry("LockScene", apply_camera)
+end
+
 function M.status_text()
     if not M.enabled then
         return "aus"
@@ -163,6 +200,9 @@ function M.status_text()
     local s = string.format("an, %d Befehl(e) ausgefuehrt", M.run_count)
     if current_task then
         s = s .. ", Aufgabe laeuft"
+    end
+    if M.camera_view then
+        s = s .. ", eigene Kamera an"
     end
     return s
 end

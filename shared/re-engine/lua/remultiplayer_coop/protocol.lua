@@ -15,7 +15,7 @@
 local protocol = {}
 
 -- Muss bei beiden Spielern gleich sein, sonst wird die Verbindung abgelehnt.
-protocol.VERSION = 2 -- 2: ANIM_BANKS und ANIM_STATE
+protocol.VERSION = 3 -- 2: ANIM_BANKS und ANIM_STATE, 3: 6 Ebenen, Neustarts, Waffenmodell
 
 local messages = {
     -- Wird direkt nach dem Verbinden von beiden Seiten geschickt.
@@ -56,31 +56,22 @@ local messages = {
             { "banks_id", "I2" },   -- laufende Nummer des Satzes, ANIM_STATE verweist darauf
             { "main", "s1" },       -- Haupt-Bank
             { "dyn1", "s1" }, { "dyn2", "s1" }, { "dyn3", "s1" }, { "dyn4", "s1" }, -- weitere Baenke, "" = keine
+            -- Waffenmodell in der Hand ("" = keine) und sein Sitz relativ zum Handgelenk
+            { "weapon_mesh", "s1" }, { "weapon_mdf", "s1" },
+            { "wqx", "f" }, { "wqy", "f" }, { "wqz", "f" }, { "wqw", "f" },
+            { "wx", "f" }, { "wy", "f" }, { "wz", "f" },
         },
     },
-    -- Laufende Animationen der Ebenen 0..3, ca. 20x pro Sekunde (unreliable).
-    -- motion = 0xFFFFFFFF heisst: Ebene leer. interp/imode/icurve beschreiben
-    -- die Ueberblendung beim Wechsel (Dauer in Bildern, Art, Kurve).
+    -- Laufende Animationen der Ebenen 0..5, ca. 20x pro Sekunde (unreliable).
+    -- Felder je Ebene siehe anim_state_fields() unten. motion = 0xFFFFFFFF
+    -- heisst: Ebene leer. interp/imode/icurve beschreiben die Ueberblendung
+    -- beim Wechsel (Dauer in Bildern, Art, Kurve), restart zaehlt Neustarts
+    -- derselben Animation (z. B. Schuss nach Schuss).
     -- var1..var12 und bits: Steuer-Variablen der Animation (spielabhaengig,
     -- Bedeutung legt das Spielskript fest).
     ANIM_STATE = {
         id = 5,
-        fields = {
-            { "seq", "I4" },
-            { "banks_id", "I2" },
-            { "bank0", "I2" }, { "motion0", "I4" }, { "frame0", "f" },
-            { "interp0", "f" }, { "imode0", "B" }, { "icurve0", "B" },
-            { "bank1", "I2" }, { "motion1", "I4" }, { "frame1", "f" },
-            { "interp1", "f" }, { "imode1", "B" }, { "icurve1", "B" },
-            { "bank2", "I2" }, { "motion2", "I4" }, { "frame2", "f" },
-            { "interp2", "f" }, { "imode2", "B" }, { "icurve2", "B" },
-            { "bank3", "I2" }, { "motion3", "I4" }, { "frame3", "f" },
-            { "interp3", "f" }, { "imode3", "B" }, { "icurve3", "B" },
-            { "bits", "I4" },
-            { "var1", "f" }, { "var2", "f" }, { "var3", "f" }, { "var4", "f" },
-            { "var5", "f" }, { "var6", "f" }, { "var7", "f" }, { "var8", "f" },
-            { "var9", "f" }, { "var10", "f" }, { "var11", "f" }, { "var12", "f" },
-        },
+        fields = nil, -- wird unten erzeugt
     },
     -- Spielstand-Uebertragung (Join auf den Spielstand des Hosts), alles reliable.
     -- Der Mitspieler fragt an, der Host schickt SAVE_BEGIN und danach die Stuecke.
@@ -109,6 +100,24 @@ local messages = {
         },
     },
 }
+
+protocol.ANIM_LAYERS = 6
+
+local function anim_state_fields()
+    local fields = { { "seq", "I4" }, { "banks_id", "I2" } }
+    for i = 0, protocol.ANIM_LAYERS - 1 do
+        for _, f in ipairs({ { "bank", "I2" }, { "motion", "I4" }, { "frame", "f" }, { "interp", "f" },
+            { "imode", "B" }, { "icurve", "B" }, { "restart", "B" } }) do
+            fields[#fields + 1] = { f[1] .. i, f[2] }
+        end
+    end
+    fields[#fields + 1] = { "bits", "I4" }
+    for i = 1, 12 do
+        fields[#fields + 1] = { "var" .. i, "f" }
+    end
+    return fields
+end
+messages.ANIM_STATE.fields = anim_state_fields()
 
 protocol.MSG = {}
 local by_id = {}

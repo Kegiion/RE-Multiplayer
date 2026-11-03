@@ -12,7 +12,7 @@
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.7.0"
+local MOD_VERSION = "0.8.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -36,6 +36,7 @@ local savesync = require("re0hd_coop.savesync")
 local SEND_INTERVAL = 1 / 30 -- 30 Positionsupdates pro Sekunde
 local SWITCH_RETRY = 3.0     -- s zwischen zwei automatischen Figurwechseln
 local SWITCH_PRESS = 0.15    -- s, so lange wird V gedrueckt
+local DOOR_WALK_MAX = 5.0    -- s, so lange laeuft der Partner hoechstens zur Tuer, bevor er verschwindet
 local REMOTE_TIMEOUT = 1.0   -- s ohne Daten: Partner wieder der KI ueberlassen
 local SOLO_DELAY = 2.0       -- s Abstand beim Spur-Test allein
 
@@ -88,6 +89,7 @@ end)
 local coop = {
     puppet = Puppet.new(game, { delay = 0.2, adaptive = true }),
     solo = Puppet.new(game, { delay = SOLO_DELAY }),
+    door = Puppet.new(game, { delay = 0 }), -- laeuft zur Tuer, durch die der Mitspieler gegangen ist
     solo_active = false,  -- Spur-Test allein (nicht gespeichert)
     seq = 0,
     last_send = 0,
@@ -101,6 +103,8 @@ local coop = {
     switch_until = nil,   -- V wird gerade gedrueckt (bis zu diesem Zeitpunkt)
     last_switch = -100,
     switches = 0,
+    exit_point = nil,     -- letzte Position des Mitspielers in meinem Raum, bevor er ihn verlassen hat
+    away = nil,           -- Mitspieler in anderem Raum: { phase = "tuer"|"weg", since=, exit=, hide= }
 }
 
 -- Steuern beide dieselbe Figur (typisch direkt nach dem Join auf den Spielstand
@@ -130,6 +134,10 @@ session:on("PLAYER_STATE", function(s, peer, msg)
     end
     coop.remote_seq = msg.seq
     if coop.remote and coop.remote.area ~= msg.area then
+        -- Verlaesst er meinen Raum, ist seine letzte Position dort die Tuer
+        if coop.local_area and coop.remote.area == coop.local_area then
+            coop.exit_point = coop.remote
+        end
         coop.puppet:reset() -- Spur aus dem alten Raum gilt nicht mehr
     end
     coop.remote = msg
@@ -139,8 +147,59 @@ end)
 
 session:subscribe("peer_left", function()
     coop.remote, coop.remote_seq = nil, nil
+    coop.exit_point = nil
     coop.puppet:reset()
 end)
+
+-- Mitspieler ist in einem anderen Raum: Partner geht zur Tuer und verschwindet dort
+local function away_frame(now)
+    if not coop.away then
+        local exit = coop.exit_point
+        coop.exit_point = nil
+        coop.away = { phase = exit and "tuer" or "weg", since = now, exit = exit }
+        coop.door:reset()
+        if exit then
+            coop.door:push(exit, now)
+        end
+        session:log("Mitspieler ist in einem anderen Raum - Partner %s",
+            exit and "geht zur Tuer" or "wird ausgeblendet")
+    end
+    local away = coop.away
+    if away.phase == "tuer" then
+        coop.door:update(now)
+        if coop.door.mode == "stehen" or coop.door.mode == "warten" or now - away.since > DOOR_WALK_MAX then
+            away.phase = "weg"
+            coop.door:release()
+        end
+        return
+    end
+    -- versteckt: an der Stelle unter den Boden, wo er zuletzt stand
+    if not away.hide then
+        local p = game.read_state(game.partner_object())
+        if not p then
+            return
+        end
+        away.hide = { x = p.x, y = p.y, z = p.z }
+    end
+    game.hide_partner(away.hide.x, away.hide.y, away.hide.z)
+end
+
+-- Partner wieder sichtbar machen: an die Position des Mitspielers, falls er da
+-- ist, sonst neben die eigene Figur (z. B. Verbindung weg)
+local function end_away(target)
+    local away = coop.away
+    coop.away = nil
+    coop.door:release()
+    if not away or away.phase ~= "weg" or not away.hide then
+        return
+    end
+    local ls = coop.local_state
+    target = target or (ls and { x = ls.x + 60, y = ls.y, z = ls.z })
+    if target then
+        game.place_partner({ x = target.x, y = target.y, z = target.z, qx = target.qx, qy = target.qy,
+            qz = target.qz, qw = target.qw })
+    end
+end
 
 local function coop_frame(now)
     coop.local_state = game.get_local_state()
@@ -173,15 +232,28 @@ local function coop_frame(now)
     auto_switch_frame(now)
 
     if coop.solo_active then
+        if coop.away then
+            end_away(nil)
+        end
         coop.puppet:release()
         coop.solo:push(ls, now)
         coop.solo:update(now)
-    elseif config.puppet and remote_fresh and not coop.same_character and coop.same_room ~= false then
+    elseif config.puppet and remote_fresh and not coop.same_character and coop.same_room == false then
         coop.solo:release()
+        coop.puppet:release()
+        away_frame(now)
+    elseif config.puppet and remote_fresh and not coop.same_character then
+        coop.solo:release()
+        if coop.away then
+            end_away(coop.remote) -- wieder im selben Raum: am Mitspieler auftauchen
+        end
         coop.puppet:update(now)
     else
         coop.solo:release()
         coop.puppet:release()
+        if coop.away then
+            end_away(nil) -- Koop aus oder Verbindung weg: Partner zurueck neben mich
+        end
     end
 end
 
@@ -412,7 +484,8 @@ local function draw_coop_ui()
             CHARACTER_NAMES[coop.remote.character] or "?", remote_area, age))
     end
     if coop.same_room == false then
-        imgui.text("Ihr seid in verschiedenen Raeumen - dein Partner folgt solange der Spiel-KI.")
+        imgui.text("Ihr seid in verschiedenen Raeumen - dein Partner ist ausgeblendet ("
+            .. (coop.away and coop.away.phase == "tuer" and "geht zur Tuer" or "weg") .. ").")
     end
     if coop.same_character then
         if config.auto_switch and not session.is_host then

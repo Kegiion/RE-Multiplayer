@@ -2,6 +2,13 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.8.0
+
+- **Partner durch Türen:** Geht dein Mitspieler durch eine Tür, läuft dein Partner zu dieser Tür und verschwindet. Gehst du hinterher, taucht er im neuen Raum bei deinem Mitspieler wieder auf, ebenso wenn dein Mitspieler zu dir zurückkommt. Bricht die Verbindung ab, steht der Partner wieder neben dir.
+- **Automatischer Figurwechsel:** Nach dem Join steuert ihr nicht mehr beide dieselbe Figur. Beim Mitspieler wechselt die Mod automatisch mit V (im Menü abschaltbar).
+- **Flüssigere Bewegung übers Internet:** Der Puffer für die Bewegungen des Mitspielers passt sich an eure Verbindung an, kurze Aussetzer werden überbrückt. Positionen werden jetzt 30-mal pro Sekunde geschickt.
+- Im Menü stehen Paketabstand, Schwankung und Puffer der Verbindung.
+
 ## 0.6.0
 
 - **Join auf den Spielstand des Hosts:** Dein Mitspieler klickt im Menü auf „Spielstand vom Host holen“ und bekommt deinen zuletzt geladenen bzw. gespeicherten Platz. Er landet bei ihm in Platz 20 und lässt sich im Titelbildschirm ganz normal laden.

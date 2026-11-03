@@ -246,6 +246,14 @@ function game.place_partner(s)
     return true
 end
 
+-- Partner verstecken: so tief unter den Boden setzen, dass er nicht zu sehen ist
+-- (im Spiel bestaetigt am 3. November 2026: unsichtbar, kommt danach sauber zurueck).
+-- Jeden Frame aufrufen, sonst holt ihn die KI zurueck.
+game.HIDE_DEPTH = 3000
+function game.hide_partner(x, y, z)
+    return game.place_partner({ x = x, y = y - game.HIDE_DEPTH, z = z })
+end
+
 -- Blickrichtung der Kamera in der Ebene (Winkel wie bei der Figur: atan(dx, dz)) oder nil
 function game.camera_heading()
     if not game.supported then

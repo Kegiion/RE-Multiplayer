@@ -7,11 +7,12 @@
 --   remultiplayer_coop/*          gemeinsame Lua-Bibliothek (wie bei RE2)
 --   re0hd_coop/game.lua    RE0-spezifischer Zugriff auf Spieldaten (Figuren, Kamera, Partner-Tasten)
 --   re0hd_coop/puppet.lua  Partner als Puppe des Mitspielers (laeuft dessen Weg nach)
+--   re0hd_coop/savesync.lua Spielstand des Hosts uebertragen (Join)
 --   re0hd_coop/memtool.lua Speicher-Werkzeug fuer die Forschung
 --   re0hd_coop/explorer.lua MT-Explorer: Klassen und Objekte der Engine (Forschung)
 --   re0hd_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.5.0"
+local MOD_VERSION = "0.6.0"
 local CONFIG_FILE = "re0hd_coop_config.json"
 
 if coopnet == nil then
@@ -30,6 +31,7 @@ local memtool = require("re0hd_coop.memtool")
 local explorer = mt and require("re0hd_coop.explorer") -- mt.* gibt es ab Runtime 0.2.0
 local devconsole = require("re0hd_coop.devconsole")
 local Puppet = require("re0hd_coop.puppet")
+local savesync = require("re0hd_coop.savesync")
 
 local SEND_INTERVAL = 0.05   -- 20 Positionsupdates pro Sekunde
 local REMOTE_TIMEOUT = 1.0   -- s ohne Daten: Partner wieder der KI ueberlassen
@@ -44,6 +46,7 @@ local config = {
     watches = {}, -- { {name=, expr=, type=}, ... } fuer das Speicher-Werkzeug
     devconsole = false, -- Entwickler-Konsole fuer Claude
     puppet = true,      -- Mitspieler steuert den Partner
+    join_slot = 20,     -- Platz (1..20) fuer den Spielstand des Hosts
 }
 
 local function load_config()
@@ -154,6 +157,103 @@ local function coop_frame(now)
     end
 end
 
+-- --- Join auf den Spielstand des Hosts ---------------------------------------
+--
+-- Der Mitspieler fragt den Spielstand an (SAVE_REQUEST). Der Host schickt seinen
+-- zuletzt geladenen bzw. gespeicherten Platz. Die Mod legt ihn beim Mitspieler in
+-- config.join_slot und haelt ihn dort, bis er geladen ist: Das Spiel liest beim
+-- Laden die Datei neu ein, deshalb wird der Platz nach jedem Einlesen erneut
+-- geschrieben (im Spiel bestaetigt am 3. November 2026).
+
+local join = {
+    state = "idle",   -- idle, waiting, receiving, holding, done, error
+    text = "",
+    receiver = nil,
+    data = nil,
+    seen_title = false, -- schon im Titel/Ladebildschirm gewesen (keine Figur)?
+    transfer = 0,
+}
+
+local function join_fail(text)
+    join.state, join.text, join.receiver, join.data = "error", text, nil, nil
+    session:log("Spielstand: %s", text)
+end
+
+session:on("SAVE_REQUEST", function(s, peer)
+    local slot = game.current_save_slot()
+    local data = slot and game.read_save_slot(slot)
+    join.transfer = (join.transfer + 1) % 4294967296
+    if not data then
+        s:send("SAVE_BEGIN", { transfer = join.transfer, size = 0, chunks = 0, checksum = 0,
+            info = "Der Host hat noch keinen Spielstand geladen oder gespeichert." }, true, peer.id)
+        s:log("Spielstand angefragt, aber kein Platz geladen")
+        return
+    end
+    local info = string.format("Platz %d, %s", slot + 1, game.describe_save(data))
+    local begin, chunks = savesync.split(data, join.transfer, info)
+    s:send("SAVE_BEGIN", begin, true, peer.id)
+    for _, chunk in ipairs(chunks) do
+        s:send("SAVE_CHUNK", chunk, true, peer.id)
+    end
+    s:log("Spielstand an %s geschickt (%s)", peer.name or "?", info)
+end)
+
+session:on("SAVE_BEGIN", function(s, peer, msg)
+    if join.state ~= "waiting" then
+        return
+    end
+    if msg.size == 0 then
+        join_fail(msg.info)
+        return
+    end
+    if msg.size ~= game.SAVE_SLOT_SIZE then
+        join_fail(string.format("Spielstand hat falsche Groesse (%d Bytes) - andere Spielversion?", msg.size))
+        return
+    end
+    join.receiver = savesync.receiver(msg)
+    join.state, join.text = "receiving", msg.info
+end)
+
+session:on("SAVE_CHUNK", function(s, peer, msg)
+    if join.state ~= "receiving" or not join.receiver:add(msg) or not join.receiver:complete() then
+        return
+    end
+    local data, err = join.receiver:result()
+    if not data then
+        join_fail("Uebertragung fehlerhaft: " .. err)
+        return
+    end
+    join.data, join.receiver = data, nil
+    join.state, join.seen_title = "holding", false
+    s:log("Spielstand empfangen (%s), liegt in Platz %d", join.text, config.join_slot)
+end)
+
+local function join_request()
+    if not mem.write_bytes then
+        join_fail("Die Runtime ist zu alt (ab 0.4.0) - bitte ueber den Mod-Manager aktualisieren.")
+        return
+    end
+    join.state, join.text, join.data = "waiting", "", nil
+    session:send("SAVE_REQUEST", {}, true)
+end
+
+-- Jeden Frame: empfangenen Spielstand im Platz halten, bis er geladen ist
+local function join_frame()
+    if join.state ~= "holding" then
+        return
+    end
+    local slot = config.join_slot - 1
+    if not game.save_slot_matches(slot, join.data) then
+        game.write_save_slot(slot, join.data)
+    end
+    if coop.local_state == nil then
+        join.seen_title = true
+    elseif join.seen_title and game.current_save_slot() == slot then
+        join.state, join.data = "done", nil
+        session:log("Spielstand des Hosts geladen")
+    end
+end
+
 local last_error = nil
 local function report_error(text)
     if text ~= last_error then -- jede Meldung nur einmal
@@ -176,6 +276,10 @@ re.on_frame(function()
         report_error("Koop: " .. tostring(err))
         coop.puppet:release()
         coop.solo:release()
+    end
+    ok, err = pcall(join_frame)
+    if not ok then
+        report_error("Spielstand: " .. tostring(err))
     end
 end)
 
@@ -304,6 +408,50 @@ local function draw_coop_ui()
     end
 end
 
+local function draw_join_ui()
+    if not game.supported then
+        return
+    end
+    imgui.text("Spielstand des Hosts (Join):")
+    if not session:is_active() or #session:ready_peers() == 0 then
+        imgui.text("  Erst verbinden. Der Host schickt seinen zuletzt geladenen bzw. gespeicherten Platz.")
+    elseif join.state == "idle" or join.state == "done" or join.state == "error" then
+        if imgui.button("Spielstand vom Host holen") then
+            join_request()
+        end
+        imgui.same_line()
+        imgui.text(string.format("(kommt in Platz %d)", config.join_slot))
+    end
+    local changed, text = imgui.input_text("Platz fuer den Host-Spielstand (1-20)", tostring(config.join_slot))
+    if changed then
+        local n = tonumber(text)
+        if n and n >= 1 and n <= game.SAVE_SLOTS then
+            config.join_slot = math.floor(n)
+            save_config()
+        end
+    end
+    if join.state == "waiting" then
+        imgui.text("  Warte auf den Host ...")
+    elseif join.state == "receiving" then
+        imgui.text(string.format("  Empfange %s: %d von %d", join.text, join.receiver.count, join.receiver.begin.chunks))
+    elseif join.state == "holding" then
+        imgui.text_colored(string.format("  Empfangen: %s", join.text), 0xFF40FF40)
+        imgui.text(string.format("  Jetzt: Titelbildschirm -> Spiel laden -> Platz %d laden.", config.join_slot))
+        imgui.text("  Der Platz wird nur im Speicher ersetzt. Speicherst du danach, landet er in deiner Spielstand-Datei.")
+        if imgui.button("Abbrechen") then
+            join.state, join.data = "idle", nil
+        end
+    elseif join.state == "done" then
+        imgui.text_colored("  Spielstand des Hosts geladen.", 0xFF40FF40)
+    elseif join.state == "error" then
+        imgui.text_colored("  Fehler: " .. join.text, 0xFF4040FF)
+    end
+    local slot = game.current_save_slot()
+    if slot then
+        imgui.text(string.format("Dein aktueller Platz: %d (das schickst du als Host)", slot + 1))
+    end
+end
+
 local function write_diag(status)
     local label = ui.diag_label:gsub("[^%w_%-]", "_")
     if label == "" then
@@ -390,6 +538,8 @@ re.on_draw_ui(function()
         draw_status_ui(status)
         imgui.separator()
         draw_coop_ui()
+        imgui.separator()
+        draw_join_ui()
         imgui.separator()
 
         local changed

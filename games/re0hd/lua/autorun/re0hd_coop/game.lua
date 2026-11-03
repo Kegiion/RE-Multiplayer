@@ -103,6 +103,112 @@ function game.room_id()
     return room_cache.id
 end
 
+-- ---- Spielstaende -------------------------------------------------------------
+-- Bestaetigt am 3. November 2026 (Programmcode und Test im Spiel, Details in
+-- games/re0hd/research/README.md): sSaveManager + 20 -> cSaveManager. Dort liegen
+-- zwei unverschluesselte Abbilder der Spielstand-Datei data0.bin:
+--   +23A718 Datei-Abbild (wird beim Laden aus der Datei gelesen, beim Speichern geschrieben)
+--   +18     zuletzt uebernommener Stand
+-- In beiden: +B0 + Platz * 1C850 = Platz (0..19, im Menue 1..20).
+-- Beim Spielstart uebernimmt das Spiel den Platz aus dem Datei-Abbild (0x6127D0).
+local SAVEMANAGER_INSTANCE = 0x00DCC018 -- statischer Zeiger auf sSaveManager
+local OFF_SAVE_CURRENT = 0x24           -- sSaveManager: zuletzt geladener/gespeicherter Platz
+local OFF_CSAVEMANAGER = 0x20
+local SAVE_IMAGES = { 0x23A718, 0x18 }
+local OFF_SLOTS = 0xB0
+local GAMEINFO_INSTANCE = 0x00DCBE9C    -- statischer Zeiger auf sGameInfo
+local OFF_PLAYTIME = 0x3C               -- sGameInfo: Spielzeit in Bildern (60 pro Sekunde)
+
+game.SAVE_SLOT_SIZE = 0x1C850
+game.SAVE_SLOTS = 20
+
+local function save_manager()
+    if not game.supported then
+        return nil
+    end
+    local ssm = mem.read_u32(SAVEMANAGER_INSTANCE)
+    if not ssm or ssm == 0 then
+        return nil
+    end
+    local csm = mem.read_u32(ssm + OFF_CSAVEMANAGER)
+    if not csm or csm == 0 then
+        return nil
+    end
+    return ssm, csm
+end
+
+local function slot_address(csm, image, slot)
+    return csm + image + OFF_SLOTS + slot * game.SAVE_SLOT_SIZE
+end
+
+-- Zuletzt geladener bzw. gespeicherter Platz (0-basiert) oder nil
+function game.current_save_slot()
+    local ssm = save_manager()
+    local slot = ssm and mem.read_u32(ssm + OFF_SAVE_CURRENT)
+    if slot and slot < game.SAVE_SLOTS then
+        return slot
+    end
+    return nil
+end
+
+-- Platz als String (aus dem Datei-Abbild) oder nil
+function game.read_save_slot(slot)
+    local _, csm = save_manager()
+    if not csm or not mem.read_bytes then
+        return nil
+    end
+    local data = mem.read_bytes(slot_address(csm, SAVE_IMAGES[1], slot), game.SAVE_SLOT_SIZE)
+    if not data or string.unpack("<I4", data, 5) & 0xFF == 0 then
+        return nil -- leerer Platz
+    end
+    return data
+end
+
+-- Platz in beiden Abbildern ueberschreiben (nur im Speicher)
+function game.write_save_slot(slot, data)
+    local _, csm = save_manager()
+    if not csm or not mem.write_bytes or #data ~= game.SAVE_SLOT_SIZE then
+        return false
+    end
+    local ok = true
+    for _, image in ipairs(SAVE_IMAGES) do
+        ok = mem.write_bytes(slot_address(csm, image, slot), data) and ok
+    end
+    return ok
+end
+
+-- Stimmt der Platz in beiden Abbildern (Kopf und Spielzeit) mit data ueberein?
+function game.save_slot_matches(slot, data)
+    local _, csm = save_manager()
+    if not csm then
+        return false
+    end
+    local head = data:sub(1, 0x20)
+    for _, image in ipairs(SAVE_IMAGES) do
+        if mem.read_bytes(slot_address(csm, image, slot), 0x20) ~= head then
+            return false
+        end
+    end
+    return true
+end
+
+-- Kurzbeschreibung eines Platzes: Anzahl Speicherungen und Spielzeit
+function game.describe_save(data)
+    local count = string.unpack("<I4", data, 0x18 + 1)
+    local frames = string.unpack("<f", data, 0x1C + 1)
+    local minutes = math.floor(frames / 3600)
+    return string.format("%d. Speicherung, Spielzeit %d:%02d", count, minutes // 60, minutes % 60)
+end
+
+-- Laufende Spielzeit in Bildern oder nil
+function game.playtime()
+    if not game.supported then
+        return nil
+    end
+    local gi = mem.read_u32(GAMEINFO_INSTANCE)
+    return gi and gi ~= 0 and mem.read_f32(gi + OFF_PLAYTIME) or nil
+end
+
 -- Sind beide im selben Raum? true/false, oder nil, wenn ein Raum unbekannt ist
 -- ("" = Mitspieler kennt seinen Raum nicht)
 function game.same_room(a, b)

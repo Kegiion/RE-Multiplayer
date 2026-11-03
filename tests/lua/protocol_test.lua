@@ -45,6 +45,16 @@ assert(msg.x == 0 and msg.area == "")
 msg = assert(protocol.decode(protocol.encode("CHAT", { text = string.rep("x", 300) })))
 assert(#msg.text == 255)
 
+-- Spielstand-Stueck: s2 traegt bis 65535 Bytes, laengeres wird gekuerzt
+local blob = string.rep("\0\1\255", 3000)
+msg = assert(protocol.decode(protocol.encode("SAVE_CHUNK", { transfer = 7, index = 3, data = blob })))
+assert(msg.transfer == 7 and msg.index == 3 and msg.data == blob, "SAVE_CHUNK falsch")
+msg = assert(protocol.decode(protocol.encode("SAVE_CHUNK", { data = string.rep("y", 70000) })))
+assert(#msg.data == 65535)
+msg = assert(protocol.decode(protocol.encode("SAVE_BEGIN", { transfer = 1, size = 116816, chunks = 15, checksum = 0xDEADBEEF, info = "Platz 3" })))
+assert(msg.size == 116816 and msg.chunks == 15 and msg.checksum == 0xDEADBEEF and msg.info == "Platz 3")
+assert(protocol.decode(protocol.encode("SAVE_REQUEST", {})).type == "SAVE_REQUEST")
+
 -- Kaputte Daten
 assert(protocol.decode("") == nil)
 assert(protocol.decode("\250") == nil)

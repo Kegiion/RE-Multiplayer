@@ -265,4 +265,48 @@ memory[0x8000] = 0x00C10100            -- Raumwechsel: andere Klasse an derselbe
 assert(game.room_id() == "Tr04", "Raumwechsel nicht erkannt")
 assert(game.same_room("Tr04", "Tr04") == true and game.same_room("Tr04", "Tr02") == false)
 assert(game.same_room("Tr04", "") == nil and game.same_room(nil, "Tr04") == nil)
+
+-- ---- Spielstand: aufteilen, zusammensetzen, in Plaetze schreiben ---------------
+local savesync = require("re0hd_coop.savesync")
+assert(savesync.adler32("Wikipedia") == 0x11E60398, "Adler-32 falsch")
+local save = {}
+for i = 1, game.SAVE_SLOT_SIZE do save[i] = string.char((i * 7) % 256) end
+save = table.concat(save)
+save = save:sub(1, 4) .. string.char(1) .. save:sub(6) -- Platz belegt
+local begin, chunks = savesync.split(save, 42, "Platz 3")
+assert(begin.chunks == 15 and begin.size == game.SAVE_SLOT_SIZE and #chunks == 15)
+local rx = savesync.receiver(begin)
+for i = #chunks, 1, -1 do assert(rx:add(chunks[i])) end -- umgekehrte Reihenfolge
+assert(not rx:add({ transfer = 41, index = 0, data = "" }), "fremde Uebertragung angenommen")
+assert(rx:result() == save, "Zusammensetzen falsch")
+local broken = savesync.receiver(begin)
+for i = 1, #chunks do broken:add({ transfer = 42, index = chunks[i].index, data = chunks[i].data:upper() }) end
+assert(broken:result() == nil, "kaputte Daten nicht erkannt")
+
+-- Plaetze im Fake-Speicher (Byte-Bloecke)
+local blocks = {}
+mem.read_bytes = function(a, n)
+    for base, d in pairs(blocks) do
+        if a >= base and a + n <= base + #d then return d:sub(a - base + 1, a - base + n) end
+    end
+end
+mem.write_bytes = function(a, d)
+    for base, old in pairs(blocks) do
+        if a >= base and a + #d <= base + #old then
+            blocks[base] = old:sub(1, a - base) .. d .. old:sub(a - base + #d + 1); return true
+        end
+    end
+    return false
+end
+memory[0x00DCC018] = 0x9000            -- sSaveManager
+memory[0x9000 + 0x20] = 0x100000       -- cSaveManager
+memory[0x9000 + 0x24] = 2              -- aktueller Platz: 3
+blocks[0x100000] = string.rep("\0", 0x23A718 * 2)
+assert(game.current_save_slot() == 2)
+assert(game.read_save_slot(2) == nil, "leerer Platz")
+assert(game.write_save_slot(2, save))
+assert(game.read_save_slot(2) == save and game.save_slot_matches(2, save))
+assert(game.read_save_slot(1) == nil, "Nachbarplatz veraendert")
+assert(mem.read_bytes(0x100000 + 0x18 + 0xB0 + 2 * game.SAVE_SLOT_SIZE, 8) == save:sub(1, 8), "zweites Abbild fehlt")
+assert(game.describe_save(save):find("Speicherung"))
 print("re0hd_mock_test: alles ok")

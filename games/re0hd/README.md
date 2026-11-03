@@ -49,15 +49,17 @@ Die Lua-API ist der von REFramework nachgebaut (`re.on_frame`, `re.on_draw_ui`, 
    - Im Menü sollte „Mitspieler: …“ erscheinen. Ohne den Parameter `re0hd` meldet sich der Bot als RE2-Spieler, dann ist „falsches Spiel“ im Log richtig.
 6. Spiel beenden und `remultiplayer\remultiplayer_re0.log` an Claude geben (bzw. nach `games/re0hd/research/` kopieren).
 
-## Koop spielen (Stand Lua 0.4.0, Geister-Koop)
+## Koop spielen (Stand Mod 0.6.0)
 
-Beide brauchen RE0 HD in derselben Version mit derselben Mod. Ihr spielt jeweils euer eigenes Spiel, ladet aber **denselben Punkt** (z. B. beide ein neues Spiel oder derselbe Spielstand). Spielstände übertragen kommt später.
+Beide brauchen RE0 HD in derselben Version mit derselben Mod (Mod-Manager). Jeder spielt in seinem eigenen Spiel, aber vom **selben Spielstand** aus.
 
-1. Einer klickt im Menü unter „RE0 Koop“ auf **Hosten**. Der andere trägt die IP des Hosts ein und klickt auf **Beitreten**. Der Host muss UDP-Port 27350 freigeben, falls ihr nicht im selben Netz seid.
-2. Jeder steuert eine **andere** Figur: Einer wechselt mit **V** auf Billy. Das Menü warnt, wenn ihr beide dieselbe Figur steuert.
-3. In jedem Spiel läuft jetzt der Partner dem Weg des Mitspielers nach. Die KI des Partners ist dann ausgeschaltet.
+1. Der Host speichert an einer Schreibmaschine oder lädt einen Spielstand. Diesen Platz bekommt der Mitspieler.
+2. Der Host klickt im Menü unter „RE0 Koop“ auf **Hosten**. Der Mitspieler trägt die IP des Hosts ein und klickt auf **Beitreten**. Außerhalb des eigenen Netzes: virtuelles LAN (z. B. Tailscale) oder UDP-Port 27350 im Router freigeben.
+3. **Join auf den Spielstand des Hosts:** Der Mitspieler klickt auf **„Spielstand vom Host holen“**. Die Mod legt ihn in Platz 20 (einstellbar) und hält ihn dort. Danach im Titelbildschirm **Spiel laden → Platz 20**. Der Platz wird nur im Arbeitsspeicher ersetzt; speichert der Mitspieler danach, landet er auch in seiner Spielstand-Datei.
+4. Jeder steuert eine **andere** Figur: Einer wechselt mit **V** auf Billy. Das Menü warnt, wenn ihr beide dieselbe Figur steuert.
+5. In jedem Spiel läuft jetzt der Partner dem Weg des Mitspielers nach. Seid ihr in verschiedenen Räumen, übernimmt die Spiel-KI den Partner.
 
-**Einschränkungen:** Bleibt vorerst im selben Raum. Gegner, Items und Türen werden noch nicht abgeglichen.
+**Einschränkungen:** Gegner, Items und Türen werden noch nicht abgeglichen. Der Mitspieler bekommt den letzten gespeicherten Stand, nicht den Fortschritt seit dem Speichern.
 
 **Allein testen:** Haken bei **„Spur-Test allein“** setzen. Dann läuft dir der Partner mit 2 Sekunden Abstand auf deinem eigenen Weg nach, genau wie später beim Mitspieler.
 

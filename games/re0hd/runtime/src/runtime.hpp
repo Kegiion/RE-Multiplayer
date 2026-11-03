@@ -11,7 +11,7 @@ class Session;
 namespace remultiplayer {
 
 // Bei jeder Aenderung an der Runtime erhoehen (Lua-Skripte haben eigene Versionen).
-constexpr const char* kRuntimeVersion = "0.3.1";
+constexpr const char* kRuntimeVersion = "0.4.0";
 
 // Git-Commit des Builds (von CMake gesetzt), damit man im Spiel sieht, welcher Build laeuft.
 #ifndef REMULTIPLAYER_BUILD_ID

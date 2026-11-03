@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <string>
 #include <type_traits>
 
 #include "coop/net/lua_bindings.hpp"
@@ -386,6 +387,29 @@ int l_mem_read_string(lua_State* L) {
     return 1;
 }
 
+// mem.read_bytes(addr, n) -> string | nil (ganzer Block oder nichts)
+int l_mem_read_bytes(lua_State* L) {
+    const uintptr_t addr = check_addr(L, 1);
+    const auto n = static_cast<size_t>(luaL_checkinteger(L, 2));
+    luaL_argcheck(L, n <= 16u * 1024 * 1024, 2, "hoechstens 16 MB");
+    std::string buf(n, '\0');
+    if (!safe_read(buf.data(), addr, n)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    lua_pushlstring(L, buf.data(), buf.size());
+    return 1;
+}
+
+// mem.write_bytes(addr, string) -> bool
+int l_mem_write_bytes(lua_State* L) {
+    const uintptr_t addr = check_addr(L, 1);
+    size_t n = 0;
+    const char* data = luaL_checklstring(L, 2, &n);
+    lua_pushboolean(L, safe_write(addr, data, n));
+    return 1;
+}
+
 int l_mem_readable(lua_State* L) {
     const uintptr_t addr = check_addr(L, 1);
     const auto size = static_cast<size_t>(luaL_optinteger(L, 2, 1));
@@ -557,6 +581,8 @@ void register_api(lua_State* L) {
         {"read_f64", l_mem_read<double>},
         {"read_ptr", l_mem_read<uintptr_t>},
         {"read_string", l_mem_read_string},
+        {"read_bytes", l_mem_read_bytes},
+        {"write_bytes", l_mem_write_bytes},
         {"write_u8", l_mem_write<uint8_t>},
         {"write_u16", l_mem_write<uint16_t>},
         {"write_u32", l_mem_write<uint32_t>},

@@ -9,7 +9,8 @@
 --   2. Falls sich bestehende Nachrichten aendern: VERSION erhoehen.
 --
 -- Formatzeichen (siehe Lua-Handbuch, string.pack):
---   B = uint8, I2 = uint16, I4 = uint32, f = float32, s1 = String bis 255 Bytes
+--   B = uint8, I2 = uint16, I4 = uint32, f = float32, s1 = String bis 255 Bytes,
+--   s2 = String bis 65535 Bytes
 
 local protocol = {}
 
@@ -81,6 +82,32 @@ local messages = {
             { "var9", "f" }, { "var10", "f" }, { "var11", "f" }, { "var12", "f" },
         },
     },
+    -- Spielstand-Uebertragung (Join auf den Spielstand des Hosts), alles reliable.
+    -- Der Mitspieler fragt an, der Host schickt SAVE_BEGIN und danach die Stuecke.
+    SAVE_REQUEST = {
+        id = 6,
+        fields = {
+            { "reserved", "B" },
+        },
+    },
+    SAVE_BEGIN = {
+        id = 7,
+        fields = {
+            { "transfer", "I4" },   -- Kennung der Uebertragung
+            { "size", "I4" },       -- Gesamtgroesse in Bytes, 0 = Host hat keinen Spielstand
+            { "chunks", "I2" },
+            { "checksum", "I4" },   -- Adler-32 der Daten
+            { "info", "s1" },       -- Beschreibung fuer die Anzeige (spielabhaengig)
+        },
+    },
+    SAVE_CHUNK = {
+        id = 8,
+        fields = {
+            { "transfer", "I4" },
+            { "index", "I2" },      -- 0-basiert
+            { "data", "s2" },       -- bis 65535 Bytes
+        },
+    },
 }
 
 protocol.MSG = {}
@@ -109,8 +136,9 @@ function protocol.encode(msg_name, data)
         local value = data[field[1]]
         if field[2]:sub(1, 1) == "s" then
             value = tostring(value or "")
-            if #value > 255 then
-                value = value:sub(1, 255)
+            local max = (1 << (8 * tonumber(field[2]:sub(2)))) - 1
+            if #value > max then
+                value = value:sub(1, max)
             end
         else
             value = tonumber(value) or 0

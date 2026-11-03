@@ -66,6 +66,17 @@ Klassen: `uPlayerRebecca` bzw. `uPlayerBilly`, beide erben von `uPlayerBase` →
 
 **Aktueller Raum** (bestätigt am 2. November 2026): Bei `0x00E2D8C0` (= `re0hd.exe+A2D8C0`) steht der Zeiger auf `sGameArea`. Dort bei `+3834` steht das aktuelle Raum-Objekt, bei `+3830` die Stufe (`aStageTr`), bei `+382C` ein weiteres Objekt (unklar). Die **Klasse des Raum-Objekts ist die Raum-Kennung**: `aRoomTr02` = Flur im Zug, `aRoomTr04` = Raum 201 (Test des Users). Das Objekt bleibt beim Raumwechsel an derselben Adresse, nur seine Klasse (vtable) wechselt. Stufen laut Klassenliste: `Bt`, `Ch`, `Dm`, `Pl`, `Sh`, `Tr` (Tr = Zug, die übrigen unbestätigt). Weitere Klassen rund um Räume: `sRoomControl` (Zeiger bei `0x00DCBEB4`), `sDoorLoad` (`0x00DCBEB8`), `cRoomScheduler`, `cRoomPhase*`.
 
+## Spielstände (bestätigt am 3. November 2026)
+
+- Datei: `<Steam>\userdata\<Konto>\339340\remote\data0.bin` (Steam Cloud, 2.337.008 Bytes). Verschlüsselt mit einer 8-Byte-Blockchiffre (vermutlich Blowfish ECB, die Konstanten stehen in der exe). Der Schlüssel ist nicht gefunden, der Text `mc=#sA0)Mhs9#>/4iiXbMPxW` neben `data0.bin` ist es allein nicht. Für den Join nicht nötig.
+- Die `.text`-Section der exe ist auf der Festplatte verschlüsselt (SteamStub, Section `.bind`). Für die Analyse wurde sie aus dem laufenden Spiel ausgelesen.
+- `sSaveManager` (Zeiger bei `0x00DCC018`): `+20` = `cSaveManager`, `+24` = zuletzt geladener bzw. gespeicherter Platz (0..19).
+- `cSaveManager`: `+4` Befehl, `+8` Schritt, `+C` Ergebnis, `+10` Parameter (Platz). Die Befehle laufen pro Frame über `0x6133D0`. Beim Laden im Titelbildschirm: Befehl 6 (Parameter 24), danach Befehl 5 mit dem Platz (liest die Datei neu ein).
+- Zwei unverschlüsselte Abbilder der Datei: `+23A718` (Datei-Abbild) und `+18` (zuletzt übernommen). Aufbau: `+0` VERSION (4 Bytes), `+8` SYSTEMDATA (`0xA8`), ab `+B0` 20 Plätze zu je `0x1C850` Bytes (`GAMEDATA0` bis `GAMEDATA19`, im Menü 1 bis 20). Die Einträge von `sSavedata` (`0x00E2ED20`, Tabelle ab `+78`, sortiert nach CRC des Namens) zeigen in das Datei-Abbild.
+- Platz: `+4` Byte 1 = belegt, `+18` Anzahl Speicherungen (im Menü „Rebecca/02/…“), `+1C` Spielzeit als float in Bildern (60 pro Sekunde), ab `+38` Flags (wie `sFlagManager+24`).
+- `0x6127D0(Platz)` übernimmt einen Platz: Es kopiert ihn vom Datei-Abbild ins zweite Abbild und verteilt ihn an `sGameInfo`, `sFlagManager`, `sPlayer` usw. Aufgerufen beim Spielstart über `0x405460`.
+- **Join-Test:** Wird der Platz im Datei-Abbild nach jedem Neu-Einlesen wieder überschrieben, lädt das Spiel den fremden Stand (Platz 3 mit dem Stand von Platz 1 geladen: Spielzeit 7,1 statt 19,5 Minuten).
+
 **Hinweis:** Der MT-Explorer findet pro Klasse zusätzlich Objekte mit einer vtable 8 Bytes vor der echten (z. B. `0x00CCFD08` statt `0x00CCFD10`). Das sind keine Spielerobjekte. Das echte Objekt erkennt man an der Position bei `+040`.
 
 ## Aus der exe und der Konfiguration (statisch, noch nicht im Speicher geprüft)

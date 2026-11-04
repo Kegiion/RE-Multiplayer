@@ -139,9 +139,16 @@
                     <TextBlock DockPanel.Dock="Right" Text="{Binding ManagerVersionText}" Foreground="{StaticResource TextMutedBrush}"
                                VerticalAlignment="Center" />
                     <!-- Sprache: Automatisch (Windows) oder fest, wird gespeichert -->
-                    <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding Languages}" DisplayMemberPath="Display"
+                    <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding Languages}"
                               SelectedValuePath="Code" SelectedValue="{Binding LanguageChoice}"
-                              ToolTip="{l:T header.languageTip}" Margin="0,-4,18,-4" VerticalAlignment="Center" />
+                              ToolTip="{l:T header.languageTip}" Margin="0,-4,18,-4" VerticalAlignment="Center">
+                        <!-- ItemTemplate statt DisplayMemberPath: das eigene Template zeigt sonst den Typnamen -->
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Display}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                     <TextBlock Text="{Binding Status}" Foreground="{StaticResource TextMutedBrush}" TextTrimming="CharacterEllipsis"
                                Margin="0,0,16,0" VerticalAlignment="Center" />
                 </DockPanel>

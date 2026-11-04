@@ -6,6 +6,7 @@
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
         FontFamily="Segoe UI" FontSize="13" UseLayoutRounding="True">
+    <Grid Background="{StaticResource BgBrush}">
     <Grid Margin="28,22,20,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -20,5 +21,6 @@
                                   HorizontalScrollBarVisibility="Disabled" IsToolBarVisible="False" />
         <Button Grid.Row="2" Content="{l:T notes.close}" Style="{StaticResource BaseButton}" HorizontalAlignment="Right"
                 Margin="0,14,8,0" IsCancel="True" IsDefault="True" Click="Close_Click" />
+    </Grid>
     </Grid>
 </Window>

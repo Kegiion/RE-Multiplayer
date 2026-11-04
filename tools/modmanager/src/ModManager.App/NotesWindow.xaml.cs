@@ -41,6 +41,7 @@ public partial class NotesWindow : Window
             Foreground = (Brush)Application.Current.FindResource("TextBrush"),
             Background = Brushes.Transparent,
             PagePadding = new Thickness(0, 0, 12, 0),
+            TextAlignment = TextAlignment.Left,
         };
         if (releases.Count == 0)
         {

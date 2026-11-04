@@ -260,6 +260,13 @@ local function on_decide(v)
             set_mode("mp", "multiplayer")
             return true
         end
+        -- Nach "Reset Scripts" im Untermenue steht noch unsere alte Liste im
+        -- Spiel. Den Wert nicht ans Spiel geben (sonst ist das Menue weg,
+        -- 4. November 2026), sondern das Hauptmenue neu oeffnen.
+        if v >= M.ROW_BASE then
+            set_mode("main", "alte Zeile nach Reset")
+            return true
+        end
         return false
     end
     if v == M.CANCEL then

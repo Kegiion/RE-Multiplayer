@@ -608,6 +608,31 @@ do
     assert(partner.prefab_path(255) == nil and not partner.has(1))
 end
 
+-- Titel-Fenster: nur im Titelbildschirm (MainState 3)
+do
+    local windows = 0
+    imgui.begin_window = function() windows = windows + 1; return true end
+    imgui.end_window = function() windows = windows - 1 end
+    imgui.get_display_size = function() return { x = 1920, y = 1080 } end
+    imgui.set_next_window_pos = function() end
+    Vector2f = { new = function(x, y) return { x = x, y = y } end }
+    local main = 6
+    local mfm = { get_field = function(_, f) assert(f == "_CurrentMainState", f); return main end }
+    local old_singleton = sdk.get_managed_singleton
+    sdk.get_managed_singleton = function(n)
+        if n == "app.ropeway.gamemastering.MainFlowManager" then return mfm end
+        return old_singleton(n)
+    end
+    ui_texts = {}
+    run_frame()
+    assert(not find_text("Mehr Einstellungen"), "Titel-Fenster im Spiel sichtbar")
+    main = 3
+    run_frame()
+    assert(find_text("Mehr Einstellungen"), "Titel-Fenster fehlt im Titelbildschirm")
+    assert(windows == 0, "begin_window/end_window ungleich")
+    sdk.get_managed_singleton = old_singleton
+end
+
 -- Fehler im Spielzugriff duerfen das Skript nicht abschiessen
 sdk.get_managed_singleton = function() error("kaputt") end
 run_frame()

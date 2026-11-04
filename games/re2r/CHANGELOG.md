@@ -2,6 +2,12 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.10.0
+
+- **Beitreten geht jetzt auch aus dem Titelmenü**, auch aus „Kampagne → Spiel laden“. Vorher lud das Spiel zwar, aber die Menüs blieben über dem Spiel stehen, und man kam scheinbar nicht weiter. Jetzt werden sie nach dem Laden ausgeblendet. Danach funktioniert auch der Weg zurück in den Titel wieder normal.
+- Wer noch keinen Spielstand geladen hat, bekommt den Stand des Hosts über seinen neuesten Speicherplatz.
+- **Multiplayer-Fenster im Titelbildschirm:** Unten rechts kannst du direkt Namen, IP und Port eingeben, hosten und beitreten, ohne das Einfg-Menü. Abschaltbar mit dem Haken „Multiplayer-Fenster im Titelbildschirm“.
+
 ## 0.9.1
 
 - Wer im Titelmenü beitritt, wird nicht mehr automatisch geladen (dabei kam man nicht ins Spiel). Stattdessen steht im Menü „Lade zuerst einen eigenen Spielstand“, danach geht es von selbst weiter.

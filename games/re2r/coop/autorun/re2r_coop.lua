@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.9.1"
+local MOD_VERSION = "0.10.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -60,6 +60,7 @@ local config = {
     show_debug = false,
     devconsole = false, -- Entwickler-Konsole fuer Claude
     auto_join = true, -- beim Beitreten automatisch den Spielstand des Hosts laden
+    title_window = true, -- Multiplayer-Fenster im Titelbildschirm
 }
 
 local function load_config()
@@ -307,6 +308,8 @@ local function frame()
     end
 end
 
+local draw_title_window -- Titel-Fenster, weiter unten
+
 re.on_frame(function()
     local ok, err = pcall(devconsole.update, session:time())
     if not ok then
@@ -315,6 +318,10 @@ re.on_frame(function()
     ok, err = pcall(frame)
     if not ok then
         report_error("frame", err)
+    end
+    ok, err = pcall(draw_title_window)
+    if not ok then
+        report_error("titelfenster", err)
     end
 end)
 
@@ -443,6 +450,59 @@ local function draw_join_ui(status)
     end
 end
 
+-- --- Multiplayer-Fenster im Titelbildschirm ------------------------------
+--
+-- Wie bei RE0: Wer das Einfg-Menue nicht kennt, findet im Titelbildschirm
+-- (MainState 3) unten rechts ein Fenster zum Hosten und Beitreten.
+-- Bestaetigt am 4. November 2026: Das Fenster erscheint im Titelbildschirm.
+-- UNBESTAETIGT: ob es bei geschlossenem Overlay Mausklicks bekommt.
+
+local TITLE_WINDOW_FLAGS = 2 | 32 | 64 | 256 -- NoResize, NoCollapse, AlwaysAutoResize, NoSavedSettings
+local GREEN = 0xFF60E060 -- ABGR
+local YELLOW = 0xFF40E0FF
+local GREY = 0xFFB0B0B0
+
+draw_title_window = function()
+    if not config.title_window or savejoin.main_state() ~= savejoin.MAIN_TITLE then
+        return
+    end
+    local size = imgui.get_display_size and imgui.get_display_size()
+    if size and imgui.set_next_window_pos then
+        imgui.set_next_window_pos(Vector2f.new(size.x - 24, size.y - 24), 1, Vector2f.new(1, 1))
+    end
+    if not imgui.begin_window("RE:Multiplayer - Koop fuer Resident Evil 2", nil, TITLE_WINDOW_FLAGS) then
+        imgui.end_window()
+        return
+    end
+    -- end_window muss auch bei Fehlern im Inhalt kommen
+    local ok, err = pcall(function()
+        local status = session:status()
+        draw_connection_ui(status)
+        imgui.separator()
+        local text = MODE_TEXT[status.mode] or status.mode
+        if status.mode == "hosting" then
+            text = text .. string.format(" (Port %d)", config.port)
+        end
+        imgui.text_colored(text, status.mode == "connected" and GREEN or YELLOW)
+        if status.error then
+            imgui.text_colored("Fehler: " .. status.error, 0xFF4040FF)
+        end
+        for _, peer in ipairs(status.peers or {}) do
+            local p = session.peers[peer.id]
+            imgui.text(string.format("Mitspieler: %s  (Ping %d ms)", p and p.name or "...", peer.rtt))
+        end
+        if session.is_host and #session:ready_peers() > 0 then
+            imgui.text("Lade jetzt deinen Spielstand. Dein Freund kommt automatisch nach.")
+        end
+        draw_join_ui(status)
+        imgui.text_colored("Mehr Einstellungen: Taste Einfg -> RE2 Koop", GREY)
+    end)
+    imgui.end_window()
+    if not ok then
+        error(err, 0)
+    end
+end
+
 local function draw_debug_ui(status)
     local changed
     changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
@@ -450,6 +510,8 @@ local function draw_debug_ui(status)
     changed, config.show_puppets = imgui.checkbox("Mitspieler als Spielfigur anzeigen", config.show_puppets)
     if changed then save_config() end
     changed, config.real_partner = imgui.checkbox("VERSUCH: Mitspieler als echte Spielfigur (vorher speichern!)", config.real_partner)
+    if changed then save_config() end
+    changed, config.title_window = imgui.checkbox("Multiplayer-Fenster im Titelbildschirm", config.title_window)
     if changed then save_config() end
     changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
     if changed then save_config() end

@@ -1,16 +1,20 @@
 # RE:Multiplayer
 
-Unsere Mods für die Resident-Evil-Reihe. Das Hauptziel ist ein **Koop-Multiplayer durch die Story**, zuerst für **Resident Evil 2 Remake**, später für weitere Teile.
+Koop-Multiplayer-Mods für die Resident-Evil-Reihe. Das Ziel: gemeinsam zu zweit durch die Story. Zuerst für **Resident Evil 2 Remake**, später für weitere Teile.
 
-> **Stand:** Meilenstein 1 („Geister-Spieler“) ist geschrieben und automatisch getestet, aber **noch nicht im echten Spiel ausprobiert**. Als Nächstes kommt der erste Test im Spiel, siehe [games/re2r/README.md](games/re2r/README.md).
+> **Stand:** Der RE2-Koop läuft im Spiel, ist aber noch in Arbeit (Menü, Positionssync, sichtbarer Mitspieler, Beitreten auf den Stand des Hosts). Ein erster Test mit einem Freund über zwei PCs hat funktioniert. Vieles fehlt noch (Gegner, Items, Kämpfe), siehe [Roadmap](docs/ROADMAP.md).
 
 ## Was gibt es?
 
 | Mod | Spiel | Status |
 |---|---|---|
-| [RE2 Koop](games/re2r/README.md) | Resident Evil 2 (2019) | Meilenstein 1: Mitspieler wird als Markierung angezeigt |
-| [Mod-Manager](tools/modmanager/README.md) | alle | Eine exe zum Installieren, Aktualisieren und Deinstallieren aller Mods |
-| [RE0 Koop](games/re0hd/README.md) | Resident Evil 0 HD Remaster | Schritt 1: eigene Runtime mit Menü, Lua und Netzwerk (Spieldaten noch unbekannt) |
+| [RE2 Koop](games/re2r/README.md) | Resident Evil 2 (2019) | In Arbeit, spielbar im Test. Mitspieler als sichtbare Figur, Beitreten auf den Stand des Hosts, Menüeintrag „Multiplayer“ im Titelmenü, Deutsch und Englisch |
+| [Mod-Manager](tools/modmanager/README.md) | alle | Eine exe zum Installieren, Aktualisieren und Deinstallieren der Mods, Deutsch und Englisch (Version 1.2.0 ist auf `main`, veröffentlicht ist 1.1.1) |
+| [RE0 Koop](games/re0hd/README.md) | Resident Evil 0 HD Remaster | Lief im Spiel (Geister-Koop, Stand 0.5.0), **ruht** gerade |
+
+## Installieren
+
+Lade den **Mod-Manager** (`RE-Multiplayer.exe`) unter [Releases](../../releases) herunter. Er findet deine Spiele, installiert die Mods und hält sie aktuell. Die Mods brauchen eine eigene Kopie des Spiels (Steam) und sind nur für den Koop mit Freunden gedacht.
 
 ## Projektaufbau
 

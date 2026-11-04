@@ -36,6 +36,7 @@
         "remultiplayer/remultiplayer_re0.log"
       ],
       "hint": "Im Spiel öffnet Einfg oder F8 das Menü. Unter „RE0 Koop“ kannst du hosten oder beitreten.",
+      "hints": { "en": "In the game, Insert or F8 opens the menu. Under “RE0 Koop” you can host or join." },
       "legacyInstalledMarkers": [
         "remods/remods_re0.dll"
       ],
@@ -90,6 +91,7 @@
         "re2_framework_log.txt"
       ],
       "hint": "Im Spiel öffnet Einfg das REFramework-Menü. Dort unter „Script Generated UI“ → „RE2 Koop“.",
+      "hints": { "en": "In the game, Insert opens the REFramework menu. The co-op mod is under “Script Generated UI” → “RE2 Koop”." },
       "legacyInstalledMarkers": [
         "reframework/plugins/remods_coopnet.dll"
       ],

@@ -7,7 +7,8 @@ namespace REMultiplayer.ModManager;
 ///   --install &lt;spiel&gt; --path &lt;ordner&gt; --package &lt;zip&gt; [--version x]   ohne Fenster (Tests in der CI)
 ///   --uninstall &lt;spiel&gt; --path &lt;ordner&gt;                                ohne Fenster
 ///   --resume install:&lt;spiel&gt; [--path &lt;ordner&gt;]                         nach Neustart als Administrator
-///   --screenshot &lt;png&gt; [--demo] [--size 920x660]                       Bild des Fensters speichern
+///   --screenshot &lt;png&gt; [--demo] [--notes] [--size 920x660]             Bild des Fensters (bzw. der Patch Notes) speichern
+///   --lang &lt;code&gt;                                                      Sprache nur fuer diesen Start (z. B. en)
 /// </summary>
 public sealed class CommandLine
 {
@@ -19,6 +20,8 @@ public sealed class CommandLine
     public string? Resume { get; private set; }
     public string? Screenshot { get; private set; }
     public bool Demo { get; private set; }
+    public bool Notes { get; private set; }
+    public string? Lang { get; private set; }
     public int Width { get; private set; } = 920;
     public int Height { get; private set; } = 660;
 
@@ -40,6 +43,8 @@ public sealed class CommandLine
                 case "--resume": c.Resume = Next(); break;
                 case "--screenshot": c.Screenshot = Next(); break;
                 case "--demo": c.Demo = true; break;
+                case "--notes": c.Notes = true; break;
+                case "--lang": c.Lang = Next(); break;
                 case "--size":
                     var parts = (Next() ?? "").Split('x');
                     if (parts.Length == 2

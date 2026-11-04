@@ -1,6 +1,21 @@
 # Patch Notes: RE:Multiplayer Mod-Manager
 
 Neueste Version oben. Der Release-Workflow übernimmt den Abschnitt `## <Version>` (Version aus `Directory.Build.props`).
+Ab 1.2.0 zweisprachig: unter `## <Version>` die Unterabschnitte `### Deutsch` und `### English` (Format siehe `README.md`).
+
+## 1.2.0
+
+### Deutsch
+
+- **Deutsch und Englisch.** Der Manager spricht jetzt Deutsch und Englisch, auch in Meldungen, Fehlertexten und beim Fehlerbericht. Die Sprache richtet sich nach Windows (Deutsch, sonst Englisch) und lässt sich unten rechts umstellen.
+- **Patch Notes in deiner Sprache.** Neue Patch Notes gibt es auf Deutsch und Englisch, der Manager zeigt die passende Sprache. Ältere Patch Notes bleiben wie sie sind.
+- Weitere Sprachen lassen sich später ohne Programmänderung ergänzen.
+
+### English
+
+- **German and English.** The manager now speaks German and English, including messages, error texts and the bug report. The language follows Windows (German, otherwise English) and can be changed at the bottom right.
+- **Patch notes in your language.** New patch notes come in German and English, the manager shows the matching one. Older patch notes stay as they are (German).
+- More languages can be added later without changing the program.
 
 ## 1.1.1
 

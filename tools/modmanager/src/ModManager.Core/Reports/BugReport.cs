@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
+using REMultiplayer.ModManager.Core.Localization;
 
 namespace REMultiplayer.ModManager.Core.Reports;
 
@@ -46,7 +47,7 @@ public static partial class BugReport
     {
         var baseUrl = $"https://github.com/{repo}/issues/new?title={Uri.EscapeDataString(title)}&body=";
         var url = baseUrl + Uri.EscapeDataString(body);
-        const string cut = "\n\n… (gekürzt, alles steht in der ZIP-Datei)";
+        var cut = "\n\n" + L.T("report.truncated");
         while (url.Length > maxLength && body.Length > 0)
         {
             body = body[..(int)(body.Length * 0.85)];

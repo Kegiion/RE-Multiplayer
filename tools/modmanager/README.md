@@ -18,6 +18,7 @@ Der Manager braucht keine Installation und kein .NET, alles steckt in der exe (c
 | Pfad | Inhalt |
 |---|---|
 | `games.json` | Liste der unterstützten Spiele (Steam-App-ID, exe, Tag-Präfix, Dateien, Logs). Wird in die exe eingebaut. Zusätzlich lädt der Manager beim Start die aktuelle Fassung aus `main`, neue Spiele brauchen also keine neue exe (solange `schema` gleich bleibt). |
+| `lang/*.json` | Texte der Oberfläche, eine Datei pro Sprache (`de.json`, `en.json`). Werden in die exe eingebaut, siehe „Sprachen“. |
 | `src/ModManager.Core` | Logik ohne Oberfläche (.NET 10, läuft auch unter Linux): Steam-Suche (Registry, `libraryfolders.vdf`, `appmanifest_*.acf`), Versionen, GitHub-Releases, Installieren/Deinstallieren, Fehlerbericht, Selbst-Update |
 | `src/ModManager.App` | WPF-Oberfläche (`net10.0-windows`), Befehlszeile, Neustart als Administrator |
 | `tests/ModManager.Tests` | xUnit-Tests für den Kern |
@@ -38,10 +39,53 @@ Der Manager braucht keine Installation und kein .NET, alles steckt in der exe (c
 ```text
 RE-Multiplayer.exe --install re0hd --path "<Spielordner>" --package <zip> [--version x.y.z]
 RE-Multiplayer.exe --uninstall re0hd --path "<Spielordner>"
-RE-Multiplayer.exe --screenshot bild.png [--demo] [--size 920x660]
+RE-Multiplayer.exe --screenshot bild.png [--demo] [--notes] [--size 920x660] [--lang en]
 ```
 
-Exit-Codes ohne Fenster: 0 ok, 1 Fehler, 2 Administratorrechte nötig, 3 falscher Aufruf. Das Log liegt unter `%LOCALAPPDATA%\RE-Multiplayer\manager.log`, die Einstellungen in `settings.json` daneben.
+`--lang` setzt die Sprache nur für diesen Start, `--notes` fotografiert das Patch-Notes-Fenster mit Beispieltexten. Exit-Codes ohne Fenster: 0 ok, 1 Fehler, 2 Administratorrechte nötig, 3 falscher Aufruf. Das Log liegt unter `%LOCALAPPDATA%\RE-Multiplayer\manager.log`, die Einstellungen in `settings.json` daneben.
+
+## Sprachen
+
+Der Manager startet in der Windows-Sprache, wenn es dafür eine Sprachdatei gibt, sonst auf Englisch. Unten rechts lässt sich die Sprache fest einstellen („Automatisch“ folgt wieder Windows). Die Wahl steht als `language` in `settings.json`.
+
+Alle sichtbaren Texte stehen in `lang/<code>.json`:
+
+```json
+{
+  "code": "fr",
+  "name": "Français",
+  "notesHeadings": ["French", "Französisch"],
+  "dateFormat": "d MMMM yyyy",
+  "strings": { "card.uninstall": "Désinstaller", "...": "..." }
+}
+```
+
+- **Neue Sprache:** `en.json` kopieren, `code` (ISO 639-1), `name` (in der Sprache selbst) und die Texte übersetzen, als `lang/<code>.json` ablegen. Jede Datei in `lang/` wird automatisch eingebaut und erscheint in der Auswahl, Code ist dafür nicht nötig. Fehlende Texte kommen aus Englisch.
+- Ohne neue exe: Dateien in `%LOCALAPPDATA%\RE-Multiplayer\lang\` lädt der Manager beim Start zusätzlich (gut zum Testen einer Übersetzung).
+- `{0}`, `{1}` … sind Platzhalter und müssen in jeder Sprache vorkommen. Der Test `AllLanguagesHaveTheSameKeysAndPlaceholders` prüft das, `EveryKeyUsedInCodeExists` prüft, dass jeder Schlüssel aus dem Code in den Dateien steht.
+- Spielhinweise nach dem Installieren: `hint` in `games.json` ist Deutsch, `hints` enthält weitere Sprachen (`{ "en": "..." }`).
+
+## Patch Notes zweisprachig
+
+Gilt für `games/<spiel>/CHANGELOG.md` und `tools/modmanager/CHANGELOG.md`. Unter `## <Version>` stehen Unterabschnitte pro Sprache:
+
+```markdown
+## 1.2.0
+
+### Deutsch
+
+- **Neu:** …
+
+### English
+
+- **New:** …
+```
+
+- Die Überschrift muss genau der Sprachname aus der Sprachdatei sein (`Deutsch`, `English`), Groß- und Kleinschreibung egal. Der Code (`de`, `en`) oder ein Eintrag aus `notesHeadings` (`German`, `Englisch`) geht auch.
+- Innerhalb eines Sprachabschnitts weitere Überschriften erst ab `####`, sonst endet der Abschnitt bzw. die Überschrift gilt als Text für alle.
+- Text vor dem ersten Sprachabschnitt zeigt der Manager in jeder Sprache.
+- Der Manager zeigt die eingestellte Sprache, fehlt sie, Englisch, dann Deutsch. Abschnitte ohne Sprach-Unterabschnitte (alle Releases vor dieser Regel) zeigt er unverändert.
+- `release-meta.ps1` übernimmt den ganzen Abschnitt `## <Version>` (beide Sprachen) in das GitHub-Release, da ändert sich nichts. Ältere Manager (bis 1.1.1) zeigen beide Sprachen untereinander.
 
 ## Releases (für Entwickler)
 

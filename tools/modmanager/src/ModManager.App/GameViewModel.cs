@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Localization;
 
 namespace REMultiplayer.ModManager;
 
@@ -38,18 +39,21 @@ public sealed class GameViewModel : ObservableObject
         RaiseAll();
     }
 
+    /// <summary>Alle Texte neu lesen (nach einem Sprachwechsel).</summary>
+    public void Relocalize() => RaiseAll();
+
     public string Name => Def.Name;
 
     public GameStatusKind Kind => State.Kind;
 
-    public string FolderText => State.Dir ?? "Spielordner nicht gefunden. Über „Ordner wählen“ angeben, wo das Spiel liegt.";
+    public string FolderText => State.Dir ?? L.T("card.folderMissing");
 
     public string StatusText => Kind switch
     {
-        GameStatusKind.NotFound => "Nicht gefunden",
-        GameStatusKind.NotInstalled => "Nicht installiert",
-        GameStatusKind.UpdateAvailable => "Update verfügbar",
-        _ => "Installiert",
+        GameStatusKind.NotFound => L.T("state.notFound"),
+        GameStatusKind.NotInstalled => L.T("state.notInstalled"),
+        GameStatusKind.UpdateAvailable => L.T("state.updateAvailable"),
+        _ => L.T("state.installed"),
     };
 
     public string VersionText
@@ -57,20 +61,20 @@ public sealed class GameViewModel : ObservableObject
         get
         {
             var installed = !State.Installed ? "–"
-                : State.InstalledVersion?.ToString() ?? "unbekannt";
+                : State.InstalledVersion?.ToString() ?? L.T("version.unknown");
             var latest = State.Latest != null
-                ? State.Latest.Version + (State.Latest.Prerelease ? " (Beta)" : "")
-                : State.ReleaseError != null ? "nicht abrufbar"
-                : "noch keine veröffentlicht";
-            return $"Installiert: {installed}     Neueste: {latest}";
+                ? State.Latest.Prerelease ? L.T("version.beta", State.Latest.Version) : State.Latest.Version.ToString()
+                : State.ReleaseError != null ? L.T("version.unavailable")
+                : L.T("version.noneYet");
+            return L.T("version.line", installed, latest);
         }
     }
 
     public string PrimaryText => Kind switch
     {
-        GameStatusKind.UpdateAvailable => "Aktualisieren",
-        GameStatusKind.Installed => "Neu installieren",
-        _ => "Installieren",
+        GameStatusKind.UpdateAvailable => L.T("action.update"),
+        GameStatusKind.Installed => L.T("action.reinstall"),
+        _ => L.T("action.install"),
     };
 
     /// <summary>Roter Knopf, wenn es etwas zu tun gibt.</summary>
@@ -87,18 +91,16 @@ public sealed class GameViewModel : ObservableObject
             var hints = new List<string>();
             if (State.Dir != null && !State.ExeSupported)
             {
-                var ts = State.ExeTimestamp is { } t ? $"0x{t:X8}" : "unbekannt";
-                hints.Add($"Deine {Def.Exe} hat eine andere Version (Zeitstempel {ts}) als die, für die die Mod gebaut ist. "
-                          + "Das Menü funktioniert, der Koop bleibt aber eventuell aus.");
+                var ts = State.ExeTimestamp is { } t ? $"0x{t:X8}" : L.T("version.unknown");
+                hints.Add(L.T("hint.exeVersion", Def.Exe, ts));
             }
             if (State.Installed && State.Record == null)
             {
-                hints.Add("Nicht über den Manager installiert, deshalb ist die Version unbekannt. "
-                          + "Nach dem nächsten Aktualisieren kennt der Manager sie.");
+                hints.Add(L.T("hint.notManaged"));
             }
             if (State.Dir != null && Def.Framework != null && !State.FrameworkPresent)
             {
-                hints.Add($"{Def.Framework.Name} fehlt noch. Es wird beim Installieren automatisch mitinstalliert.");
+                hints.Add(L.T("hint.frameworkMissing", Def.Framework.Name));
             }
             return string.Join("\n", hints);
         }

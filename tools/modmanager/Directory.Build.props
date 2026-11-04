@@ -3,7 +3,7 @@
        <Version> ist die Manager-Version. Bei jeder Aenderung erhoehen und
        tools/modmanager/CHANGELOG.md ergaenzen (Release-Workflow liest beides). -->
   <PropertyGroup>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Product>RE:Multiplayer Mod-Manager</Product>
     <Company>RE:Multiplayer</Company>
     <Copyright>MIT-Lizenz</Copyright>

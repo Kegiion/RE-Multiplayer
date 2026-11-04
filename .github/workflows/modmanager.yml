@@ -59,10 +59,19 @@ jobs:
         run: |
           $exe = (Resolve-Path dist/RE-Multiplayer/RE-Multiplayer.exe).Path
           $dir = Join-Path $pwd 'dist/bilder'
-          foreach ($shot in @('demo-920x660', 'demo-720x500', 'echt-920x660')) {
-            $parts = $shot.Split('-')
-            $argList = "--screenshot `"$dir/$shot.png`" --size $($parts[1])"
-            if ($parts[0] -eq 'demo') { $argList += ' --demo' }
+          # Deutsch und Englisch (englische Texte sind oft laenger), Hauptfenster und Patch Notes
+          $shots = [ordered]@{
+            'de-demo-920x660'  = '--demo --size 920x660 --lang de'
+            'de-demo-720x500'  = '--demo --size 720x500 --lang de'
+            'de-notes-640x560' = '--demo --notes --size 640x560 --lang de'
+            'en-demo-920x660'  = '--demo --size 920x660 --lang en'
+            'en-demo-720x500'  = '--demo --size 720x500 --lang en'
+            'en-notes-640x560' = '--demo --notes --size 640x560 --lang en'
+            'en-notes-420x300' = '--demo --notes --size 420x300 --lang en'
+            'en-echt-920x660'  = '--size 920x660 --lang en'
+          }
+          foreach ($shot in $shots.Keys) {
+            $argList = "--screenshot `"$dir/$shot.png`" $($shots[$shot])"
             $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
             if ($p.ExitCode -ne 0) {
               Get-Content (Join-Path $env:LOCALAPPDATA 'RE-Multiplayer/manager.log') -ErrorAction SilentlyContinue | Select-Object -Last 30

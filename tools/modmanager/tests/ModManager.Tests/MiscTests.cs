@@ -68,7 +68,7 @@ public class BugReportTests
 
         var longUrl = BugReport.BuildIssueUrl("Kegiion/RE-Multiplayer", "t", new string('ä', 20000));
         Assert.True(longUrl.Length <= BugReport.MaxUrlLength);
-        Assert.Contains(Uri.EscapeDataString("gekürzt"), longUrl);
+        Assert.Contains(Uri.EscapeDataString("\n\n…"), longUrl); // Kuerzungshinweis (Text je nach Sprache)
     }
 
     [Fact]

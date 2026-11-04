@@ -1,3 +1,5 @@
+using REMultiplayer.ModManager.Core.Localization;
+
 namespace REMultiplayer.ModManager.Core.Install;
 
 /// <summary>
@@ -28,7 +30,7 @@ public static class GamePaths
     }
 
     public static string Normalize(string relative) =>
-        TryNormalize(relative, out var n) ? n : throw new InstallException($"Ungültiger Pfad im Paket: {relative}");
+        TryNormalize(relative, out var n) ? n : throw new InstallException(L.T("error.invalidPackagePath", relative));
 
     /// <summary>Voller Pfad im Spielordner. Wirft, wenn der Pfad aus dem Ordner herausfuehrt.</summary>
     public static string Resolve(string root, string relative)
@@ -38,7 +40,7 @@ public static class GamePaths
         var full = Path.GetFullPath(Path.Combine(rootFull, n.Replace('/', Path.DirectorySeparatorChar)));
         if (!full.StartsWith(rootFull + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InstallException($"Ungültiger Pfad im Paket: {relative}");
+            throw new InstallException(L.T("error.invalidPackagePath", relative));
         }
         return full;
     }

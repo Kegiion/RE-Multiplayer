@@ -11,6 +11,9 @@ public sealed class ManagerSettings
 
     public bool IncludePrereleases { get; set; }
 
+    /// <summary>Sprachcode ("de", "en", ...). Leer = Windows-Sprache.</summary>
+    public string? Language { get; set; }
+
     public static ManagerSettings Load(string file)
     {
         try

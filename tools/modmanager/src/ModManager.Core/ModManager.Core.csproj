@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\games.json" LogicalName="games.json" />
+    <!-- Sprachen: jede Datei in tools/modmanager/lang wird eingebaut, neue Sprache = neue Datei -->
+    <EmbeddedResource Include="..\..\lang\*.json" LogicalName="lang/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

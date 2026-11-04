@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using REMultiplayer.ModManager.Core.Games;
+using REMultiplayer.ModManager.Core.Localization;
 
 namespace REMultiplayer.ModManager.Core.Install;
 
@@ -67,7 +68,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
         }
         catch (IOException e)
         {
-            throw new InstallException("Im Spielordner kann nicht geschrieben werden: " + e.Message, false, e);
+            throw new InstallException(L.T("error.noWrite", e.Message), false, e);
         }
     }
 
@@ -92,7 +93,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
             }
             if (entries.Count == 0)
             {
-                throw new InstallException("Das Paket ist leer.");
+                throw new InstallException(L.T("error.emptyPackage"));
             }
             // Alle Ziele vorab pruefen, damit ein kaputtes Paket gar nichts schreibt
             foreach (var (_, rel) in entries)
@@ -361,7 +362,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
             var entry = zip.Entries.FirstOrDefault(e =>
                             GamePaths.TryNormalize(e.FullName, out var n) && n.Equals(rel, StringComparison.OrdinalIgnoreCase))
                         ?? zip.Entries.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                        ?? throw new InstallException($"Im {fw.Name}-Paket fehlt {file}.");
+                        ?? throw new InstallException(L.T("error.frameworkFileMissing", fw.Name, file));
             var target = Full(rel);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             entry.ExtractToFile(target, overwrite: true);
@@ -400,7 +401,7 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
     }
 
     private static InstallException NeedsAdmin(Exception e) =>
-        new("Für den Spielordner werden Administratorrechte benötigt.", true, e);
+        new(L.T("error.needsAdmin"), true, e);
 
     private static T Run<T>(Func<T> action)
     {
@@ -415,15 +416,15 @@ public sealed class ModInstaller(GameDefinition game, string gameDir)
         catch (IOException e) when (IsSharingViolation(e))
         {
             throw new InstallException(
-                "Eine Datei wird gerade benutzt. Läuft das Spiel noch? Bitte beenden und erneut versuchen.", false, e);
+                L.T("error.fileInUse"), false, e);
         }
         catch (InvalidDataException e)
         {
-            throw new InstallException("Das Paket ist beschädigt: " + e.Message, false, e);
+            throw new InstallException(L.T("error.packageDamaged", e.Message), false, e);
         }
         catch (IOException e)
         {
-            throw new InstallException("Fehler beim Schreiben: " + e.Message, false, e);
+            throw new InstallException(L.T("error.writeFailed", e.Message), false, e);
         }
     }
 

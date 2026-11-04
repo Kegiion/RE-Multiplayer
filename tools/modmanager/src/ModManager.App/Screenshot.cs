@@ -8,7 +8,7 @@ namespace REMultiplayer.ModManager;
 /// <summary>Speichert den Fensterinhalt als PNG, ohne das Fenster anzuzeigen (Sichtpruefung in der CI).</summary>
 public static class Screenshot
 {
-    public static void Save(MainWindow window, string file, int width, int height)
+    public static void Save(Window window, string file, int width, int height)
     {
         var root = (FrameworkElement)window.Content;
         var size = new Size(width, height);

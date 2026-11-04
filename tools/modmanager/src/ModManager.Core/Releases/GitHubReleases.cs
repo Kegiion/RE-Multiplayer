@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using REMultiplayer.ModManager.Core.Localization;
 
 namespace REMultiplayer.ModManager.Core.Releases;
 
@@ -127,25 +128,25 @@ public sealed class GitHubClient : IDisposable
         }
         catch (HttpRequestException e)
         {
-            throw new GitHubException("GitHub ist nicht erreichbar. Besteht eine Internetverbindung?", e);
+            throw new GitHubException(L.T("error.githubUnreachable"), e);
         }
         catch (TaskCanceledException e) when (!outer.IsCancellationRequested)
         {
-            throw new GitHubException("GitHub antwortet nicht (Zeitüberschreitung).", e);
+            throw new GitHubException(L.T("error.githubTimeout"), e);
         }
         using (resp)
         {
             if (resp.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new GitHubException("Keine Releases gefunden (Repo nicht gefunden oder nicht öffentlich).");
+                throw new GitHubException(L.T("error.githubNoReleases"));
             }
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests)
             {
-                throw new GitHubException("GitHub hat zu viele Anfragen gezählt. Bitte in einer Stunde erneut versuchen.");
+                throw new GitHubException(L.T("error.githubRateLimit"));
             }
             if (!resp.IsSuccessStatusCode)
             {
-                throw new GitHubException($"GitHub meldet einen Fehler ({(int)resp.StatusCode}).");
+                throw new GitHubException(L.T("error.githubStatus", (int)resp.StatusCode));
             }
             try
             {
@@ -154,7 +155,7 @@ public sealed class GitHubClient : IDisposable
             }
             catch (JsonException e)
             {
-                throw new GitHubException("Unerwartete Antwort von GitHub.", e);
+                throw new GitHubException(L.T("error.githubUnexpected"), e);
             }
         }
     }
@@ -170,7 +171,7 @@ public sealed class GitHubClient : IDisposable
             || uri.Scheme != Uri.UriSchemeHttps
             || !uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
         {
-            throw new GitHubException($"Unerwartete Download-Adresse: {asset.DownloadUrl}");
+            throw new GitHubException(L.T("error.downloadUrl", asset.DownloadUrl));
         }
 
         var part = destFile + ".part";
@@ -179,7 +180,7 @@ public sealed class GitHubClient : IDisposable
             using var resp = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!resp.IsSuccessStatusCode)
             {
-                throw new GitHubException($"Download von {asset.Name} fehlgeschlagen ({(int)resp.StatusCode}).");
+                throw new GitHubException(L.T("error.downloadFailed", asset.Name, (int)resp.StatusCode));
             }
             var total = resp.Content.Headers.ContentLength ?? asset.Size;
             using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -203,7 +204,7 @@ public sealed class GitHubClient : IDisposable
 
             if (asset.Size > 0 && written != asset.Size)
             {
-                throw new GitHubException($"{asset.Name} ist unvollständig angekommen. Bitte erneut versuchen.");
+                throw new GitHubException(L.T("error.downloadIncomplete", asset.Name));
             }
             if (!string.IsNullOrEmpty(asset.Digest)
                 && asset.Digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
@@ -212,18 +213,18 @@ public sealed class GitHubClient : IDisposable
                 var actual = Convert.ToHexString(sha.GetHashAndReset());
                 if (!actual.Equals(expected, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new GitHubException($"Die Prüfsumme von {asset.Name} stimmt nicht. Download verworfen.");
+                    throw new GitHubException(L.T("error.downloadChecksum", asset.Name));
                 }
             }
             File.Move(part, destFile, overwrite: true);
         }
         catch (HttpRequestException e)
         {
-            throw new GitHubException($"Download von {asset.Name} abgebrochen. Besteht eine Internetverbindung?", e);
+            throw new GitHubException(L.T("error.downloadAborted", asset.Name), e);
         }
         catch (TaskCanceledException e) when (!ct.IsCancellationRequested)
         {
-            throw new GitHubException($"Download von {asset.Name} abgebrochen (Zeitüberschreitung).", e);
+            throw new GitHubException(L.T("error.downloadTimeout", asset.Name), e);
         }
         finally
         {

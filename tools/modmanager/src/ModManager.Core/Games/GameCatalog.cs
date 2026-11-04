@@ -58,7 +58,18 @@ public sealed class GameDefinition
 
     public List<string> Logs { get; set; } = [];
 
+    /// <summary>Hinweis nach dem Installieren (Deutsch).</summary>
     public string? Hint { get; set; }
+
+    /// <summary>Hinweis in weiteren Sprachen, Schluessel = Sprachcode. Alte Manager ignorieren das Feld.</summary>
+    public Dictionary<string, string> Hints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Hinweis in der Sprache code, sonst Englisch, sonst der deutsche Hint.</summary>
+    public string? HintFor(string code) =>
+        Hints.GetValueOrDefault(code)
+        ?? (code.Equals("de", StringComparison.OrdinalIgnoreCase) ? Hint : null)
+        ?? Hints.GetValueOrDefault("en")
+        ?? Hint;
 
     public bool IsExeSupported(uint? timestamp)
     {

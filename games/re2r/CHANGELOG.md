@@ -2,6 +2,16 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.2
+
+### Deutsch
+
+- Die Meldungen beim Beitreten (Spielstand des Hosts holen, empfangen, einspielen, automatisch laden) sind jetzt auch auf Englisch da und wechseln beim Umschalten der Sprache sofort mit.
+
+### English
+
+- The messages while joining (getting, receiving, applying and automatically loading the host's save) are now available in English too and follow a language switch right away.
+
 ## 0.11.1
 
 ### Deutsch

@@ -7,6 +7,8 @@ sdk = {} -- game.lua fragt sdk.game_namespace ab; Spielzugriffe sind hier ersetz
 local Session = require("remultiplayer_coop.session")
 local transfer = require("remultiplayer_coop.transfer")
 local savejoin = require("re2r_coop.savejoin")
+local i18n = require("remultiplayer_coop.i18n")
+assert(i18n.set_setting("de")) -- Meldungen unten auf Deutsch geprueft
 local PORT = 47941
 
 -- Ein Spielstand, gross genug fuer mehrere Stuecke
@@ -73,6 +75,11 @@ savejoin.on_load(fake_list)
 assert(applied_list == fake_list and applied_parts == got)
 assert(savejoin.state == "applied" and savejoin.pending == nil)
 assert(savejoin.message:find("3490 Variablen") and savejoin.message:find("2 nicht"), savejoin.message)
+-- Anzeige folgt einem Sprachwechsel, ohne neu einzuspielen
+i18n.set_setting("en")
+assert(savejoin.text() == "Host's save applied (32 parts, 3490 variables, 2 not taken over).", savejoin.text())
+i18n.set_setting("de")
+assert(savejoin.text() == savejoin.message)
 applied_list = nil
 savejoin.on_load(fake_list)
 assert(applied_list == nil, "zweites Laden hat erneut eingespielt")

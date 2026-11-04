@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.11.1"
+local MOD_VERSION = "0.11.2"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -247,7 +247,7 @@ titlemenu.rows = function()
         rows[#rows + 1] = { id = "leave", label = tr("tm.cancel"), help = "" }
     else
         local host = peer_name()
-        local text = savejoin.message ~= "" and savejoin.message or tr("tm.fetching")
+        local text = savejoin.message ~= "" and savejoin.text() or tr("tm.fetching")
         if savejoin.state == "receiving" then
             text = tr("tm.receiving", { percent = math.floor(savejoin.progress() * 100) })
         end
@@ -591,7 +591,7 @@ local function draw_join_ui(status)
         end
     end
     if savejoin.message ~= "" then
-        imgui.text(savejoin.message)
+        imgui.text(savejoin.text())
     end
     if st == "ready" and not config.auto_join then
         imgui.text(tr("join.manual_hint"))

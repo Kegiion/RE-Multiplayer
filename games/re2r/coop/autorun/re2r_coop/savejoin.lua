@@ -17,6 +17,7 @@ local transfer = require("remultiplayer_coop.transfer")
 local serial = require("remultiplayer_coop.serial")
 local savestate = require("re2r_coop.savestate")
 local game = require("re2r_coop.game")
+local tr = require("re2r_coop.text")
 
 local M = {}
 
@@ -26,13 +27,31 @@ M.CHUNKS_PER_FRAME = 8     -- Host: so viele Stuecke je Frame senden (8 KB je St
 --   idle -> requested -> receiving -> ready (Stand liegt bereit, Laden abwarten)
 --   -> applied | failed
 M.state = "idle"
-M.message = ""
+M.message = ""       -- Meldung in der Sprache beim Setzen (Log, Tests)
+M.message_key = nil  -- Textschluessel (join.*) oder rohe Meldung, siehe M.text()
+M.message_params = nil
 M.receiver = nil
 M.pending = nil      -- Teile, die beim naechsten Laden eingespielt werden
 M.result = nil       -- stats/errors des letzten Einspielens
 
 -- Host: laufende Sendungen { peer=, begin=, chunks=, next= }
 M.outgoing = {}
+
+-- Meldung setzen: Schluessel plus Werte merken, damit M.text() nach einem
+-- Sprachwechsel neu uebersetzt. Unbekannte Schluessel (rohe Texte, z. B. vom
+-- Host) kommen unveraendert zurueck.
+local function say(key, params)
+    M.message_key, M.message_params = key, params
+    M.message = key ~= nil and tr(key, params) or ""
+end
+
+-- Meldung fuer die Anzeige in der aktuellen Sprache.
+function M.text()
+    if M.message_key == nil then
+        return M.message
+    end
+    return tr(M.message_key, M.message_params)
+end
 
 -- Austauschbar fuer Tests.
 M.capture = function()
@@ -60,6 +79,10 @@ end
 -- Ort (LoadLocation 0), das Laden beim Freund haengt dann bei 10 %
 -- (bestaetigt am 4. November 2026 mit dem Testbot-Spiegel).
 M.HOST_NOT_READY = "Host ist noch nicht im Spiel"
+-- Antwort, wenn der Host nichts einsammeln kann. Beide Texte gehen so ueber
+-- das Netz (Feld info) und bleiben fuer aeltere Versionen unveraendert; der
+-- Freund zeigt sie uebersetzt an.
+M.HOST_NO_SAVE = "Host hat keinen Spielstand"
 M.RETRY_INTERVAL = 5.0
 
 function M.on_request(session, peer)
@@ -70,8 +93,8 @@ function M.on_request(session, peer)
     end
     local ok, parts = pcall(M.capture)
     if not ok then
-        session:log("Spielstand fuer %s nicht einsammelbar: %s", peer.name or "?", tostring(parts))
-        session:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = "Host hat keinen Spielstand" }, true, peer.id)
+        session:logt("join.log_capture_failed", { name = peer.name or "?", error = tostring(parts) })
+        session:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = M.HOST_NO_SAVE }, true, peer.id)
         return
     end
     local data = serial.encode(parts)
@@ -79,7 +102,7 @@ function M.on_request(session, peer)
     local begin, chunks = transfer.split(data, next_transfer, describe())
     session:send("SAVE_BEGIN", begin, true, peer.id)
     M.outgoing[#M.outgoing + 1] = { peer = peer.id, begin = begin, chunks = chunks, next = 1 }
-    session:log("Sende Spielstand an %s (%d KB, %s)", peer.name or "?", #data // 1024, begin.info)
+    session:logt("join.log_sending", { name = peer.name or "?", kb = #data // 1024, info = begin.info })
 end
 
 -- Jeden Frame: ausstehende Stuecke verteilt senden.
@@ -111,33 +134,37 @@ end
 -- --- Freund ------------------------------------------------------------------
 
 function M.request(session)
-    M.state, M.message, M.receiver, M.pending, M.result = "requested", "Warte auf den Host ...", nil, nil, nil
+    M.state, M.receiver, M.pending, M.result = "requested", nil, nil, nil
+    say("join.wait_host")
     M.auto_retry_at, M.loader, M.session = nil, nil, session
     session:send("SAVE_REQUEST", { reserved = 0 }, true)
 end
 
 function M.cancel()
-    M.state, M.message, M.receiver, M.pending, M.loader = "idle", "", nil, nil, nil
+    M.state, M.receiver, M.pending, M.loader = "idle", nil, nil, nil
+    say(nil)
 end
 
 local function finish(session)
     local data, err = M.receiver:result()
     M.receiver = nil
     if data == nil then
-        M.state, M.message = "failed", "Uebertragung fehlerhaft: " .. tostring(err)
-        session:log("Spielstand: %s", M.message)
+        M.state = "failed"
+        say("join.transfer_failed", { error = tostring(err) })
+        session:logt("join.log_failed", { text = M.message })
         return
     end
     local parts, derr = serial.decode(data)
     if parts == nil then
-        M.state, M.message = "failed", "Spielstand nicht lesbar: " .. tostring(derr)
-        session:log("Spielstand: %s", M.message)
+        M.state = "failed"
+        say("join.unreadable", { error = tostring(derr) })
+        session:logt("join.log_failed", { text = M.message })
         return
     end
     M.pending = parts
     M.state = "ready"
-    M.message = "Spielstand des Hosts empfangen."
-    session:log("Spielstand des Hosts empfangen (%d KB)", #data // 1024)
+    say("join.received")
+    session:logt("join.log_received", { kb = #data // 1024 })
 end
 
 function M.on_begin(session, msg)
@@ -146,16 +173,18 @@ function M.on_begin(session, msg)
     end
     if msg.size == 0 then
         if msg.info == M.HOST_NOT_READY then
-            M.state, M.message = "waiting_host", "Warte, bis der Host seinen Spielstand geladen hat ..."
+            M.state = "waiting_host"
+            say("join.wait_host_save")
             M.request_at = nil -- update_auto setzt die naechste Anfrage
             return
         end
-        M.state, M.message = "failed", msg.info ~= "" and msg.info or "Host hat keinen Spielstand"
+        M.state = "failed"
+        say((msg.info == "" or msg.info == M.HOST_NO_SAVE) and "join.host_no_save" or msg.info)
         return
     end
     M.receiver = transfer.receiver(msg)
     M.state = "receiving"
-    M.message = "Empfange Spielstand des Hosts (" .. msg.info .. ") ..."
+    say("join.receiving_from", { info = msg.info })
     if M.receiver:complete() then
         finish(session)
     end
@@ -186,14 +215,14 @@ function M.on_load(list)
     M.pending = nil
     local ok, ctx = pcall(M.apply, list, parts)
     if not ok then
-        M.state, M.message = "failed", "Einspielen fehlgeschlagen: " .. tostring(ctx)
+        M.state = "failed"
+        say("join.apply_failed", { error = tostring(ctx) })
         return
     end
     M.result = ctx
     M.state = "applied"
     local s = ctx.stats
-    M.message = string.format("Spielstand des Hosts eingespielt (%d Teile, %d Variablen, %d nicht uebernommen).",
-        s.parts, s.vars, s.failed)
+    say("join.applied", { parts = s.parts, vars = s.vars, failed = s.failed })
 end
 
 -- Pre-Hook auf SaveDataManager.loadGameSaveData (nur im Spiel).
@@ -217,7 +246,8 @@ function M.install_hook()
         end)
         if not ok then
             M.pending = nil
-            M.state, M.message = "failed", "Lade-Hook: " .. tostring(err)
+            M.state = "failed"
+            say("join.load_hook", { error = tostring(err) })
         end
     end, function(retval)
         return retval
@@ -333,12 +363,13 @@ end
 function M.start_auto_load(now)
     local mfm, sdm = managers()
     if mfm == nil or sdm == nil then
-        M.state, M.message = "failed", "Spiel nicht bereit (Manager fehlen)"
+        M.state = "failed"
+        say("join.game_not_ready")
         return false
     end
     local main = main_state(mfm)
     if main ~= M.MAIN_IN_GAME and main ~= M.MAIN_PAUSE and main ~= M.MAIN_TITLE then
-        M.message = "Warte, bis das Spiel bereit ist ..."
+        say("join.wait_game")
         return false
     end
     local ok, mode = pcall(sdm.call, sdm, "getSaveModeFromCurrentScenarioType")
@@ -349,12 +380,12 @@ function M.start_auto_load(now)
         index = ok_slot and slot or nil
     end
     if index == nil or index < 0 then
-        M.message = "Kein eigener Spielstand gefunden. Speichere einmal im Spiel, dann geht es los."
+        say("join.no_own_save")
         return false
     end
     local phase = main == M.MAIN_TITLE and "title" or "reset"
     M.loader = { phase = phase, since = now, start = now, index = index, mode = mode }
-    M.message = "Lade den Spielstand des Hosts ..."
+    say("join.loading")
     return true
 end
 
@@ -364,7 +395,8 @@ local function step_loader(now)
     local main = main_state(mfm)
     if now - L.start > M.LOAD_TIMEOUT then
         M.loader = nil
-        M.state, M.message = "failed", "Automatisches Laden dauert zu lange (Zustand " .. tostring(main) .. ")"
+        M.state = "failed"
+        say("join.load_timeout", { state = tostring(main) })
         return
     end
     if L.phase == "reset" then
@@ -411,7 +443,7 @@ function M.update_auto(now)
             M.request_at = nil
             local session = M.session
             M.request(session)
-            M.message = "Warte, bis der Host seinen Spielstand geladen hat ..."
+            say("join.wait_host_save")
         end
         return
     end
@@ -419,7 +451,8 @@ function M.update_auto(now)
         local ok, err = pcall(step_loader, now)
         if not ok then
             M.loader = nil
-            M.state, M.message = "failed", "Automatisches Laden: " .. tostring(err)
+            M.state = "failed"
+            say("join.auto_load_failed", { error = tostring(err) })
         end
         return
     end

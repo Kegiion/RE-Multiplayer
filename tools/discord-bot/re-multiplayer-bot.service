@@ -1,0 +1,21 @@
+[Unit]
+Description=RE:Multiplayer Discord-Bot
+After=network-online.target
+Wants=network-online.target
+# Ohne Token-Datei nicht starten
+ConditionPathExists=/etc/re-multiplayer-bot.env
+
+[Service]
+User=remp-bot
+WorkingDirectory=/opt/re-multiplayer-bot
+EnvironmentFile=/etc/re-multiplayer-bot.env
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

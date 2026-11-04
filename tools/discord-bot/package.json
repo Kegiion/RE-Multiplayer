@@ -1,0 +1,16 @@
+{
+  "name": "re-multiplayer-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RE:Multiplayer Discord-Bot (Status, spaeter FAQ)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "discord.js": "^14.21.0"
+  }
+}

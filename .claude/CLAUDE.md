@@ -24,7 +24,8 @@ Koop-Multiplayer-Mods für Resident-Evil-Spiele. Einstieg für neue Sessions: `H
 | `third_party` | Fremdbibliotheken als Quellcode (ENet, Lua 5.4.3, REFramework-Header, Dear ImGui) |
 | `tools` | `luarun` (Lua-Testläufer), Testbot |
 | `tools/modmanager` | Mod-Manager `RE-Multiplayer.exe` (C#, .NET 10, WPF): Spiele finden, Mods aus GitHub-Releases installieren/aktualisieren/deinstallieren, Fehler melden, Selbst-Update. Spiele-Liste `games.json` |
-| `tools/release` | `release-meta.ps1` für den Release-Workflow |
+| `tools/release` | `release-meta.ps1` und `discord-notes.ps1` (Patch Notes nach Discord) für den Release-Workflow |
+| `tools/discord-bot` | Discord-Bot (Node, discord.js): Status, später FAQ. Läuft als systemd-Dienst auf dem VPS |
 | `tests` | ctest: C++- und Lua-Tests (laufen auch unter Linux) |
 
 ## Bauen

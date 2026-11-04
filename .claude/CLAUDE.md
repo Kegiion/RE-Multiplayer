@@ -7,6 +7,9 @@ Koop-Multiplayer-Mods für Resident-Evil-Spiele. Einstieg für neue Sessions: `H
 - Der User spricht Deutsch und testet im Spiel. Claude schreibt den Code. Antworten auf Deutsch.
 - Commit-Nachrichten und Doku auf Deutsch (mit Umlauten). Code-Kommentare auf Deutsch **ohne** Umlaute.
 - Nicht im Spiel bestätigte Fakten (Adressen, Klassennamen) im Code und in der Doku als **unbestätigt** markieren. Nichts raten, sondern Diagnose bzw. Cheat Engine nutzen.
+- **Lesen mit Maß:** zuerst `docs/cheatsheet.md`, dann nur die im Auftrag genannten Dateien (`HANDOVER.md` nur bei Bedarf).
+- Begriffe erst per grep suchen, Dateien nicht ganz lesen. Konsolen-Ausgaben klein halten, große Dumps in eine Datei und dann grep.
+- Neue Erkenntnisse in die passende Doku-Datei eintragen (`games/<spiel>/research/README.md`, `docs/`, Spickzettel), nicht nur in den Chat.
 - Niemals Spieldateien committen (`*.exe`, `*.pak`, `nativePC/` usw.).
 
 ## Aufbau

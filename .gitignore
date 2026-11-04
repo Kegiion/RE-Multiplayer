@@ -10,3 +10,6 @@ CMakeUserPresets.json
 # Niemals Spieldateien einchecken (Urheberrecht)!
 *.pak
 *.exe
+
+# Obsidian-Vault-Einstellungen
+.obsidian/

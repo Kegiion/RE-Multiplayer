@@ -1,0 +1,33 @@
+{
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": false,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "playwright@claude-plugins-official": false
+  },
+  "permissions": {
+    "deny": [
+      "mcp__blender",
+      "mcp__blender__*",
+      "mcp__higgsfield",
+      "mcp__higgsfield__*",
+      "mcp__meshy",
+      "mcp__meshy__*",
+      "mcp__elevenlabs",
+      "mcp__elevenlabs__*",
+      "mcp__Roblox_Studio",
+      "mcp__Roblox_Studio__*",
+      "mcp__figma",
+      "mcp__figma__*",
+      "mcp__1aac53c6-8582-4e51-973c-4c7c91cf83b3",
+      "mcp__1aac53c6-8582-4e51-973c-4c7c91cf83b3__*",
+      "mcp__29ec4fe3-0f8c-4e97-9b6e-c4398126afd6",
+      "mcp__29ec4fe3-0f8c-4e97-9b6e-c4398126afd6__*",
+      "mcp__6bcb1a2d-d172-4b15-90f5-d98352400e4c",
+      "mcp__6bcb1a2d-d172-4b15-90f5-d98352400e4c__*",
+      "mcp__068778d5-ed18-4a8c-9c5b-0b876a7c8357",
+      "mcp__068778d5-ed18-4a8c-9c5b-0b876a7c8357__*",
+      "mcp__1a59c906-04da-521d-bda7-7f71b9f9e01c",
+      "mcp__1a59c906-04da-521d-bda7-7f71b9f9e01c__*"
+    ]
+  }
+}

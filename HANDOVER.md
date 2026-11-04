@@ -5,7 +5,7 @@
 ## Wer und was
 
 - **User:** spricht Deutsch, mittlere Programmiererfahrung, besitzt alle RE-Teile (Steam, Windows-PC). Duo: Claude schreibt Code, der User testet im Spiel.
-- **Ziel:** Koop-Multiplayer **durch die Story**. Fokus jetzt: alle RE-Engine-Spiele, **RE2 Remake zuerst**. RE0 HD ruht (darf brechen, CI bleibt grün).
+- **Ziel:** Koop-Multiplayer **durch die Story**. Fokus jetzt: alle RE-Engine-Spiele, **RE2 Remake zuerst**. RE0 HD ruht (darf brechen, CI bleibt grün). Umfang: nur Remakes und Teile ohne Remake (siehe [docs/ROADMAP.md](docs/ROADMAP.md)).
 - **Repo:** `Kegiion/RE-Multiplayer`, Branch `main`. Keine Spieldateien committen.
 - RE2 wird von einem Projektleiter-Chat geführt, der Unterchats startet. Aktueller Stand und Aufträge: siehe private Notizen (nicht im Repo).
 

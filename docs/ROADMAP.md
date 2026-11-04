@@ -104,9 +104,17 @@ Der Partner wird nicht von der KI gesteuert, sondern von den Netzwerkdaten des a
 
 ## Weitere Teile (danach)
 
+**Entscheidung des Users (3. November 2026):** Wir machen nur die **Remakes** und die Teile, **von denen es kein Remake gibt**. Originale, die durch ein Remake ersetzt wurden, lassen wir außen vor.
+
 | Engine | Spiele | Aufwand |
 |---|---|---|
 | RE Engine | RE3 Remake, RE4 Remake, RE7, Village, RE9 | Gleiches Plugin, neue Lua-Adapter. RE3R nutzt sogar denselben Namespace `app.ropeway` wie RE2R. |
-| MT Framework | RE5, RE6, Revelations 1/2, RE0/RE1 HD | Eigener Weg ins Spiel nötig, `netcore` wiederverwendbar. RE5/6/Rev haben bereits Koop. |
-| RE4 (2005) | RE4 UHD | Eigener Weg ins Spiel, z. B. aufbauend auf RE4 Tweaks |
-| Klassisch | RE1/2/3 Original | Sehr aufwendig, eigener Weg ins Spiel |
+| MT Framework | RE1 HD (Remake), RE5, RE6, Revelations 1/2 | Loader und Runtime aus RE0 HD als Grundlage, Adressen pro Spiel neu suchen. RE5/6/Rev haben bereits Koop. Vor RE1 HD die RE0-Runtime nach `shared/` verschieben. |
+
+**Nicht geplant:**
+
+| Spiel | Grund |
+|---|---|
+| RE4 (2005) / RE4 UHD | Es gibt das RE4 Remake |
+| RE1/2/3 Original | Es gibt Remakes (RE1 HD, RE2R, RE3R) |
+| Code Veronica | Kein Remake, aber auch keine offizielle PC-Version. Erst wieder prüfen, falls sich das ändert |

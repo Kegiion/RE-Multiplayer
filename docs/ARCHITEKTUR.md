@@ -82,4 +82,4 @@ Alle sichtbaren Texte der RE-Engine-Mods laufen über `shared/re-engine/lua/remu
 3. In `CMakeLists.txt` eine neue Install-Komponente ergänzen.
 4. Texte über `remultiplayer_coop.i18n` und eigene Sprachdateien `<mod>/lang/` (siehe „Übersetzung“).
 
-Für Spiele ohne RE Engine (RE4 2005, RE5/6, Klassiker) bleibt `netcore` gleich. Dort brauchen wir statt REFramework einen eigenen Weg ins Spiel, z. B. eine DLL mit Hooks.
+Für Spiele ohne RE Engine (MT Framework: RE1 HD, RE5, RE6, Revelations) bleibt `netcore` gleich. Dort brauchen wir statt REFramework einen eigenen Weg ins Spiel. Für RE0 HD gibt es den schon (Loader `dinput8.dll` + Runtime), er dient als Vorlage. Originale, die ein Remake haben (z. B. RE4 2005), machen wir nicht (siehe `docs/ROADMAP.md`).

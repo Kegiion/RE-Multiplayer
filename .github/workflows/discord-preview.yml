@@ -1,0 +1,38 @@
+name: Discord-Vorschau
+
+# Trockenlauf: zeigt die Discord-Nachricht, die release.yml fuer die aktuelle Version posten wuerde.
+# Postet nichts und legt kein Release an.
+#   gh workflow run discord-preview.yml -f mod=re2r
+
+on:
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: Fuer welches Paket?
+        type: choice
+        required: true
+        options:
+          - re0hd
+          - re2r
+          - manager
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version und Patch Notes lesen
+        id: meta
+        shell: pwsh
+        run: ./tools/release/release-meta.ps1 -Mod ${{ inputs.mod }}
+
+      - name: Discord-Nachricht anzeigen (ohne Posten)
+        shell: pwsh
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          TITLE: ${{ steps.meta.outputs.title }}
+        run: ./tools/release/discord-notes.ps1 -DryRun -Title $env:TITLE -Url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/releases/tag/$env:TAG"

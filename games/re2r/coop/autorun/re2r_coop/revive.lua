@@ -139,7 +139,7 @@ end
 -- Zwischensequenz beginnt (paused = true) oder endet. Waehrend der
 -- Sequenz laeuft keine Frist. Zu Beginn werden Liegende automatisch
 -- aufgehoben, damit keine Figur liegend in die Sequenz geht
--- (Vorschlag im Konzept, Entscheidung des Users offen).
+-- (vom User am 4. November 2026 so entschieden, mit revive_hp).
 function revive:cutscene(active, now)
     local events = {}
     if self.over then

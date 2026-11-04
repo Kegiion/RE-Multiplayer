@@ -108,7 +108,7 @@ Mr. X ist ein einziger Gegner, der zwischen Zonen wandert. Er wird **immer vom H
 
 - **Zielwahl** (`enemy_net.Chaser`): Ziel ist der nähere erreichbare Spieler. Gewechselt wird erst, wenn der andere **mindestens 3 m näher** ist und das **2 s lang** bleibt. Ein Schuss (Lärm) zieht ihn sofort zum Schützen und hält ihn 8 s dort. Am Boden liegende Spieler sind keine Ziele. Ist das Ziel in keiner für ihn erreichbaren Zone, nimmt er sofort das andere. Die Zahlen sind Startwerte zum Ausprobieren.
 - **Umsetzung:** Beim Host bekommt die KI von Mr. X als Ziel die Partner-Figur statt Leon/Claire, wenn der Mitspieler gewählt ist (Forschung E9). Ob die KI eine fremde Figur überhaupt als Ziel annimmt, ist offen.
-- **Mitspieler in einer anderen Zone:** Mr. X folgt beim Host den Wegen des Spiels. Wechselt er in die Zone des Mitspielers, kommt er dort als Puppe an. Hat der Host diese Zone nicht geladen, kann seine KI dort nicht laufen. Erste Fassung: **Mr. X jagt nur Spieler in Zonen, die der Host geladen hat.** Ist der Mitspieler weit weg, hat er Ruhe vor Mr. X. Ob das dem User recht ist, steht unter „Offene Fragen“.
+- **Mitspieler in einer anderen Zone:** Mr. X folgt beim Host den Wegen des Spiels. Wechselt er in die Zone des Mitspielers, kommt er dort als Puppe an. Hat der Host diese Zone nicht geladen, kann seine KI dort nicht laufen. Erste Fassung: **Mr. X jagt nur Spieler in Zonen, die der Host geladen hat.** Ist der Mitspieler weit weg, hat er Ruhe vor Mr. X. So vom User entschieden (siehe „Entscheidungen des Users“).
 - Mr. X in der Welt des Mitspielers: Erscheint er dort durch dessen eigenes Spiel (Story-Ereignis), wird er unterdrückt bzw. zur Puppe gemacht. Es gibt nur den Mr. X des Hosts.
 
 ### Im Spiel zu erforschen: Gegner (alles unbestätigt)
@@ -198,7 +198,7 @@ Wichtig für Teil 3: Beim Neuladen bekäme der Mitspieler das Inventar des Hosts
 | Liegender verliert die Verbindung | Der andere spielt allein weiter (`SOLO`). Kein Game Over. |
 | Helfer verliert die Verbindung, der andere liegt | Beim Liegenden normales Game Over seines Spiels (niemand kann helfen). Wenn er wieder verbindet, tritt er dem Stand des Hosts neu bei. |
 | Host stürzt ab | Der Mitspieler ist allein in seiner Welt. Liegt er, Game Over. Sonst kann er weiterspielen, sein Fortschritt zählt aber nicht für den Host. |
-| Zwischensequenz beginnt, während jemand liegt | Vorschlag: Liegende stehen **automatisch auf**, die Frist ist während der Sequenz angehalten (so umgesetzt in `revive:cutscene`). Erkennung: Zone wird `Invalid` (bestätigt) bzw. ein besseres Signal aus T5. |
+| Zwischensequenz beginnt, während jemand liegt | Entschieden: Liegende stehen **automatisch auf** (mit 30 % der Lebenspunkte), die Frist ist während der Sequenz angehalten (so umgesetzt in `revive:cutscene`). Erkennung: Zone wird `Invalid` (bestätigt) bzw. ein besseres Signal aus T5. |
 | Spieler fällt während einer Zwischensequenz | Die Frist zählt erst ab dem Ende der Sequenz. |
 | Spieler in verschiedenen Zonen | Aufheben geht nur in Reichweite. Ist der Helfer zu weit weg, läuft die Frist eben ab. Eine Anzeige mit Entfernung hilft (gibt es schon in `ghost.lua`). |
 | Tod durch Sofort-Tod-Angriff (z. B. Packen ohne Befreien, Sturz, Story) | Wie normaler Tod: Liegen statt Sterben, solange das Spiel das zulässt (T4). Sonst direkt Game Over für beide. |
@@ -268,10 +268,10 @@ Jeder hat seine eigene Itemkiste. Das passt zum eigenen Inventar und braucht kei
 
 Hier gibt es eine Spannung zum aktuellen Join-Fehler „Der Beitretende behält das Inventar seines eigenen Spielstands“ (`RE2-uebergabe.md`):
 
-- **Beim ersten Beitreten** bekommt der Mitspieler das Inventar und die Itemkiste **des Hosts** als Startausstattung (das, was der Join-Chat gerade repariert). Danach laufen die Inventare auseinander.
+- **Beim ersten Beitreten** (entschieden): Waffen passend zur eigenen Figur, Munition, Heilung und Schlüssel-Items vom Host, eigene Itemkiste **leer**. Danach laufen die Inventare auseinander.
 - **Beim erneuten Beitreten** (Verbindungsabbruch, Game Over) würde der Join das Inventar wieder mit dem des Hosts überschreiben. Das widerspricht „eigenes Inventar“. Vorschlag: Der Mitspieler speichert sein eigenes Inventar und seine Itemkiste **lokal** (die Teile `InventoryManager`, `ItemLockerManager`, ggf. `EquipmentManager` aus `capture_live`), und zwar jedes Mal, wenn der Host speichert. Dafür schickt der Host eine kurze Nachricht `HOST_SAVED` (ID 26, reliable, `slot` I2, `session_id` I4). Beim erneuten Beitreten zum selben Host-Spielstand ersetzt der Mitspieler diese Teile durch seine lokale Kopie, bevor `apply_to_list` sie einspielt.
 - Schlüssel-Items, die der Host seit dem Speichern bekommen hat, sind nach einem Game Over bei beiden weg (beide sind auf demselben Speicherstand), das passt.
-- Die Figur (Leon/Claire) des Mitspielers ist laut Design die andere Hauptfigur. Ihre Waffen sind andere als die des Hosts. Für die Startausstattung beim ersten Beitreten heißt das: Schlüssel-Items und Verbrauchsitems vom Host übernehmen, Waffen nicht (Forschung I6).
+- Die Figur (Leon/Claire) des Mitspielers ist laut Design die andere Hauptfigur. Ihre Waffen sind andere als die des Hosts. Für die Startausstattung beim ersten Beitreten heißt das: Schlüssel-Items und Verbrauchsitems vom Host übernehmen, Waffen durch die passenden der eigenen Figur ersetzen (Forschung I6).
 
 ### Im Spiel zu erforschen: Items (alles unbestätigt)
 
@@ -306,10 +306,10 @@ Hier gibt es eine Spannung zum aktuellen Join-Fehler „Der Beitretende behält 
 
 Beide Module werden noch von nichts geladen. Am Spielverhalten ändert sich nichts.
 
-## Offene Fragen an den User
+## Entscheidungen des Users (4. November 2026)
 
-1. **Mr. X bei getrennten Spielern:** Ist es in Ordnung, wenn Mr. X nur Spieler in der Nähe des Hosts (in geladenen Zonen) jagt und ein weit entfernter Mitspieler Ruhe hat? Die Alternative wäre ein zweiter, eigener Mr. X beim Mitspieler, der dann aber nicht mehr „derselbe“ ist.
-2. **Verbrauchsitems:** „Wer zuerst kommt“ (gleich viel Munition wie solo, aufgeteilt auf zwei) oder jeder bekommt sein eigenes Exemplar jedes Items (doppelte Menge, leichter)? Vorschlag: wer zuerst kommt, später als Einstellung.
-3. **Zwischensequenz während jemand liegt:** Automatisch aufstehen lassen (Vorschlag) oder Frist nur anhalten?
-4. **Frist und Aufheben:** Sind 30 s Frist und 3 s Taste halten gute Startwerte?
-5. **Waffen beim ersten Beitreten:** Soll der Mitspieler Verbrauchsitems und Schlüssel-Items des Hosts übernehmen, aber mit den Startwaffen seiner eigenen Figur beginnen?
+1. **Mr. X** jagt in der ersten Fassung nur in Zonen, die der Host geladen hat. Ein weit entfernter Mitspieler hat Ruhe vor ihm.
+2. **Verbrauchsitems:** wer zuerst kommt. Sie verschwinden bei beiden.
+3. **Zwischensequenz, während jemand liegt:** Der Liegende steht automatisch auf, mit 30 % der Lebenspunkte.
+4. **Startwerte** 30 s Frist und 3 s Taste halten bleiben vorerst. Feinschliff nach dem ersten Test im Spiel.
+5. **Erstes Beitreten:** Waffen passend zur eigenen Figur, Munition, Heilung und Schlüssel-Items vom Host, eigene Itemkiste leer.

@@ -13,6 +13,7 @@
 --   s:update()
 
 local protocol = require("remultiplayer_coop.protocol")
+local i18n = require("remultiplayer_coop.i18n")
 
 local Session = {}
 Session.__index = Session
@@ -61,6 +62,11 @@ function Session:log(fmt, ...)
     end
 end
 
+-- Uebersetzte Zeile ins Log: s:logt("session.peer_joined", { name = "Leon" })
+function Session:logt(key, params)
+    self:log("%s", i18n.t(key, params))
+end
+
 -- Handler fuer einen Nachrichtentyp registrieren: fn(session, peer, msg)
 function Session:on(msg_name, fn)
     assert(protocol.MSG[msg_name], "unbekannte Nachricht: " .. tostring(msg_name))
@@ -76,7 +82,7 @@ function Session:_emit(event, ...)
     for _, fn in ipairs(self.listeners[event]) do
         local ok, err = pcall(fn, self, ...)
         if not ok then
-            self:log("Fehler in Listener %s: %s", event, tostring(err))
+            self:logt("session.listener_error", { event = event, error = tostring(err) })
         end
     end
 end
@@ -111,9 +117,9 @@ function Session:host(port)
     local ok, err = self.net.host(port, self.max_peers)
     if ok then
         self.is_host = true
-        self:log("Host gestartet auf Port %d", port)
+        self:logt("session.host_started", { port = port })
     else
-        self:log("Host fehlgeschlagen: %s", tostring(err))
+        self:logt("session.host_failed", { error = tostring(err) })
     end
     return ok, err
 end
@@ -123,9 +129,9 @@ function Session:join(address, port)
     local ok, err = self.net.connect(address, port)
     if ok then
         self.is_host = false
-        self:log("Verbinde zu %s:%d ...", address, port)
+        self:logt("session.connecting", { address = address, port = port })
     else
-        self:log("Verbinden fehlgeschlagen: %s", tostring(err))
+        self:logt("session.connect_failed", { error = tostring(err) })
     end
     return ok, err
 end
@@ -138,7 +144,7 @@ function Session:leave()
             self:_emit("peer_left", peer)
         end
     end
-    self:log("Verbindung beendet")
+    self:logt("session.left")
 end
 
 -- Nachricht senden. peer = nil -> an alle.
@@ -161,13 +167,12 @@ function Session:_handle_hello(peer, msg)
         self:_send_hello(peer.id, false)
     end
     if msg.protocol ~= protocol.VERSION then
-        self:log("Spieler %d hat Protokoll v%d, wir v%d - bitte gleiche Mod-Version nutzen!",
-            peer.id, msg.protocol, protocol.VERSION)
+        self:logt("session.protocol_mismatch", { peer = peer.id, theirs = msg.protocol, ours = protocol.VERSION })
         peer.incompatible = true
         return
     end
     if msg.game ~= self.game then
-        self:log("Spieler %d spielt '%s', wir '%s' - falsches Spiel!", peer.id, msg.game, self.game)
+        self:logt("session.game_mismatch", { peer = peer.id, theirs = msg.game, ours = self.game })
         peer.incompatible = true
         return
     end
@@ -176,10 +181,10 @@ function Session:_handle_hello(peer, msg)
     peer.mod_version = msg.mod_version
     peer.ready = true
     if msg.mod_version ~= self.mod_version then
-        self:log("Hinweis: %s nutzt Mod-Version %s, wir %s", msg.name, msg.mod_version, self.mod_version)
+        self:logt("session.version_note", { name = msg.name, theirs = msg.mod_version, ours = self.mod_version })
     end
     if first_hello then
-        self:log("%s ist beigetreten", msg.name)
+        self:logt("session.peer_joined", { name = msg.name })
         self:_emit("peer_joined", peer)
     end
 end
@@ -190,19 +195,24 @@ function Session:update()
         if ev.type == "connect" then
             local peer = { id = ev.peer, ready = false }
             self.peers[ev.peer] = peer
-            self:log("Verbunden mit Peer %d", ev.peer)
+            self:logt("session.peer_connected", { peer = ev.peer })
             self:_send_hello(ev.peer)
         elseif ev.type == "disconnect" then
             local peer = self.peers[ev.peer]
             self.peers[ev.peer] = nil
             if peer then
-                self:log("%s hat die Verbindung getrennt", peer.name or ("Peer " .. ev.peer))
+                self:logt("session.peer_disconnected",
+                    { name = peer.name or i18n.t("session.peer_fallback_name", { peer = ev.peer }) })
                 if peer.ready then
                     self:_emit("peer_left", peer)
                 end
             else
                 local err = self.net.status().error
-                self:log("Verbindung getrennt%s", err and (": " .. err) or "")
+                if err then
+                    self:logt("session.disconnected_error", { error = err })
+                else
+                    self:logt("session.disconnected")
+                end
             end
         elseif ev.type == "message" then
             self:_handle_message(ev)
@@ -217,7 +227,7 @@ function Session:_handle_message(ev)
     end
     local msg, err = protocol.decode(ev.data)
     if msg == nil then
-        self:log("Ungueltige Nachricht von Peer %d: %s", ev.peer, err)
+        self:logt("session.bad_message", { peer = ev.peer, error = tostring(err) })
         return
     end
     if msg.type == "HELLO" then
@@ -231,7 +241,7 @@ function Session:_handle_message(ev)
     if handler then
         local ok, herr = pcall(handler, self, peer, msg)
         if not ok then
-            self:log("Fehler im Handler %s: %s", msg.type, tostring(herr))
+            self:logt("session.handler_error", { type = msg.type, error = tostring(herr) })
         end
     end
 end

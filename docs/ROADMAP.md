@@ -38,6 +38,7 @@
 - Host steuert alle Gegner, der Client bekommt Positionen und Zustände
 - Treffer des Clients gehen an den Host, der verteilt Schaden und Tod
 - Mr. X: zentrale Herausforderung, weil er beide Spieler verfolgen muss
+- Konzept für Gegner, Tod und Items mit Forschungsliste: `docs/re2r-konzept-gegner-tod-items.md`
 
 ### Meilenstein 4: Welt und Story
 - Türen, Schlösser, Rätsel, aufgehobene Items, Story-Flags synchronisieren

@@ -83,6 +83,24 @@ savejoin.request(b)
 pump(function() return savejoin.state == "failed" end, 5)
 assert(savejoin.state == "failed" and savejoin.message:find("keinen Spielstand"), savejoin.message)
 
+-- Host noch im Titel -> Freund wartet und fragt spaeter von selbst neu an
+savejoin.capture = function() return parts end
+local host_main = 3
+local real_main_state = savejoin.main_state
+savejoin.main_state = function() return host_main end
+savejoin.request(b)
+pump(function() return savejoin.state == "waiting_host" end, 5)
+assert(savejoin.state == "waiting_host", savejoin.state .. " " .. savejoin.message)
+local t0 = net_a.time()
+savejoin.update_auto(t0)
+assert(savejoin.state == "waiting_host", "zu frueh neu angefragt")
+host_main = 6 -- Host hat geladen
+savejoin.update_auto(t0 + savejoin.RETRY_INTERVAL + 0.1)
+assert(savejoin.state == "requested", "nicht neu angefragt: " .. savejoin.state)
+pump(function() return savejoin.state == "ready" end, 10)
+assert(savejoin.state == "ready", "nach dem Warten nicht empfangen: " .. savejoin.state)
+savejoin.main_state = real_main_state
+
 -- nicht angeforderte Uebertragung wird ignoriert
 savejoin.cancel()
 savejoin.on_begin(b, { transfer = 1, size = 10, chunks = 1, checksum = 0, info = "" })

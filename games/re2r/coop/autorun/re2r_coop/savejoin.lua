@@ -55,7 +55,19 @@ end
 
 -- --- Host --------------------------------------------------------------------
 
+-- Antwort, wenn der Host noch nicht im Spiel ist (der Freund fragt dann
+-- regelmaessig nach). Im Titel eingesammelt hat der Stand keinen gueltigen
+-- Ort (LoadLocation 0), das Laden beim Freund haengt dann bei 10 %
+-- (bestaetigt am 4. November 2026 mit dem Testbot-Spiegel).
+M.HOST_NOT_READY = "Host ist noch nicht im Spiel"
+M.RETRY_INTERVAL = 5.0
+
 function M.on_request(session, peer)
+    local main = M.main_state()
+    if main ~= nil and main ~= M.MAIN_IN_GAME and main ~= M.MAIN_PAUSE then
+        session:send("SAVE_BEGIN", { transfer = 0, size = 0, chunks = 0, checksum = 0, info = M.HOST_NOT_READY }, true, peer.id)
+        return
+    end
     local ok, parts = pcall(M.capture)
     if not ok then
         session:log("Spielstand fuer %s nicht einsammelbar: %s", peer.name or "?", tostring(parts))
@@ -100,7 +112,7 @@ end
 
 function M.request(session)
     M.state, M.message, M.receiver, M.pending, M.result = "requested", "Warte auf den Host ...", nil, nil, nil
-    M.auto_retry_at, M.loader = nil, nil
+    M.auto_retry_at, M.loader, M.session = nil, nil, session
     session:send("SAVE_REQUEST", { reserved = 0 }, true)
 end
 
@@ -133,6 +145,11 @@ function M.on_begin(session, msg)
         return -- nicht angefragt
     end
     if msg.size == 0 then
+        if msg.info == M.HOST_NOT_READY then
+            M.state, M.message = "waiting_host", "Warte, bis der Host seinen Spielstand geladen hat ..."
+            M.request_at = nil -- update_auto setzt die naechste Anfrage
+            return
+        end
         M.state, M.message = "failed", msg.info ~= "" and msg.info or "Host hat keinen Spielstand"
         return
     end
@@ -387,6 +404,17 @@ end
 
 -- Jeden Frame (Freund): automatisch anfordern war schon, hier laden.
 function M.update_auto(now)
+    -- Host war noch nicht im Spiel: regelmaessig neu anfragen.
+    if M.state == "waiting_host" and M.session ~= nil then
+        M.request_at = M.request_at or (now + M.RETRY_INTERVAL)
+        if now >= M.request_at then
+            M.request_at = nil
+            local session = M.session
+            M.request(session)
+            M.message = "Warte, bis der Host seinen Spielstand geladen hat ..."
+        end
+        return
+    end
     if M.loader ~= nil then
         local ok, err = pcall(step_loader, now)
         if not ok then

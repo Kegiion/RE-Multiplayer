@@ -119,14 +119,15 @@ jobs:
           gh release create @ghArgs
           if ($LASTEXITCODE -ne 0) { throw 'gh release create fehlgeschlagen' }
 
-      # Patch Notes per Webhook in den Discord-Channel (nur stabile Releases, nie bei Vorabversionen).
-      # Ohne Secret DISCORD_PATCHNOTES_WEBHOOK wird nichts gepostet; ein Fehler hier laesst das Release nie scheitern.
+      # Patch Notes ueber den Discord-Bot in den Patch-Notes-Channel (nur stabile Releases, nie bei Vorabversionen).
+      # Ohne Secret DISCORD_BOT_TOKEN bzw. Variable DISCORD_PATCHNOTES_CHANNEL_ID wird nichts gepostet; ein Fehler hier laesst das Release nie scheitern.
       - name: Patch Notes in Discord posten
         if: success() && inputs.prerelease != true
         continue-on-error: true
         shell: pwsh
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_PATCHNOTES_WEBHOOK }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_PATCHNOTES_CHANNEL_ID }}
           TAG: ${{ steps.meta.outputs.tag }}
           TITLE: ${{ steps.meta.outputs.title }}
         run: ./tools/release/discord-notes.ps1 -Title $env:TITLE -Url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/releases/tag/$env:TAG"

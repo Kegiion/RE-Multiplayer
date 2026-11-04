@@ -1,7 +1,8 @@
-# Postet die Patch Notes eines Releases per Webhook in den Discord-Channel (genutzt von .github/workflows/release.yml).
+# Postet die Patch Notes eines Releases ueber den RE:Multiplayer-Bot in den Discord-Channel (genutzt von .github/workflows/release.yml).
 #   ./tools/release/discord-notes.ps1 -Title "Resident Evil 2 Koop 0.11.3" -Url <release-link> [-DryRun]
-# Liest dist/release-notes.md (von release-meta.ps1). Webhook-URL aus $env:DISCORD_WEBHOOK (Secret DISCORD_PATCHNOTES_WEBHOOK).
-# Ohne Webhook oder mit -DryRun wird nur die Nachricht ausgegeben. Scheitert nie (Exit 0), damit kein Release daran haengt.
+# Liest dist/release-notes.md (von release-meta.ps1). Bot-Token aus $env:DISCORD_BOT_TOKEN (Secret DISCORD_BOT_TOKEN),
+# Channel aus $env:DISCORD_CHANNEL_ID (Repo-Variable DISCORD_PATCHNOTES_CHANNEL_ID).
+# Ohne Token/Channel oder mit -DryRun wird nur die Nachricht ausgegeben. Scheitert nie (Exit 0), damit kein Release daran haengt.
 param(
     [Parameter(Mandatory)][string]$Title,
     [Parameter(Mandatory)][string]$Url,
@@ -53,26 +54,31 @@ try {
     }
 
     $payload = @{
-        username         = 'RE:Multiplayer'
         content          = "**$Title** ist da / is out: $Url"
         embeds           = $embeds
         allowed_mentions = @{ parse = @() }
     }
     $json = $payload | ConvertTo-Json -Depth 6
 
-    $hook = $env:DISCORD_WEBHOOK
-    if ($DryRun -or -not $hook) {
-        if (-not $hook -and -not $DryRun) { Write-Output 'Kein Secret DISCORD_PATCHNOTES_WEBHOOK gesetzt: nichts gepostet.' }
+    $token = $env:DISCORD_BOT_TOKEN
+    $channel = $env:DISCORD_CHANNEL_ID
+    if ($DryRun -or -not $token -or -not $channel) {
+        if (-not $DryRun) { Write-Output 'Secret DISCORD_BOT_TOKEN oder Variable DISCORD_PATCHNOTES_CHANNEL_ID fehlt: nichts gepostet.' }
         Write-Output '--- Discord-Nachricht (nicht gepostet) ---'
         Write-Output $json
         exit 0
     }
 
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-    Invoke-RestMethod -Method Post -Uri $hook -Body $bytes -ContentType 'application/json; charset=utf-8' | Out-Null
+    if ($channel -notmatch '^\d+$') { throw 'DISCORD_PATCHNOTES_CHANNEL_ID ist keine Channel-ID (nur Ziffern).' }
+    $headers = @{ Authorization = "Bot $token"; 'User-Agent' = 'DiscordBot (https://github.com/Kegiion/RE-Multiplayer, 1.0)' }
+    $msg = Invoke-RestMethod -Method Post -Uri "https://discord.com/api/v10/channels/$channel/messages" -Headers $headers `
+        -Body $bytes -ContentType 'application/json; charset=utf-8'
+    # Ankuendigungs-Channel: Nachricht zusaetzlich an folgende Server veroeffentlichen (sonst egal, Fehler wird ignoriert)
+    try { Invoke-RestMethod -Method Post -Uri "https://discord.com/api/v10/channels/$channel/messages/$($msg.id)/crosspost" -Headers $headers | Out-Null } catch { }
     Write-Output "Patch Notes in Discord gepostet ($($embeds.Count) Embeds)."
 } catch {
-    # Webhook-URL nie ausgeben, nur die Fehlermeldung
+    # Token nie ausgeben, nur die Fehlermeldung
     Write-Output "::warning::Discord-Post fehlgeschlagen: $($_.Exception.Message)"
 }
 exit 0

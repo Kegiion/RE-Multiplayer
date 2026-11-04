@@ -354,20 +354,21 @@ do
     run_ui()
     assert(files["re2r_coop_config.json"].language == "de" and find_text("Nicht verbunden"))
 
-    -- Titelmenue "Multiplayer": Zeilen uebersetzt, Zeile "Sprache" schaltet weiter
+    -- Titelmenue "Multiplayer": Zeilen uebersetzt und wechseln mit der Sprache.
+    -- Eine Zeile "Sprache" gibt es dort nicht mehr (User, 4. November 2026:
+    -- immer automatisch).
     local tm = require("re2r_coop.titlemenu")
     local function row(id)
         for _, r in ipairs(tm.rows()) do if r.id == id then return r end end
     end
     assert(row("host").label == "Spiel hosten" and row("back").label == "Zurück")
-    assert(row("language").label == "Sprache: Deutsch", row("language").label)
-    tm.on_action("language") -- Deutsch -> Automatisch (Liste: auto, en, de)
-    assert(files["re2r_coop_config.json"].language == "auto")
-    assert(row("host").label == "Host game" and row("language").label == "Language: Automatic", row("language").label)
-    tm.on_action("language") -- -> English
-    assert(files["re2r_coop_config.json"].language == "en" and row("address").label:find("^Host IP: "))
+    assert(row("language") == nil, "Zeile Sprache im Titelmenue")
+    pending_combo["Sprache / Language##language"] = index["English"]
+    run_ui()
+    assert(row("host").label == "Host game" and row("address").label:find("^Host IP: "))
     assert(tm.ip_valid("1.2.3") == "Please enter a complete IP, e.g. 192.168.0.10.")
-    tm.on_action("language") -- -> Deutsch
+    pending_combo["Language / Sprache##language"] = index["Deutsch"]
+    run_ui()
     assert(files["re2r_coop_config.json"].language == "de" and row("join").label == "Beitreten")
 end
 

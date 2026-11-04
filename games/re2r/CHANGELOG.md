@@ -2,6 +2,24 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.3
+
+### Deutsch
+
+- Titelmenü „Multiplayer“: Die oberste Zeile zeigte manchmal „Kampagne“ statt des Verbindungsstatus. Behoben.
+- Die Zeile „Sprache“ im Titelmenü ist weg. Die Mod nimmt immer die Sprache des Spiels (Deutsch, sonst Englisch).
+- Esc beendet die Eingabe von Name oder IP jetzt zuverlässig.
+- Nach „Reset Scripts“ reagiert das Titelmenü wieder auf Tasten (die Sperre aus der Texteingabe blieb vorher stehen).
+- Kein Skriptfehler „invalid REManagedObject field mVersion“ mehr beim Einspielen des Host-Stands.
+
+### English
+
+- Title menu "Multiplayer": the top row sometimes showed "Campaign" instead of the connection status. Fixed.
+- The "Language" row in the title menu is gone. The mod always uses the game's language (German, otherwise English).
+- Esc now reliably ends typing a name or IP.
+- After "Reset Scripts" the title menu reacts to keys again (the lock from text input used to stay).
+- No more script error "invalid REManagedObject field mVersion" when applying the host's save.
+
 ## 0.11.2
 
 ### Deutsch

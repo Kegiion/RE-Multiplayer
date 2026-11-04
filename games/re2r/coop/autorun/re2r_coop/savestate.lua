@@ -576,7 +576,12 @@ local function build(node, existing, ctx)
         end
         obj:set_field(items_name, arr)
         obj:set_field(size_name, n)
-        pcall(function() obj:set_field(version_name, (obj:get_field(version_name) or 0) + 1) end)
+        -- Versionszaehler nur setzen, wenn es ihn gibt. Ein fehlendes Feld
+        -- meldet REFramework trotz pcall als "Last Script Error".
+        local otd = obj:get_type_definition()
+        if otd ~= nil and otd:get_field(version_name) ~= nil then
+            pcall(function() obj:set_field(version_name, (obj:get_field(version_name) or 0) + 1) end)
+        end
         ctx.stats.lists = ctx.stats.lists + 1
         return obj
     end

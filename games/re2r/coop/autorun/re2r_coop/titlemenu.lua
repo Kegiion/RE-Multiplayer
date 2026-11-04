@@ -118,9 +118,27 @@ local function guide_text()
 end
 
 -- Eigener Text statt Text-ID des Spiels (die ID hat Vorrang vor set_Message).
+-- Die ScrollList verteilt beim Neuaufbau Text-IDs des Spiels auch an Zeilen,
+-- in denen schon unser Text steht (4. November 2026: Statuszeile zeigte
+-- "Kampagne", get_Message lieferte aber unseren Text). Deshalb auch die ID
+-- pruefen (System.Guid, leer = mData1..3 alle 0).
+local function has_game_id(t)
+    local id = t:call("get_MessageId")
+    if id == nil then
+        return false
+    end
+    for _, f in ipairs({ "mData1", "mData2", "mData3" }) do
+        local ok, v = pcall(id.get_field, id, f)
+        if ok and v ~= nil and v ~= 0 then
+            return true
+        end
+    end
+    return false
+end
+
 local empty_id = nil
 local function set_text(t, text)
-    if t:call("get_Message") == text then
+    if t:call("get_Message") == text and not has_game_id(t) then
         return
     end
     if empty_id == nil then
@@ -237,6 +255,7 @@ function M.reopen()
 end
 
 M.trace = {}              -- letzte Moduswechsel (fuer die Fehlersuche)
+M.decisions = {}          -- letzte Auswahlen mit Wert und Cursor (fuer die Fehlersuche)
 local function set_mode(mode, why)
     M.trace[#M.trace + 1] = M.mode .. " -> " .. mode .. " (" .. tostring(why) .. ")"
     if #M.trace > 20 then
@@ -325,6 +344,11 @@ function M.install()
     end)
     sdk.hook(decide, function(args)
         local v = sdk.to_int64(args[3]) & 0xFFFFFFFF
+        local okc, cursor = pcall(function() return behavior:get_field("Selector"):call("get_CursorIndex") end)
+        M.decisions[#M.decisions + 1] = string.format("%s v=%d cursor=%s", M.mode, v, okc and tostring(cursor) or "?")
+        if #M.decisions > 20 then
+            table.remove(M.decisions, 1)
+        end
         local ok, skip = pcall(on_decide, v)
         if not ok then
             M.error = tostring(skip)
@@ -432,6 +456,17 @@ function M.accept_chars(field, buffer, chars)
     return buffer
 end
 
+-- Taste neu gedrueckt: isTrigger, dazu eigene Flankenerkennung ueber isDown.
+-- Esc kam im Eingabemodus ueber isTrigger allein nicht an (4. November 2026),
+-- obwohl isTrigger(27) in einem Konsolentest ausloeste.
+local held = {}
+local function pressed(dev, key)
+    local down = dev:call("isDown", key) == true
+    local was = held[key]
+    held[key] = down
+    return (down and not was) or dev:call("isTrigger", key) == true
+end
+
 local function update_edit()
     local dev = key_device()
     if dev == nil then
@@ -441,7 +476,8 @@ local function update_edit()
         edit.skip = edit.skip - 1
         return
     end
-    if dev:call("isTrigger", KEY_ESCAPE) then
+    local esc = pressed(dev, KEY_ESCAPE)
+    if esc then
         set_mode("mp", "esc")
         return
     end
@@ -470,7 +506,36 @@ end
 -- --- Pro Frame ----------------------------------------------------------------
 
 -- main = MainState (3 = Titel).
+-- Nach "Reset Scripts" waehrend einer Texteingabe bleibt die Menuesperre
+-- (set_EnableInput false) im Spiel stehen, das neue Skript weiss nichts davon:
+-- keine Taste ging mehr (4. November 2026). Darum beim ersten Frame im Titel
+-- das Hauptmenue einmal freigeben.
+local fresh = true
+
+local function unlock_menu()
+    local scene = sdk.call_native_func(sdk.get_native_singleton("via.SceneManager"),
+        sdk.find_type_definition("via.SceneManager"), "get_CurrentScene")
+    local guis = scene:call("findComponents(System.Type)", sdk.typeof("via.gui.GUI"))
+    for _, c in ipairs(guis and guis:get_elements() or {}) do
+        local go = c:call("get_GameObject")
+        if go:call("get_Name") == "GUI_MenuMain" then
+            for _, comp in ipairs(go:call("get_Components"):get_elements()) do
+                if comp:get_type_definition():get_full_name():find("MenuMainBehavior$") then
+                    if not comp:call("get_EnableInput") then
+                        comp:call("set_EnableInput", true)
+                    end
+                    return
+                end
+            end
+        end
+    end
+end
+
 function M.update(main)
+    if fresh and main == 3 then
+        fresh = false
+        pcall(unlock_menu)
+    end
     if main ~= 3 then
         if M.mode ~= "main" then
             M.mode, edit, shown = "main", nil, nil

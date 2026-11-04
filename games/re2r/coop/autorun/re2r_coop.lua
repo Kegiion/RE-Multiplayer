@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.11.2"
+local MOD_VERSION = "0.11.3"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -228,14 +228,6 @@ titlemenu.rows = function()
         rows[#rows + 1] = { id = "name", edit = "name", label = tr("tm.name", { value = config.name }),
             label_edit = function(b) return tr("tm.name", { value = b .. "_" }) end,
             help = tr("tm.name_help") }
-        local lang_name = tr("tm.language_auto")
-        for _, l in ipairs(language_choices()) do
-            if l.code == config.language and l.code ~= "auto" then
-                lang_name = l.name
-            end
-        end
-        rows[#rows + 1] = { id = "language", label = tr("tm.language", { value = lang_name }),
-            help = tr("tm.language_help") }
     elseif st.mode == "hosting" then
         local friend = peer_name()
         rows[#rows + 1] = { id = "status",
@@ -265,16 +257,6 @@ titlemenu.on_action = function(id)
         session:join(config.address, config.port)
     elseif id == "leave" then
         session:leave()
-    elseif id == "language" then
-        -- Naechste Sprache in der Liste (Automatisch -> English -> Deutsch -> ...)
-        local list = language_choices()
-        local next_index = 1
-        for i, l in ipairs(list) do
-            if l.code == config.language then
-                next_index = i % #list + 1
-            end
-        end
-        set_language(list[next_index].code)
     end
 end
 

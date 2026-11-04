@@ -127,7 +127,8 @@ jobs:
         shell: pwsh
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_PATCHNOTES_CHANNEL_ID }}
+          # Channel pro Projekt (DISCORD_PATCHNOTES_CHANNEL_RE0HD/_RE2R/_MANAGER), sonst der allgemeine
+          DISCORD_CHANNEL_ID: ${{ vars[format('DISCORD_PATCHNOTES_CHANNEL_{0}', inputs.mod)] || vars.DISCORD_PATCHNOTES_CHANNEL_ID }}
           TAG: ${{ steps.meta.outputs.tag }}
           TITLE: ${{ steps.meta.outputs.title }}
         run: ./tools/release/discord-notes.ps1 -Title $env:TITLE -Url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/releases/tag/$env:TAG"

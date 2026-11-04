@@ -7,11 +7,11 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $mods = @{
     're0hd'   = @{ Source = 'games/re0hd/lua/autorun/re0hd_coop.lua'; Pattern = '^local MOD_VERSION = "([^"]+)"'
-                   Changelog = 'games/re0hd/CHANGELOG.md'; Title = 'Resident Evil 0 HD Koop'; Asset = 'RE0HD-Coop-{0}.zip' }
+                   Changelog = 'games/re0hd/CHANGELOG.md'; Title = 'Resident Evil 0 HD Co-op'; Asset = 'RE0HD-Coop-{0}.zip' }
     're2r'    = @{ Source = 'games/re2r/coop/autorun/re2r_coop.lua'; Pattern = '^local MOD_VERSION = "([^"]+)"'
-                   Changelog = 'games/re2r/CHANGELOG.md'; Title = 'Resident Evil 2 Koop'; Asset = 'RE2R-Coop-{0}.zip' }
+                   Changelog = 'games/re2r/CHANGELOG.md'; Title = 'Resident Evil 2 Co-op'; Asset = 'RE2R-Coop-{0}.zip' }
     'manager' = @{ Source = 'tools/modmanager/Directory.Build.props'; Pattern = '<Version>([^<]+)</Version>'
-                   Changelog = 'tools/modmanager/CHANGELOG.md'; Title = 'RE:Multiplayer Mod-Manager'; Asset = 'RE-Multiplayer.exe' }
+                   Changelog = 'tools/modmanager/CHANGELOG.md'; Title = 'RE:Multiplayer Mod Manager'; Asset = 'RE-Multiplayer.exe' }
 }
 $m = $mods[$Mod]
 

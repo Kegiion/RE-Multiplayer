@@ -11,10 +11,10 @@ if (!token) {
 
 // Status-Liste: wechselt alle STATUS_INTERVAL_MS
 const STATUS = [
-  { type: ActivityType.Playing, name: 'Resident Evil 2 im Koop' },
+  { type: ActivityType.Playing, name: 'Resident Evil 2 co-op' },
   { type: ActivityType.Watching, name: 'Raccoon City' },
-  { type: ActivityType.Custom, name: 'custom', state: 'Überlebt zu zweit 🧟' },
-  { type: ActivityType.Playing, name: 'Resident Evil 0 im Koop' },
+  { type: ActivityType.Custom, name: 'custom', state: 'Surviving together 🧟' },
+  { type: ActivityType.Playing, name: 'Resident Evil 0 co-op' },
 ];
 const STATUS_INTERVAL_MS = 5 * 60 * 1000;
 

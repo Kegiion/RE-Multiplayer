@@ -1,0 +1,93 @@
+{
+  "categories": [
+    {
+      "name": "RE:Multiplayer",
+      "channels": [
+        {
+          "name": "welcome",
+          "topic": "Welcome to RE:Multiplayer, co-op mods for Resident Evil"
+        },
+        {
+          "name": "announcements",
+          "topic": "News about RE:Multiplayer"
+        },
+        {
+          "name": "faq",
+          "topic": "Frequently asked questions"
+        },
+        {
+          "name": "general",
+          "topic": "Talk about anything RE:Multiplayer"
+        }
+      ]
+    },
+    {
+      "name": "Resident Evil 2 Co-op",
+      "was": [
+        "Resident Evil 2 Koop"
+      ],
+      "mod": "re2r",
+      "channels": [
+        {
+          "name": "patch-notes",
+          "topic": "New versions of the RE2 co-op mod"
+        },
+        {
+          "name": "help",
+          "was": [
+            "hilfe"
+          ],
+          "topic": "Questions and problems with RE2 co-op"
+        },
+        {
+          "name": "chat",
+          "topic": "Everything about RE2 co-op"
+        }
+      ]
+    },
+    {
+      "name": "Resident Evil 0 HD Co-op",
+      "was": [
+        "Resident Evil 0 HD Koop"
+      ],
+      "mod": "re0hd",
+      "channels": [
+        {
+          "name": "patch-notes",
+          "topic": "New versions of the RE0 HD co-op mod"
+        },
+        {
+          "name": "help",
+          "was": [
+            "hilfe"
+          ],
+          "topic": "Questions and problems with RE0 HD co-op"
+        },
+        {
+          "name": "chat",
+          "topic": "Everything about RE0 HD co-op"
+        }
+      ]
+    },
+    {
+      "name": "Mod Manager",
+      "was": [
+        "Mod-Manager"
+      ],
+      "mod": "manager",
+      "channels": [
+        {
+          "name": "patch-notes",
+          "topic": "New versions of the RE:Multiplayer mod manager"
+        },
+        {
+          "name": "help",
+          "was": [
+            "hilfe"
+          ],
+          "topic": "Questions and problems with the mod manager"
+        }
+      ]
+    }
+  ]
+}

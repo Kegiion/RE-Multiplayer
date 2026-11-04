@@ -34,19 +34,20 @@ try {
         } elseif ($current) { $current.Lines.Add($line) } else { $rest.Add($line) }
     }
     if ($sections.Count -eq 0) { $sections.Add(@{ Lang = ''; Lines = $rest }) }
+    # Discord ist englisch: gibt es einen Abschnitt "### English", nur diesen posten
+    $en = @($sections | Where-Object { $_.Lang -eq 'English' })
+    if ($en.Count -gt 0) { $sections = $en }
 
     # Discord: Beschreibung max. 4096 Zeichen, alle Embeds zusammen max. 6000
     $max = [Math]::Min(4000, [Math]::Floor(5600 / $sections.Count) - $Title.Length - 20)
     $embeds = @()
     foreach ($s in $sections) {
-        $de = $s.Lang -ne 'English'
         $dots = [char]0x2026  # Auslassungszeichen, als Code damit die Datei reines ASCII bleibt
-        $more = if ($de) { "[$dots mehr im Release]($Url)" } else { "[$dots more in the release]($Url)" }
-        $suffix = if ($s.Lang) { " ($($s.Lang))" } else { '' }
+        $more = "[$dots more in the release]($Url)"
         $body = ($s.Lines -join "`n").Trim()
         if (-not $body) { continue }
         $embeds += @{
-            title       = "$Title$suffix"
+            title       = $Title
             url         = $Url
             description = Limit-Text $body $max $more
             color       = 0xB71C1C
@@ -54,7 +55,7 @@ try {
     }
 
     $payload = @{
-        content          = "**$Title** ist da / is out: $Url"
+        content          = "**$Title** is out: $Url"
         embeds           = $embeds
         allowed_mentions = @{ parse = @() }
     }

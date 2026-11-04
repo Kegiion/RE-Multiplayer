@@ -80,16 +80,11 @@ cmake --install build32 --config Release --prefix dist/RE0HD-Coop --component re
 - Spielordner (Steam-Standard): `C:\Program Files (x86)\Steam\steamapps\common\RESIDENT EVIL 2  BIOHAZARD RE2\`, RE0: `...\common\Resident Evil 0\`. Im Zweifel den User fragen oder in Steam → Verwalten → Lokale Dateien nachsehen.
 - REFramework-Log: `<Spiel>/re2_framework_log.txt`
 
-## Offene Design-Fragen an den User (noch unbeantwortet)
+## Design-Entscheidungen RE2
 
-1. Figuren: Spielt der Zweite Leon, wenn der Host Claire spielt? Dieselbe Figur doppelt? Ada oder Sherry?
-2. Dürfen sich die Spieler in verschiedene Bereiche bewegen, oder wird der Zweite beim Bereichswechsel mitgezogen?
-3. Items: geteiltes oder eigenes Inventar? Was passiert mit Schlüssel-Items?
-4. Mr. X: Wen verfolgt er?
-5. Tod: Game Over für beide oder Wiederbeleben?
-6. Schwierigkeit im Koop erhöhen?
+Beantwortet am 4. November 2026, siehe `docs/ROADMAP.md` („Design-Entscheidungen“): andere Hauptfigur für den Mitspieler, freie Bewegung mit Host-Welt, eigenes Inventar mit geteilten Schlüssel-Items, Mr. X jagt den Näheren, Wiederbeleben mit Frist, Schwierigkeit später einstellbar.
 
-Antworten in `docs/ROADMAP.md` eintragen.
+RE2 wird seit 4. November 2026 von einem Projektleiter-Chat geführt, der Unterchats für einzelne Bereiche startet. Aktueller Stand und Aufträge: `C:\Users\firea\Desktop\REMods-Notizen\RE2-uebergabe.md` (liegt nicht im Repo).
 
 ## Arbeitsweise
 

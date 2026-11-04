@@ -2,6 +2,17 @@
 
 ## RE2 Remake: Story-Koop
 
+### Design-Entscheidungen (User, 4. November 2026)
+
+| Thema | Entscheidung |
+|---|---|
+| Figuren | Der Mitspieler spielt die andere Hauptfigur: Host Leon → Mitspieler Claire, Host Claire → Mitspieler Leon. |
+| Bereiche | Beide dürfen sich frei bewegen und trennen. Die Welt des Hosts ist maßgeblich (Gegner, Türen, Story). |
+| Inventar | Jeder hat sein eigenes Inventar und eigene Munition. Schlüssel- und Story-Items bekommen beide, damit niemand festhängt. |
+| Mr. X | Verfolgt den näheren Spieler (bzw. den, den er hört). Das Ziel wechselt dynamisch. |
+| Tod | Wer stirbt, liegt am Boden und kann vom anderen innerhalb einer Frist wiederbelebt werden. Sterben beide oder läuft die Frist ab: Game Over für beide, weiter am letzten Speicherpunkt des Hosts. |
+| Schwierigkeit | Standard wie Solo. Der Host kann später mehr Gegner-Leben bzw. weniger Munition einschalten (Meilenstein 5). |
+
 ### Meilenstein 0: Grundgerüst ✅
 - Netzwerk-Kern, REFramework-Plugin, gemeinsame Lua-Bibliothek
 - Automatischer Build und Tests über GitHub Actions

@@ -33,20 +33,20 @@ try {
             $sections.Add($current)
         } elseif ($current) { $current.Lines.Add($line) } else { $rest.Add($line) }
     }
-    if ($sections.Count -eq 0) { $sections.Add(@{ Lang = 'Deutsch'; Lines = $rest }) }
+    if ($sections.Count -eq 0) { $sections.Add(@{ Lang = ''; Lines = $rest }) }
 
     # Discord: Beschreibung max. 4096 Zeichen, alle Embeds zusammen max. 6000
     $max = [Math]::Min(4000, [Math]::Floor(5600 / $sections.Count) - $Title.Length - 20)
     $embeds = @()
     foreach ($s in $sections) {
-        $de = $s.Lang -eq 'Deutsch'
+        $de = $s.Lang -ne 'English'
         $dots = [char]0x2026  # Auslassungszeichen, als Code damit die Datei reines ASCII bleibt
         $more = if ($de) { "[$dots mehr im Release]($Url)" } else { "[$dots more in the release]($Url)" }
-        $flag = if ($de) { 'Deutsch' } else { 'English' }
+        $suffix = if ($s.Lang) { " ($($s.Lang))" } else { '' }
         $body = ($s.Lines -join "`n").Trim()
         if (-not $body) { continue }
         $embeds += @{
-            title       = "$Title ($flag)"
+            title       = "$Title$suffix"
             url         = $Url
             description = Limit-Text $body $max $more
             color       = 0xB71C1C

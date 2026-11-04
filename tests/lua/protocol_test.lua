@@ -56,6 +56,45 @@ msg = assert(protocol.decode(protocol.encode("SAVE_BEGIN", { transfer = 1, size 
 assert(msg.size == 116816 and msg.chunks == 15 and msg.checksum == 0xDEADBEEF and msg.info == "Platz 3")
 assert(protocol.decode(protocol.encode("SAVE_REQUEST", {})).type == "SAVE_REQUEST")
 
+-- Gegner, Tod und Items (IDs 10..26), VERSION bleibt 3
+assert(protocol.VERSION == 3, "VERSION erst bei Nutzung im Spiel erhoehen")
+local new_ids = { ENEMY_SPAWN = 10, ENEMY_STATE = 11, ENEMY_HP = 12, ENEMY_DEAD = 13, ENEMY_DESPAWN = 14,
+    ENEMY_HIT = 15, PLAYER_HIT = 16, ENEMY_HANDOVER = 17, PLAYER_DOWN = 18, REVIVE_REQUEST = 19,
+    REVIVE_EVENT = 20, GAME_OVER = 21, ITEM_PICKUP = 22, ITEM_TAKEN = 23, ITEM_GRANT = 24,
+    ITEM_DISCARD = 25, HOST_SAVED = 26 }
+for name, id in pairs(new_ids) do
+    assert(protocol.MSG[name] == id, name .. " hat falsche ID")
+    assert(protocol.decode(protocol.encode(name, {})).type == name, name .. " leer")
+end
+-- Bestehende IDs unveraendert
+for name, id in pairs({ HELLO = 1, PLAYER_STATE = 2, CHAT = 3, ANIM_BANKS = 4, ANIM_STATE = 5,
+    SAVE_REQUEST = 6, SAVE_BEGIN = 7, SAVE_CHUNK = 8, INPUT_STATE = 9 }) do
+    assert(protocol.MSG[name] == id, name .. " verschoben")
+end
+
+raw = protocol.encode("ENEMY_SPAWN", { eid = 513, kind = "zombie", key = "k1", zone = 112, x = 1.5, y = 2, z = -3,
+    yaw = 0.5, hp = 120, hp_max = 200, flags = 1 })
+msg = assert(protocol.decode(raw))
+assert(msg.eid == 513 and msg.kind == "zombie" and msg.key == "k1" and msg.zone == 112)
+assert(msg.x == 1.5 and msg.z == -3 and msg.hp == 120 and msg.hp_max == 200 and msg.flags == 1)
+assert(#raw == 1 + 2 + 7 + 3 + 2 + 6 * 4 + 1, "ENEMY_SPAWN Groesse " .. #raw)
+
+msg = assert(protocol.decode(protocol.encode("ENEMY_STATE", { seq = 9, zone = 65535, data = string.rep("\7", 1041) })))
+assert(msg.seq == 9 and msg.zone == 65535 and #msg.data == 1041)
+msg = assert(protocol.decode(protocol.encode("ENEMY_HIT", { hit_seq = 77, eid = 4, damage = 37.5, part = 3, weapon = 1000, flags = 2 })))
+assert(msg.hit_seq == 77 and msg.eid == 4 and msg.damage == 37.5 and msg.part == 3 and msg.weapon == 1000 and msg.flags == 2)
+assert(#protocol.encode("ENEMY_HIT", {}) == 15)
+msg = assert(protocol.decode(protocol.encode("PLAYER_HIT", { eid = 4, damage = 10, kind = 1, dir = -1.25 })))
+assert(msg.damage == 10 and msg.kind == 1 and msg.dir == -1.25)
+msg = assert(protocol.decode(protocol.encode("REVIVE_EVENT", { event = 4, who = 1, by = 2, time_left = 12.5 })))
+assert(msg.event == 4 and msg.who == 1 and msg.by == 2 and msg.time_left == 12.5)
+msg = assert(protocol.decode(protocol.encode("GAME_OVER", { reason = 2, slot = -1 })))
+assert(msg.reason == 2 and msg.slot == -1, "slot vorzeichenbehaftet")
+msg = assert(protocol.decode(protocol.encode("ITEM_PICKUP", { item_key = "st4_101/item3", item_id = 4000000000, count = 15, zone = 112 })))
+assert(msg.item_key == "st4_101/item3" and msg.item_id == 4000000000 and msg.count == 15 and msg.zone == 112)
+msg = assert(protocol.decode(protocol.encode("HOST_SAVED", { slot = 21, session_id = 0xCAFEBABE })))
+assert(msg.slot == 21 and msg.session_id == 0xCAFEBABE)
+
 -- Kaputte Daten
 assert(protocol.decode("") == nil)
 assert(protocol.decode("\250") == nil)

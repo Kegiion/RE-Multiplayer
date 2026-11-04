@@ -58,6 +58,9 @@ Definiert in `shared/re-engine/lua/remultiplayer_coop/protocol.lua`. Jede Nachri
 | 3 | CHAT | reliable | Text (zum Testen) |
 | 4 | ANIM_BANKS | reliable | Nummer des Satzes, Pfade der Animationsdateien (Haupt-Bank, bis zu 4 weitere). Bei Änderung und alle 3 s |
 | 5 | ANIM_STATE | unreliable | seq, Bank-Satz, Ebenen 0 bis 3 (Bank, Animation, Bild, Überblendung), 12 Steuer-Variablen, Schalter-Bitfeld |
+| 6–8 | SAVE_REQUEST, SAVE_BEGIN, SAVE_CHUNK | reliable | Spielstand des Hosts für den Join |
+| 9 | INPUT_STATE | unreliable | Eingaben (Knopfmaske, Sticks, Kamera), steuert die Partner-Figur |
+| 10–26 | ENEMY_*, PLAYER_HIT, PLAYER_DOWN, REVIVE_*, GAME_OVER, ITEM_*, HOST_SAVED | gemischt | Gegner, Tod und Items (RE2), **noch nicht aktiv**, siehe `docs/re2r-konzept-gegner-tod-items.md` |
 
 ## Neues Spiel hinzufügen (RE-Engine)
 

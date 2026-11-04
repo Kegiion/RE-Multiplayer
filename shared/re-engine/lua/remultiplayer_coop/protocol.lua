@@ -107,6 +107,162 @@ local messages = {
         id = 9,
         fields = {},
     },
+
+    -- Gegner, Tod und Items (RE2, Konzept docs/re2r-konzept-gegner-tod-items.md).
+    -- Noch in keinem Spiel aktiv. VERSION bleibt 3, bis ein Teil davon im
+    -- Spiel genutzt wird (dann 4). zone = Map.ID als Zahl, 65535 = unbekannt.
+
+    -- Besitzer der Zone -> andere Seite: Gegner erscheint (bzw. neu verbunden).
+    ENEMY_SPAWN = {
+        id = 10,
+        fields = {
+            { "eid", "I2" },        -- Netz-Kennung, gilt fuer die Verbindung
+            { "kind", "s1" },       -- Art (spielabhaengig)
+            { "key", "s1" },        -- stabile Kennung aus dem Spiel, "" = keine
+            { "zone", "I2" },
+            { "x", "f" }, { "y", "f" }, { "z", "f" }, { "yaw", "f" },
+            { "hp", "f" }, { "hp_max", "f" },
+            { "flags", "B" },
+        },
+    },
+    -- Alle Gegner einer Zone, ca. 10x pro Sekunde (unreliable). data = eigenes
+    -- Format des Spielskripts (RE2: re2r_coop/enemy_net.pack_states).
+    ENEMY_STATE = {
+        id = 11,
+        fields = {
+            { "seq", "I4" },
+            { "zone", "I2" },
+            { "data", "s2" },
+        },
+    },
+    ENEMY_HP = {
+        id = 12,
+        fields = {
+            { "eid", "I2" },
+            { "hp", "f" },
+            { "flags", "B" },       -- Bit 0 betaeubt/umgefallen, Bit 1 Koerperteil verloren
+        },
+    },
+    ENEMY_DEAD = {
+        id = 13,
+        fields = {
+            { "eid", "I2" },
+            { "key", "s1" },
+            { "zone", "I2" },
+            { "killer", "B" },      -- 0 Host, 1 Mitspieler, 2 Umgebung
+        },
+    },
+    ENEMY_DESPAWN = {
+        id = 14,
+        fields = {
+            { "eid", "I2" },
+            { "reason", "B" },      -- 0 Zone entladen, 1 Besitzwechsel
+        },
+    },
+    -- Mitspieler -> Host: Treffer, so wie der Schuetze ihn gesehen hat.
+    ENEMY_HIT = {
+        id = 15,
+        fields = {
+            { "hit_seq", "I4" },
+            { "eid", "I2" },
+            { "damage", "f" },
+            { "part", "B" },        -- Koerperteil (spielabhaengig)
+            { "weapon", "I2" },
+            { "flags", "B" },       -- Bit 0 kritisch, Bit 1 Messer
+        },
+    },
+    -- Host -> Mitspieler: ein Gegner hat die Partner-Figur getroffen.
+    PLAYER_HIT = {
+        id = 16,
+        fields = {
+            { "eid", "I2" },
+            { "damage", "f" },
+            { "kind", "B" },        -- 0 normal, 1 Packen beginnt, 2 Packen endet
+            { "dir", "f" },         -- Richtung des Treffers (Radiant)
+        },
+    },
+    -- Leihbesitzer -> Host: Rueckgabe einer Zone (data = eigenes Format).
+    ENEMY_HANDOVER = {
+        id = 17,
+        fields = {
+            { "zone", "I2" },
+            { "data", "s2" },
+        },
+    },
+    -- Spieler -> Host: meine Lebenspunkte sind auf 0.
+    PLAYER_DOWN = {
+        id = 18,
+        fields = {
+            { "reserved", "B" },
+        },
+    },
+    -- Helfer -> Host: Aufheben beginnen (1) oder abbrechen (0).
+    REVIVE_REQUEST = {
+        id = 19,
+        fields = {
+            { "action", "B" },
+            { "distance", "f" },
+        },
+    },
+    -- Host -> Mitspieler: Ergebnis des Wiederbelebens.
+    REVIVE_EVENT = {
+        id = 20,
+        fields = {
+            { "event", "B" },       -- 1 DOWNED, 2 REVIVE_BEGIN, 3 REVIVE_CANCEL, 4 REVIVED, 5 SOLO
+            { "who", "B" },         -- 0 Host, 1 Mitspieler
+            { "by", "B" },          -- 0 Host, 1 Mitspieler, 2 automatisch
+            { "time_left", "f" },
+        },
+    },
+    GAME_OVER = {
+        id = 21,
+        fields = {
+            { "reason", "B" },      -- 1 beide am Boden, 2 Frist abgelaufen
+            { "slot", "i2" },       -- Speicherplatz, den der Host laedt (-1 = unbekannt)
+        },
+    },
+    -- Mitspieler -> Host: Weltitem aufgehoben.
+    ITEM_PICKUP = {
+        id = 22,
+        fields = {
+            { "item_key", "s1" },   -- Kennung des Weltitems
+            { "item_id", "I4" },
+            { "count", "I2" },
+            { "zone", "I2" },
+        },
+    },
+    -- Host -> Mitspieler: Weltitem ist weg.
+    ITEM_TAKEN = {
+        id = 23,
+        fields = {
+            { "item_key", "s1" },
+            { "by", "B" },          -- 0 Host, 1 Mitspieler
+            { "zone", "I2" },
+        },
+    },
+    -- Finder -> anderer: Schluessel-/Story-Item auch bekommen.
+    ITEM_GRANT = {
+        id = 24,
+        fields = {
+            { "item_id", "I4" },
+            { "count", "I2" },
+            { "extra", "I4" },      -- spielabhaengig
+        },
+    },
+    ITEM_DISCARD = {
+        id = 25,
+        fields = {
+            { "item_id", "I4" },
+        },
+    },
+    -- Host -> Mitspieler: Host hat gespeichert (Mitspieler sichert sein Inventar).
+    HOST_SAVED = {
+        id = 26,
+        fields = {
+            { "slot", "i2" },
+            { "session_id", "I4" },
+        },
+    },
 }
 
 protocol.ANIM_LAYERS = 6

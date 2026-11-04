@@ -4,7 +4,7 @@ Stand: 4. November 2026, Mod 0.9.1, Protokoll 3. Grundlage sind die Design-Entsc
 
 Dieses Dokument legt fest, **was** übertragen wird und **wer** entscheidet. Wie das Spiel intern funktioniert, wissen wir für Gegner, Tod und Items noch fast nicht. Jeder Teil endet deshalb mit der Liste **„Im Spiel zu erforschen“**. Alles dort ist **unbestätigt**. Als bestätigt gelten nur die Fakten aus `games/re2r/research/README.md`.
 
-Neue Nachrichten sind hier nur **Vorschläge**. `protocol.lua` ändert der Projektleiter nach Abstimmung (siehe „Vorschlag fürs Protokoll“ am Ende).
+Die neuen Nachrichten stehen seit 4. November 2026 in `protocol.lua`, sind aber noch nicht aktiv (siehe „Protokoll“ am Ende).
 
 ## Ausgangslage (bestätigt)
 
@@ -77,7 +77,7 @@ IDs ab 10, da 1 bis 9 belegt sind.
 | 16 | `PLAYER_HIT` | Host → Mitspieler | reliable | `eid` I2, `damage` f, `kind` B (0 normal, 1 Packen beginnt, 2 Packen endet), `dir` f (Richtung des Treffers) | 12 B |
 | 17 | `ENEMY_HANDOVER` | Leihbesitzer → Host | reliable | `zone` I2, `data` s2 (je Gegner `eid`, `key`, Position, `hp`) | variabel |
 
-Datensatz in `ENEMY_STATE` (`enemy_net.RECORD`, 26 Bytes): `eid` I2, `x`,`y`,`z` f, `yaw` i2 (Radiant × 10000), `mode` B (KI-Zustand, spielabhängig), `target` B (0 keins, 1 Host, 2 Mitspieler), `bank` I2, `motion` I4, `frame` I2 (Bild × 10). Bis 255 Gegner pro Paket. Das Packen und Entpacken ist schon gebaut und getestet (`re2r_coop/enemy_net.lua`, `tests/lua/re2r_coop_logic_test.lua`).
+Datensatz in `ENEMY_STATE` (`enemy_net.RECORD`, 26 Bytes): `eid` I2, `x`,`y`,`z` f, `yaw` i2 (Radiant × 10000), `mode` B (KI-Zustand, spielabhängig), `target` B (0 keins, 1 Host, 2 Mitspieler), `bank` I2, `motion` I4, `frame` I2 (Bild × 10). Bis 255 Gegner pro Paket. Das Packen und Entpacken ist gebaut und getestet (`re2r_coop/enemy_net.lua`).
 
 ### Ablauf: Mitspieler trifft einen Gegner (Host besitzt ihn)
 
@@ -289,22 +289,68 @@ Hier gibt es eine Spannung zum aktuellen Join-Fehler „Der Beitretende behält 
 
 ---
 
-## Vorschlag fürs Protokoll (zur Abstimmung mit dem Projektleiter)
+## Protokoll
 
-- Neue Nachrichten 10 bis 26 wie oben. `protocol.encode` kann keine Listen, deshalb nutzen `ENEMY_STATE` und `ENEMY_HANDOVER` ein `s2`-Feld `data` mit eigenem Format (`enemy_net.pack_states`). Das ist in `re2r_coop` gebaut und muss nicht in `shared/`.
-- Bedeutung von `PLAYER_STATE.flags` festlegen (RE2): Bit 0 am Boden, Bit 1 wird aufgehoben, Bit 2 Danger. Das ändert das Format nicht.
-- **`protocol.VERSION` auf 4 erhöhen**, wenn die ersten dieser Nachrichten kommen. Alte Stände würden die neuen IDs zwar ignorieren, aber dann schießt einer auf Gegner, die beim anderen nicht sterben. Das ist schlimmer als eine klare Ablehnung beim Verbinden.
-- Reihenfolge der Umsetzung: (1) E2, E3, E7, E13 → Gegner als Puppen beim Mitspieler, nur Anzeige. (2) E4, E5, E6 → Treffer und Tod. (3) T1, T2, T3 → Wiederbeleben mit `revive.lua`. (4) I1, I3, I4, I5 → Items. (5) E8, E10 → getrennte Zonen. (6) E9, E14 → Mr. X.
+- **Umgesetzt (4. November 2026):** Die Nachrichten 10 bis 26 stehen in `shared/re-engine/lua/remultiplayer_coop/protocol.lua`, getestet in `tests/lua/protocol_test.lua`. Bestehende Nachrichten sind unverändert. `protocol.lua` kann keine Listen, deshalb tragen `ENEMY_STATE` und `ENEMY_HANDOVER` ein `s2`-Feld `data` mit eigenem Format aus `re2r_coop/enemy_net.lua`.
+- **`protocol.VERSION` bleibt 3**, damit Spieler mit 0.9.x verbunden bleiben. Auf 4 wird erhöht, sobald ein Teil davon im Spiel aktiv wird. Alte Stände würden die neuen IDs zwar ignorieren, aber dann schießt einer auf Gegner, die beim anderen nicht sterben. Das ist schlimmer als eine klare Ablehnung beim Verbinden.
+- Ebenfalls erst mit VERSION 4: `PLAYER_STATE.flags` (RE2) Bit 0 am Boden, Bit 1 wird aufgehoben, Bit 2 Danger (`revive.FLAG_*`, `Controller:flags()`).
+- Reihenfolge der Umsetzung: (1) E2, E3, E7, E13 → Gegner als Puppen beim Mitspieler, nur Anzeige. (2) E4, E5, E6 → Treffer und Tod. (3) T1, T2, T3 → Wiederbeleben. (4) I1, I3, I4, I5 → Items. (5) E8, E10 → getrennte Zonen. (6) E9, E14 → Mr. X.
 
 ## Schon gebaut (ohne Spiel, getestet)
 
 | Datei | Inhalt |
 |---|---|
-| `games/re2r/coop/autorun/re2r_coop/revive.lua` | Zustandsautomat Tod und Wiederbeleben (Host entscheidet): Liegen, Aufheben, Abbruch, Frist, Zwischensequenz, Verbindungsabbruch, Game Over |
-| `games/re2r/coop/autorun/re2r_coop/enemy_net.lua` | Packen/Entpacken vieler Gegner (26 Bytes je Gegner), Besitzer pro Zone, Zielwahl mit Hysterese für Mr. X |
-| `tests/lua/re2r_coop_logic_test.lua` | Tests dazu (ctest `lua_re2r_coop_logic`) |
+| `re2r_coop/game_adapter.lua` | **Alle Spielzugriffe** für Gegner, Tod und Items. Jede Funktion trägt ihre Forschungsnummer und meldet bis zur Forschung `nil, "nicht erforscht (Nr.)"`, Hooks melden nichts an |
+| `re2r_coop/enemy_net.lua` | Gegner-Datensätze (26 Bytes), Rückgabe-Format, Zuordnung per Kennung bzw. nächster Gegner derselben Art bis 2 m, Besitz pro Zone, Zielwahl für Mr. X, **`Sync`**: Spawn/Zustand/Lebenspunkte/Tod verschicken, Puppen einfrieren und bewegen, Treffer des Mitspielers prüfen und anwenden, Partner-Schaden unterdrücken, Zone leihen und zurückgeben |
+| `re2r_coop/revive.lua` | Zustandsautomat und **`Controller`**: Tod verhindern, Liegen, Aufheben per Taste in Reichweite, Zwischensequenz, Game Over für beide mit Platz des Hosts, Verbindungsabbruch |
+| `re2r_coop/items_net.lua` | Kategorien (Spiel + Handkorrekturen), **`Sync`**: Aufheben „wer zuerst kommt“, Schlüssel-Items für beide (bei vollem Inventar in die Kiste), Wegwerfen, Inventar-Kopie bei `HOST_SAVED`, `starting_kit` fürs erste Beitreten |
+| `tests/lua/re2r_coop_logic_test.lua` | Automat, Datensätze, Zonenbesitz, Zielwahl (ctest `lua_re2r_coop_logic`) |
+| `tests/lua/re2r_coop_net_test.lua` | Host und Mitspieler gegen einen nachgebauten Adapter, alle Nachrichten durch `protocol.encode`/`decode` (ctest `lua_re2r_coop_net`) |
 
-Beide Module werden noch von nichts geladen. Am Spielverhalten ändert sich nichts.
+Die Module werden noch von nichts geladen (`re2r_coop.lua` unverändert, `MOD_VERSION` 0.9.1). Am Spielverhalten ändert sich nichts.
+
+### Adapter: was die Forschung im Spiel einsteckt
+
+Die Forschung ersetzt nur den Rumpf in `game_adapter.lua` (oder ruft `game_adapter.install({ name = fn }, "E2")`). Danach meldet `game_adapter.status()` die Funktion als erforscht.
+
+| Funktion | Nr. | Erwartet |
+|---|---|---|
+| `get_enemies(zone)` | E2 | Liste `{ ref, key, kind, x, y, z, yaw, hp, hp_max, mode, bank, motion, frame }` |
+| `enemy_key(ref)` | E1 | stabile Kennung oder nil |
+| `enemy_kind(ref)` | E3 | Art als Text |
+| `read_enemy(ref)` | E4/E13 | wie ein Eintrag von `get_enemies`, nil wenn weg |
+| `set_enemy_hp(ref, hp)` | E4 | Lebenspunkte setzen |
+| `apply_damage(ref, damage, part, weapon, flags)` | E5 | Schaden über die Schadensverarbeitung des Spiels |
+| `kill_enemy(ref)` | E5 | Puppe sterben lassen |
+| `hook_enemy_damage(fn)` | E5/E6 | `fn(ref, damage, part, weapon, flags, source)`, `source` = `"local"`/`"partner"`/`"other"`, true = Abzug verhindern |
+| `freeze_ai(ref, frozen)` | E7 | KI an/aus, Gegner bleibt sichtbar |
+| `set_enemy_pose(ref, pose)` | E7/E13 | Position, Drehung, Animation (Datensatz aus `ENEMY_STATE`) |
+| `mark_enemy_dead(key, zone)` | E8 | Tod in die eigene Welt eintragen |
+| `set_chase_target(ref, who)` | E9 | `"host"` oder `"client"` (Partner-Figur) |
+| `loaded_zones()` | E10 | Liste von `Map.ID`-Zahlen |
+| `hook_player_damage(fn)` | E11 | `fn(victim, damage, enemy_ref, kind, dir)`, `victim` = `"local"`/`"partner"`, true = verhindern |
+| `apply_player_damage(damage, kind, dir)` | E11 | eigenem Spieler Schaden zufügen |
+| `find_chaser()` | E14 | Mr. X oder nil |
+| `hook_noise(fn)` | E14 | `fn("host"/"client")` bei Lärm |
+| `get_player_hp()` | T1 | `hp, hp_max` |
+| `set_player_hp(fraction)` | T1/T6 | Anteil 0 bis 1 |
+| `hook_player_death(fn)` | T1/T4 | `fn()` true = Tod verhindern |
+| `set_downed(downed)` | T2 | eigenen Spieler hinlegen/aufstehen |
+| `set_partner_downed(downed)` | T2 | Partner-Figur hinlegen/aufstehen |
+| `trigger_game_over()` | T3 | Game Over auslösen, Rückgabe: Platz, den „Fortsetzen“ lädt |
+| `in_cutscene()` | T5 | vorläufig über die bestätigte `Invalid`-Zone umgesetzt |
+| `revive_button_held()` | T7 | Aufheben-Taste gehalten |
+| `get_inventory()` | I1 | Liste `{ item_id, count, extra }` |
+| `item_category(item_id)` | I2 | `"key"`, `"consumable"`, `"weapon"` oder `"other"` |
+| `hook_item_pickup(fn)` | I3 | `fn(world_key, item_id, count, zone)` nach dem Aufheben |
+| `remove_world_item(world_key, zone)` | I4 | Weltitem als aufgehoben markieren und entfernen |
+| `give_item(item_id, count, extra)` | I5 | true, oder `nil, "full"` |
+| `put_in_box(item_id, count, extra)` | I5 | in die eigene Itemkiste |
+| `default_weapons(character)` | I6 | Startwaffen der Figur |
+| `remove_item(item_id)` | I8 | Item aus dem Inventar entfernen |
+| `hook_item_discard(fn)` | I8 | `fn(item_id)`, wenn das Spiel ein Schlüssel-Item wegwirft |
+| `hook_host_saved(fn)` | I9 | `fn(slot)` beim Speichern |
+| `capture_inventory()` / `restore_inventory(data)` | I1/I9 | eigenes Inventar und Kiste sichern bzw. einspielen |
 
 ## Entscheidungen des Users (4. November 2026)
 

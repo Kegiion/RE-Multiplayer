@@ -216,4 +216,241 @@ function revive:reset()
     end
 end
 
+---------------------------------------------------------------------------
+-- Controller: verbindet den Automaten mit Netzwerk und Spiel (Adapter)
+---------------------------------------------------------------------------
+--
+-- Controller.new{ role = "host"|"client", send = function(name, data, reliable),
+--                 adapter = <re2r_coop.game_adapter>, cfg = { ... wie DEFAULTS },
+--                 on_game_over = function(reason, slot) }   -- z. B. erneuter Join
+-- c:install()                 Tod-Hook anmelden (einmal)
+-- c:peer_joined() / c:peer_left(now)
+-- c:update(now, ctx)          ctx = { partner_distance = Meter oder nil }
+-- c:handle(msg, now)          empfangene Nachricht
+-- c:reset()                   nach dem Laden des Speicherpunkts
+
+local Controller = {}
+Controller.__index = Controller
+revive.Controller = Controller
+
+revive.EVENT_CODE = { DOWNED = 1, REVIVE_BEGIN = 2, REVIVE_CANCEL = 3, REVIVED = 4, SOLO = 5 }
+revive.EVENT_NAME = {}
+for k, v in pairs(revive.EVENT_CODE) do revive.EVENT_NAME[v] = k end
+revive.WHO_CODE = { host = 0, client = 1, auto = 2 }
+revive.WHO_NAME = { [0] = "host", [1] = "client", [2] = "auto" }
+revive.REASON_CODE = { both_down = 1, bleedout = 2 }
+revive.REASON_NAME = { [1] = "both_down", [2] = "bleedout" }
+
+function Controller.new(opts)
+    local self = setmetatable({}, Controller)
+    self.role = assert(opts.role, "role fehlt")
+    self.other = self.role == "host" and "client" or "host"
+    self.send = assert(opts.send, "send fehlt")
+    self.adapter = opts.adapter or require("re2r_coop.game_adapter")
+    self.on_game_over = opts.on_game_over
+    self.cfg = {}
+    for k, v in pairs(revive.DEFAULTS) do
+        self.cfg[k] = (opts.cfg and opts.cfg[k] ~= nil) and opts.cfg[k] or v
+    end
+    self.machine = self.role == "host" and revive.new(self.cfg) or nil
+    if self.machine then
+        self.machine:add_player("host")
+    end
+    self.state = { host = "alive", client = "alive" }
+    self.peer = false
+    self.helping = false      -- eigener Spieler hebt gerade auf
+    self.cutscene = false
+    self.game_over = false
+    self.now = 0
+    return self
+end
+
+function Controller:install()
+    self.adapter.hook_player_death(function()
+        return self:_on_local_death()
+    end)
+end
+
+function Controller:peer_joined()
+    self.peer = true
+    if self.machine then
+        self.machine:add_player("client")
+    end
+end
+
+function Controller:peer_left(now)
+    self.peer = false
+    self.helping = false
+    if self.machine then
+        self:_dispatch(self.machine:remove_player("client"), now, false)
+    elseif self.state.client ~= "alive" and not self.game_over then
+        -- Niemand kann helfen: normales Game Over im eigenen Spiel
+        self:_apply_game_over("bleedout", -1)
+    end
+    self.state[self.other] = "alive"
+end
+
+-- Hook: eigener Spieler wuerde sterben. true = Tod verhindern.
+function Controller:_on_local_death()
+    if not self.peer or self.game_over then
+        return false -- allein: normales Spiel
+    end
+    if self.state[self.role] ~= "alive" then
+        return true
+    end
+    if self.machine then
+        self:_dispatch(self.machine:down("host", self.now), self.now, true)
+    else
+        self.state.client = "down"
+        self.adapter.set_downed(true)
+        self.send("PLAYER_DOWN", { reserved = 0 }, true)
+    end
+    return true
+end
+
+-- Ereignis lokal umsetzen (beide Rollen).
+function Controller:_apply(name, who, by)
+    local a = self.adapter
+    local me = who == self.role
+    if name == "DOWNED" then
+        self.state[who] = "down"
+        if me then a.set_downed(true) else a.set_partner_downed(true) end
+    elseif name == "REVIVE_BEGIN" then
+        self.state[who] = "reviving"
+    elseif name == "REVIVE_CANCEL" then
+        self.state[who] = "down"
+        if by == self.role then self.helping = false end
+    elseif name == "REVIVED" then
+        self.state[who] = "alive"
+        if by == self.role then self.helping = false end
+        if me then
+            a.set_downed(false)
+            a.set_player_hp(self.cfg.revive_hp)
+        else
+            a.set_partner_downed(false)
+        end
+    end
+end
+
+function Controller:_apply_game_over(reason, slot)
+    if self.game_over then
+        return slot
+    end
+    self.game_over = true
+    if self.role == "host" then
+        local s = self.adapter.trigger_game_over()
+        slot = type(s) == "number" and s or -1
+    else
+        self.adapter.trigger_game_over()
+    end
+    if self.on_game_over then
+        self.on_game_over(reason, slot)
+    end
+    return slot
+end
+
+-- Host: Ereignisse des Automaten umsetzen und verschicken.
+function Controller:_dispatch(events, now, send)
+    for _, ev in ipairs(events) do
+        if ev.type == "GAME_OVER" then
+            local slot = self:_apply_game_over(ev.reason, -1)
+            if send ~= false and self.peer then
+                self.send("GAME_OVER", { reason = revive.REASON_CODE[ev.reason] or 0, slot = slot }, true)
+            end
+        else
+            self:_apply(ev.type, ev.pid, ev.by)
+            if send ~= false and self.peer and ev.type ~= "SOLO" then
+                local left = 0
+                if ev.deadline then left = ev.deadline - now end
+                if ev.done_at then left = ev.done_at - now end
+                self.send("REVIVE_EVENT", { event = revive.EVENT_CODE[ev.type], who = revive.WHO_CODE[ev.pid] or 0,
+                    by = revive.WHO_CODE[ev.by] or 0, time_left = math.max(left, 0) }, true)
+            end
+        end
+    end
+end
+
+function Controller:update(now, ctx)
+    self.now = now
+    if not self.peer or self.game_over then
+        return
+    end
+    local a = self.adapter
+    local dist = ctx and ctx.partner_distance
+    local held = a.revive_button_held() == true
+    local other_down = self.state[self.other] == "down" or self.state[self.other] == "reviving"
+    local in_range = dist ~= nil and dist <= self.cfg.revive_range
+
+    if self.machine then
+        local cut = a.in_cutscene() == true
+        if cut ~= self.cutscene then
+            self.cutscene = cut
+            self:_dispatch(self.machine:cutscene(cut, now), now)
+        end
+        if not self.helping and held and in_range and self.state.client == "down" and self.state.host == "alive" then
+            self.helping = true
+            self:_dispatch(self.machine:begin("client", "host", now, dist), now)
+            if self.state.client ~= "reviving" then self.helping = false end
+        elseif self.helping and (not held or not in_range) then
+            self.helping = false
+            self:_dispatch(self.machine:cancel("client", now), now)
+        end
+        self:_dispatch(self.machine:update(now), now)
+    else
+        if not self.helping and held and in_range and self.state.host == "down" and self.state.client == "alive" then
+            self.helping = true
+            self.send("REVIVE_REQUEST", { action = 1, distance = dist }, true)
+        elseif self.helping and (not held or not in_range or not other_down) then
+            self.helping = false
+            if other_down then
+                self.send("REVIVE_REQUEST", { action = 0, distance = dist or 0 }, true)
+            end
+        end
+    end
+end
+
+function Controller:handle(msg, now)
+    local t = msg.type
+    if self.machine then
+        if t == "PLAYER_DOWN" then
+            self:_dispatch(self.machine:down("client", now), now)
+        elseif t == "REVIVE_REQUEST" then
+            if msg.action == 1 then
+                self:_dispatch(self.machine:begin("host", "client", now, msg.distance), now)
+            else
+                self:_dispatch(self.machine:cancel("host", now), now)
+            end
+        end
+    else
+        if t == "REVIVE_EVENT" then
+            local name = revive.EVENT_NAME[msg.event]
+            if name ~= nil and name ~= "SOLO" then
+                self:_apply(name, revive.WHO_NAME[msg.who], revive.WHO_NAME[msg.by])
+            end
+        elseif t == "GAME_OVER" then
+            self:_apply_game_over(revive.REASON_NAME[msg.reason] or "both_down", msg.slot)
+        end
+    end
+end
+
+function Controller:reset()
+    if self.machine then
+        self.machine:reset()
+    end
+    self.state = { host = "alive", client = "alive" }
+    self.helping = false
+    self.cutscene = false
+    self.game_over = false
+end
+
+-- Bits fuer PLAYER_STATE.flags (erst mit protocol.VERSION 4 aktiv).
+revive.FLAG_DOWN, revive.FLAG_REVIVING, revive.FLAG_DANGER = 1, 2, 4
+
+function Controller:flags()
+    local s = self.state[self.role]
+    if s == "down" then return revive.FLAG_DOWN end
+    if s == "reviving" then return revive.FLAG_DOWN | revive.FLAG_REVIVING end
+    return 0
+end
+
 return revive

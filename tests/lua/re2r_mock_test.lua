@@ -633,6 +633,25 @@ do
     sdk.get_managed_singleton = old_singleton
 end
 
+-- Titelmenue: Eingaberegeln fuer IP und Namen
+do
+    local tm = require("re2r_coop.titlemenu")
+    assert(tm.accept_chars("address", "", "192.168.0.10") == "192.168.0.10")
+    assert(tm.accept_chars("address", "", "300") == "30", "Block ueber 255 angenommen")
+    assert(tm.accept_chars("address", "", "1..2") == "1.2", "doppelter Punkt angenommen")
+    assert(tm.accept_chars("address", "", ".1") == "1", "Punkt am Anfang angenommen")
+    assert(tm.accept_chars("address", "", "1.2.3.4.5") == "1.2.3.45", "fuenfter Block angenommen")
+    assert(tm.accept_chars("address", "", "abc") == "", "Buchstaben in der IP angenommen")
+    assert(tm.accept_chars("address", "", "01") == "0", "fuehrende Null angenommen")
+    assert(tm.accept_chars("address", "1.2.3.", "255") == "1.2.3.255")
+    assert(tm.ip_valid("100.64.12.7") == true)
+    assert(tm.ip_valid("100.64.12") ~= true)
+    assert(tm.ip_valid("") ~= true)
+    assert(tm.accept_chars("name", "", "Leon_2!") == "Leon_2", "Sonderzeichen im Namen angenommen")
+    assert(#tm.accept_chars("name", "", string.rep("a", 30)) == 16, "Name zu lang")
+    assert(tm.fields.name.valid("   ") ~= true)
+end
+
 -- Fehler im Spielzugriff duerfen das Skript nicht abschiessen
 sdk.get_managed_singleton = function() error("kaputt") end
 run_frame()

@@ -19,6 +19,8 @@ DEFAULT_DATA = (r"C:\Program Files (x86)\Steam\steamapps\common"
 
 
 def main():
+    # Spieltexte enthalten z. B. Japanisch, die Windows-Konsole (cp1252) nicht.
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("code", nargs="?", help="Lua-Code")
     parser.add_argument("-f", "--file", help="Lua-Code aus Datei")

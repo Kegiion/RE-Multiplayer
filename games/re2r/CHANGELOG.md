@@ -6,7 +6,8 @@ Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) üb
 
 - **Beitreten geht jetzt auch aus dem Titelmenü**, auch aus „Kampagne → Spiel laden“. Vorher lud das Spiel zwar, aber die Menüs blieben über dem Spiel stehen, und man kam scheinbar nicht weiter. Jetzt werden sie nach dem Laden ausgeblendet. Danach funktioniert auch der Weg zurück in den Titel wieder normal.
 - Wer noch keinen Spielstand geladen hat, bekommt den Stand des Hosts über seinen neuesten Speicherplatz.
-- **Multiplayer-Fenster im Titelbildschirm:** Unten rechts kannst du direkt Namen, IP und Port eingeben, hosten und beitreten, ohne das Einfg-Menü. Abschaltbar mit dem Haken „Multiplayer-Fenster im Titelbildschirm“.
+- **Neuer Eintrag „Multiplayer“ im Hauptmenü** (unter „Kampagne“), im Stil des Spiels und mit Tastatur oder Controller bedienbar: Spiel hosten, Beitreten, IP des Hosts und deinen Namen direkt in der Menüzeile eintippen (Enter übernimmt, Esc bricht ab). Die IP wird geprüft (vier Zahlen bis 255). Danach zeigt das Menü, mit wem du verbunden bist und wie weit der Spielstand übertragen ist.
+- Falls der Menüeintrag einmal nicht eingebaut werden kann, erscheint stattdessen unten rechts ein kleines Multiplayer-Fenster.
 
 ## 0.9.1
 

@@ -43,6 +43,7 @@ local weapon = require("re2r_coop.weapon")
 local partner = require("re2r_coop.partner")
 local remote_input = require("re2r_coop.remote_input")
 local savejoin = require("re2r_coop.savejoin")
+local titlemenu = require("re2r_coop.titlemenu")
 local diag = require("re2r_coop.diag")
 local devconsole = require("re2r_coop.devconsole")
 
@@ -162,6 +163,80 @@ end)
 
 -- Lade-Hook fuer den Join (nur im Spiel, sdk.hook)
 pcall(savejoin.install_hook)
+-- Eintrag "Multiplayer" im Hauptmenue des Titelbildschirms
+pcall(titlemenu.install)
+
+-- Zeilen des Untermenues "Multiplayer" im Titelbildschirm (Spielstil).
+local function peer_name()
+    for _, p in pairs(session.peers) do
+        if p.ready then
+            return p.name or "Mitspieler"
+        end
+    end
+    return nil
+end
+
+titlemenu.rows = function()
+    local st = session:status()
+    local rows = {}
+    if st.mode == "idle" then
+        rows[#rows + 1] = { id = "host", label = "Spiel hosten",
+            help = string.format("Du startest das Spiel, dein Freund tritt dir bei (UDP-Port %d).", config.port) }
+        rows[#rows + 1] = { id = "join", label = "Beitreten",
+            help = "Verbindet dich mit dem Spiel deines Freundes und lädt seinen Spielstand." }
+        rows[#rows + 1] = { id = "address", edit = "address", label = "IP des Hosts: " .. config.address,
+            label_edit = function(b) return "IP des Hosts: " .. b .. "_" end,
+            help = "Die IP-Adresse deines Freundes (z. B. aus Radmin VPN oder ZeroTier)." }
+        rows[#rows + 1] = { id = "name", edit = "name", label = "Dein Name: " .. config.name,
+            label_edit = function(b) return "Dein Name: " .. b .. "_" end,
+            help = "So sieht dich dein Mitspieler." }
+    elseif st.mode == "hosting" then
+        local friend = peer_name()
+        rows[#rows + 1] = { id = "status", label = friend and (friend .. " ist verbunden") or "Warte auf Mitspieler ...",
+            help = friend and "Lade jetzt über Kampagne deinen Spielstand. Dein Freund kommt automatisch nach."
+                or string.format("Gib deinem Freund deine IP-Adresse. Port %d (UDP).", config.port) }
+        rows[#rows + 1] = { id = "leave", label = "Hosten beenden", help = "Beendet das Spiel für deinen Freund." }
+    elseif st.mode == "connecting" then
+        rows[#rows + 1] = { id = "status", label = "Verbinde mit " .. config.address .. " ...", help = "Einen Moment ..." }
+        rows[#rows + 1] = { id = "leave", label = "Abbrechen", help = "" }
+    else
+        local host = peer_name()
+        local text = savejoin.message ~= "" and savejoin.message or "Hole den Spielstand ..."
+        if savejoin.state == "receiving" then
+            text = string.format("Empfange Spielstand ... %d %%", math.floor(savejoin.progress() * 100))
+        end
+        rows[#rows + 1] = { id = "status", label = host and ("Verbunden mit " .. host) or "Verbunden", help = text }
+        rows[#rows + 1] = { id = "leave", label = "Trennen", help = "" }
+    end
+    rows[#rows + 1] = { id = "back", label = "Zurück", help = "Zurück zum Hauptmenü." }
+    return rows
+end
+
+titlemenu.on_action = function(id)
+    if id == "host" then
+        session:host(config.port)
+    elseif id == "join" then
+        session:join(config.address, config.port)
+    elseif id == "leave" then
+        session:leave()
+    end
+end
+
+titlemenu.get_field = function(name)
+    return config[name]
+end
+
+titlemenu.set_field = function(name, value)
+    value = value:match("^%s*(.-)%s*$")
+    if value == "" then
+        return
+    end
+    config[name] = value
+    if name == "name" then
+        session.name = value
+    end
+    save_config()
+end
 savejoin.auto = config.auto_join
 
 -- Wer beitritt, holt sich automatisch den Spielstand des Hosts.
@@ -463,7 +538,16 @@ local YELLOW = 0xFF40E0FF
 local GREY = 0xFFB0B0B0
 
 draw_title_window = function()
-    if not config.title_window or savejoin.main_state() ~= savejoin.MAIN_TITLE then
+    local main = savejoin.main_state()
+    if titlemenu.installed then
+        titlemenu.update(main)
+    end
+    if not config.title_window or main ~= savejoin.MAIN_TITLE then
+        return
+    end
+    -- Mit Menueeintrag laeuft alles im Spielmenue (re2r_coop/titlemenu.lua),
+    -- das Fenster ist nur der Ersatz, falls der Eintrag nicht klappt.
+    if titlemenu.installed then
         return
     end
     local size = imgui.get_display_size and imgui.get_display_size()
@@ -537,6 +621,7 @@ local function draw_debug_ui(status)
     end
 
     if config.show_debug then
+        imgui.text("Titelmenue-Eintrag: " .. (titlemenu.installed and "aktiv" or "aus") .. (titlemenu.error and (" - " .. titlemenu.error) or ""))
         local ls = state.local_state
         if ls then
             imgui.text(string.format("Spieler: %s  via %s", tostring(ls.object_name), tostring(game.player_source)))

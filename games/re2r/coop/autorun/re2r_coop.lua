@@ -14,20 +14,28 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.10.0"
+local MOD_VERSION = "0.11.0"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
 local BANKS_RESEND_INTERVAL = 3.0 -- Sekunden: ANIM_BANKS zur Sicherheit wiederholen
 local INPUT_INTERVAL = 1 / 60 -- Sekunden: eigene Eingaben bis 60x pro Sekunde senden
 
+local i18n = require("remultiplayer_coop.i18n")
+local tr = require("re2r_coop.text")
+local MENU_ID = "##re2r_coop" -- feste imgui-ID, damit ein Sprachwechsel das Menue nicht zuklappt
+
 -- Ohne Plugin geht nichts: nur eine Hilfe im Menue anzeigen.
 if coopnet == nil then
+    local ok, data = pcall(json.load_file, CONFIG_FILE)
+    if ok and type(data) == "table" and type(data.language) == "string" then
+        i18n.set_setting(data.language)
+    end
     re.on_draw_ui(function()
-        if imgui.tree_node("RE2 Koop") then
-            imgui.text_colored("Plugin remultiplayer_coopnet.dll nicht gefunden!", 0xFF4040FF)
-            imgui.text("Es gehoert nach: <RE2-Ordner>/reframework/plugins/")
-            imgui.text("Danach das Spiel neu starten.")
+        if imgui.tree_node(tr("re2r.menu_title") .. MENU_ID) then
+            imgui.text_colored(tr("re2r.plugin_missing"), 0xFF4040FF)
+            imgui.text(tr("re2r.plugin_where"))
+            imgui.text(tr("re2r.plugin_restart"))
             imgui.tree_pop()
         end
     end)
@@ -52,7 +60,7 @@ ghost.character_name = game.character_name
 -- --- Einstellungen ---------------------------------------------------------
 
 local config = {
-    name = "Spieler",
+    name = "", -- leer = Standardname der Sprache (conn.default_name)
     address = "127.0.0.1",
     port = 27350,
     show_ghosts = true,
@@ -62,6 +70,7 @@ local config = {
     devconsole = false, -- Entwickler-Konsole fuer Claude
     auto_join = true, -- beim Beitreten automatisch den Spielstand des Hosts laden
     title_window = true, -- Multiplayer-Fenster im Titelbildschirm
+    language = "auto", -- "auto" (Spielsprache), "de", "en", ...
 }
 
 local function load_config()
@@ -81,6 +90,35 @@ end
 
 load_config()
 devconsole.enabled = config.devconsole
+
+-- Sprache: Einstellung aus der Konfiguration, "Automatisch" fragt das Spiel.
+i18n.set_game_language_getter(game.get_game_language)
+if not i18n.set_setting(config.language) then
+    config.language = "auto"
+    i18n.set_setting("auto")
+end
+if config.name == "" then
+    config.name = tr("conn.default_name")
+end
+
+-- Reihenfolge im Umschalter: Automatisch, dann alle Sprachen.
+local function language_choices()
+    local list = { { code = "auto", name = tr("lang.auto") } }
+    for _, l in ipairs(i18n.languages()) do
+        list[#list + 1] = l
+    end
+    return list
+end
+
+local function set_language(code)
+    if i18n.set_setting(code) then
+        config.language = code
+        save_config()
+    end
+end
+
+local function f2(v) return string.format("%.2f", v) end
+local function f3(v) return string.format("%.3f", v) end
 
 -- --- Sitzung -----------------------------------------------------------
 
@@ -149,7 +187,7 @@ session:on("SAVE_CHUNK", function(s, _, msg)
 end)
 
 session:on("CHAT", function(s, peer, msg)
-    s:log("%s: %s", peer.name or "?", msg.text)
+    s:logt("chat.line", { name = peer.name or "?", text = msg.text })
 end)
 
 session:subscribe("peer_left", function(_, peer)
@@ -170,7 +208,7 @@ pcall(titlemenu.install)
 local function peer_name()
     for _, p in pairs(session.peers) do
         if p.ready then
-            return p.name or "Mitspieler"
+            return p.name or tr("tm.partner")
         end
     end
     return nil
@@ -180,35 +218,43 @@ titlemenu.rows = function()
     local st = session:status()
     local rows = {}
     if st.mode == "idle" then
-        rows[#rows + 1] = { id = "host", label = "Spiel hosten",
-            help = string.format("Du startest das Spiel, dein Freund tritt dir bei (UDP-Port %d).", config.port) }
-        rows[#rows + 1] = { id = "join", label = "Beitreten",
-            help = "Verbindet dich mit dem Spiel deines Freundes und lädt seinen Spielstand." }
-        rows[#rows + 1] = { id = "address", edit = "address", label = "IP des Hosts: " .. config.address,
-            label_edit = function(b) return "IP des Hosts: " .. b .. "_" end,
-            help = "Die IP-Adresse deines Freundes (z. B. aus Radmin VPN oder ZeroTier)." }
-        rows[#rows + 1] = { id = "name", edit = "name", label = "Dein Name: " .. config.name,
-            label_edit = function(b) return "Dein Name: " .. b .. "_" end,
-            help = "So sieht dich dein Mitspieler." }
+        rows[#rows + 1] = { id = "host", label = tr("tm.host"),
+            help = tr("tm.host_help", { port = config.port }) }
+        rows[#rows + 1] = { id = "join", label = tr("tm.join"),
+            help = tr("tm.join_help") }
+        rows[#rows + 1] = { id = "address", edit = "address", label = tr("tm.address", { value = config.address }),
+            label_edit = function(b) return tr("tm.address", { value = b .. "_" }) end,
+            help = tr("tm.address_help") }
+        rows[#rows + 1] = { id = "name", edit = "name", label = tr("tm.name", { value = config.name }),
+            label_edit = function(b) return tr("tm.name", { value = b .. "_" }) end,
+            help = tr("tm.name_help") }
+        local lang_name = tr("tm.language_auto")
+        for _, l in ipairs(language_choices()) do
+            if l.code == config.language and l.code ~= "auto" then
+                lang_name = l.name
+            end
+        end
+        rows[#rows + 1] = { id = "language", label = tr("tm.language", { value = lang_name }),
+            help = tr("tm.language_help") }
     elseif st.mode == "hosting" then
         local friend = peer_name()
-        rows[#rows + 1] = { id = "status", label = friend and (friend .. " ist verbunden") or "Warte auf Mitspieler ...",
-            help = friend and "Lade jetzt über Kampagne deinen Spielstand. Dein Freund kommt automatisch nach."
-                or string.format("Gib deinem Freund deine IP-Adresse. Port %d (UDP).", config.port) }
-        rows[#rows + 1] = { id = "leave", label = "Hosten beenden", help = "Beendet das Spiel für deinen Freund." }
+        rows[#rows + 1] = { id = "status",
+            label = friend and tr("tm.friend_connected", { name = friend }) or tr("tm.waiting"),
+            help = friend and tr("tm.load_now_help") or tr("tm.give_ip_help", { port = config.port }) }
+        rows[#rows + 1] = { id = "leave", label = tr("tm.stop_hosting"), help = tr("tm.stop_hosting_help") }
     elseif st.mode == "connecting" then
-        rows[#rows + 1] = { id = "status", label = "Verbinde mit " .. config.address .. " ...", help = "Einen Moment ..." }
-        rows[#rows + 1] = { id = "leave", label = "Abbrechen", help = "" }
+        rows[#rows + 1] = { id = "status", label = tr("tm.connecting", { address = config.address }), help = tr("tm.moment") }
+        rows[#rows + 1] = { id = "leave", label = tr("tm.cancel"), help = "" }
     else
         local host = peer_name()
-        local text = savejoin.message ~= "" and savejoin.message or "Hole den Spielstand ..."
+        local text = savejoin.message ~= "" and savejoin.message or tr("tm.fetching")
         if savejoin.state == "receiving" then
-            text = string.format("Empfange Spielstand ... %d %%", math.floor(savejoin.progress() * 100))
+            text = tr("tm.receiving", { percent = math.floor(savejoin.progress() * 100) })
         end
-        rows[#rows + 1] = { id = "status", label = host and ("Verbunden mit " .. host) or "Verbunden", help = text }
-        rows[#rows + 1] = { id = "leave", label = "Trennen", help = "" }
+        rows[#rows + 1] = { id = "status", label = host and tr("tm.connected_with", { name = host }) or tr("tm.connected"), help = text }
+        rows[#rows + 1] = { id = "leave", label = tr("tm.disconnect"), help = "" }
     end
-    rows[#rows + 1] = { id = "back", label = "Zurück", help = "Zurück zum Hauptmenü." }
+    rows[#rows + 1] = { id = "back", label = tr("tm.back"), help = tr("tm.back_help") }
     return rows
 end
 
@@ -219,6 +265,16 @@ titlemenu.on_action = function(id)
         session:join(config.address, config.port)
     elseif id == "leave" then
         session:leave()
+    elseif id == "language" then
+        -- Naechste Sprache in der Liste (Automatisch -> English -> Deutsch -> ...)
+        local list = language_choices()
+        local next_index = 1
+        for i, l in ipairs(list) do
+            if l.code == config.language then
+                next_index = i % #list + 1
+            end
+        end
+        set_language(list[next_index].code)
     end
 end
 
@@ -277,7 +333,7 @@ local function report_error(where, err)
     local text = where .. ": " .. tostring(err)
     if text ~= state.last_error then -- jede Meldung nur einmal loggen
         state.last_error = text
-        session:log("FEHLER %s", text)
+        session:logt("re2r.error_log", { text = text })
     end
 end
 
@@ -408,27 +464,48 @@ local ui = {
     diag_label = "",
 }
 
-local MODE_TEXT = {
-    idle = "Nicht verbunden",
-    hosting = "Host - warte auf Mitspieler",
-    connecting = "Verbinde ...",
-    connected = "Verbunden",
-}
+-- Anzeigetext fuer status.mode (idle, hosting, connecting, connected)
+local function mode_text(status)
+    local text = tr("status." .. tostring(status.mode))
+    if status.mode == "hosting" then
+        text = text .. tr("status.port_suffix", { port = config.port })
+    end
+    return text
+end
+
+-- Umschalter fuer die Sprache (imgui.combo, Liste ab 1).
+local function draw_language_ui()
+    if not imgui.combo then
+        return
+    end
+    local list = language_choices()
+    local names, current = {}, 1
+    for i, l in ipairs(list) do
+        names[i] = l.name
+        if l.code == config.language then
+            current = i
+        end
+    end
+    local changed, index = imgui.combo(tr("lang.label") .. "##language", current, names)
+    if changed and list[index] then
+        set_language(list[index].code)
+    end
+end
 
 local function draw_connection_ui(status)
     local changed
-    changed, config.name = imgui.input_text("Dein Name", config.name)
+    changed, config.name = imgui.input_text(tr("conn.name") .. "##name", config.name)
     if changed then
         session.name = config.name
         save_config()
     end
 
     if status.mode == "idle" then
-        changed, config.address = imgui.input_text("IP des Hosts", config.address)
+        changed, config.address = imgui.input_text(tr("conn.address") .. "##address", config.address)
         if changed then save_config() end
 
         local port_text
-        changed, port_text = imgui.input_text("Port", tostring(config.port))
+        changed, port_text = imgui.input_text(tr("conn.port") .. "##port", tostring(config.port))
         if changed then
             local port = tonumber(port_text)
             if port and port >= 1 and port <= 65535 then
@@ -437,15 +514,15 @@ local function draw_connection_ui(status)
             end
         end
 
-        if imgui.button("Hosten") then
+        if imgui.button(tr("conn.host")) then
             session:host(config.port)
         end
         imgui.same_line()
-        if imgui.button("Beitreten") then
+        if imgui.button(tr("conn.join")) then
             session:join(config.address, config.port)
         end
     else
-        if imgui.button("Trennen") then
+        if imgui.button(tr("conn.disconnect")) then
             session:leave()
             ghost.clear()
             puppet.clear()
@@ -458,31 +535,27 @@ local function draw_connection_ui(status)
 end
 
 local function draw_status_ui(status)
-    local text = MODE_TEXT[status.mode] or status.mode
-    if status.mode == "hosting" then
-        text = text .. string.format(" (Port %d)", config.port)
-    end
-    imgui.text("Status: " .. text)
+    imgui.text(tr("status.line", { text = mode_text(status) }))
     if status.error then
-        imgui.text_colored("Letzter Fehler: " .. status.error, 0xFF4040FF)
+        imgui.text_colored(tr("status.last_error", { error = status.error }), 0xFF4040FF)
     end
 
     for _, peer in ipairs(status.peers or {}) do
         local p = session.peers[peer.id]
-        local name = p and p.name or "(Handshake ...)"
+        local name = p and p.name or tr("status.handshake")
         if p and p.incompatible then
-            name = name .. " - INKOMPATIBEL, siehe Log"
+            name = tr("status.incompatible", { name = name })
         end
-        imgui.text(string.format("  Mitspieler: %s  [%s]  Ping %d ms", name, peer.address, peer.rtt))
+        imgui.text(tr("status.peer_line", { name = name, address = peer.address, ms = peer.rtt }))
     end
 
     if session:is_active() then
         local changed
-        changed, ui.chat = imgui.input_text("Nachricht", ui.chat)
+        changed, ui.chat = imgui.input_text(tr("chat.input") .. "##chat", ui.chat)
         imgui.same_line()
-        if imgui.button("Senden") and ui.chat ~= "" then
+        if imgui.button(tr("chat.send")) and ui.chat ~= "" then
             session:send("CHAT", { text = ui.chat }, true)
-            session:log("Du: %s", ui.chat)
+            session:logt("chat.you", { text = ui.chat })
             ui.chat = ""
         end
     end
@@ -494,26 +567,26 @@ local function draw_join_ui(status)
         return
     end
     imgui.separator()
-    imgui.text("Spielstand des Hosts uebernehmen")
+    imgui.text(tr("join.title"))
     local changed
-    changed, config.auto_join = imgui.checkbox("Beim Beitreten automatisch laden", config.auto_join)
+    changed, config.auto_join = imgui.checkbox(tr("join.auto") .. "##auto_join", config.auto_join)
     if changed then
         savejoin.auto = config.auto_join
         save_config()
     end
     local st = savejoin.state
     if st == "idle" or st == "failed" or st == "applied" then
-        if imgui.button("Spielstand des Hosts holen") then
+        if imgui.button(tr("join.fetch")) then
             savejoin.request(session)
         end
     elseif st == "requested" or st == "receiving" then
-        imgui.text(string.format("Empfange ... %d %%", math.floor(savejoin.progress() * 100)))
+        imgui.text(tr("join.receiving", { percent = math.floor(savejoin.progress() * 100) }))
         imgui.same_line()
-        if imgui.button("Abbrechen") then
+        if imgui.button(tr("ui.cancel")) then
             savejoin.cancel()
         end
     elseif st == "ready" then
-        if imgui.button("Abbrechen") then
+        if imgui.button(tr("ui.cancel")) then
             savejoin.cancel()
         end
     end
@@ -521,7 +594,7 @@ local function draw_join_ui(status)
         imgui.text(savejoin.message)
     end
     if st == "ready" and not config.auto_join then
-        imgui.text("Pause -> Spiel laden -> beliebiger Spielstand. Du landest beim Host.")
+        imgui.text(tr("join.manual_hint"))
     end
 end
 
@@ -554,7 +627,7 @@ draw_title_window = function()
     if size and imgui.set_next_window_pos then
         imgui.set_next_window_pos(Vector2f.new(size.x - 24, size.y - 24), 1, Vector2f.new(1, 1))
     end
-    if not imgui.begin_window("RE:Multiplayer - Koop fuer Resident Evil 2", nil, TITLE_WINDOW_FLAGS) then
+    if not imgui.begin_window(tr("title.window") .. "###re2r_title", nil, TITLE_WINDOW_FLAGS) then
         imgui.end_window()
         return
     end
@@ -563,23 +636,20 @@ draw_title_window = function()
         local status = session:status()
         draw_connection_ui(status)
         imgui.separator()
-        local text = MODE_TEXT[status.mode] or status.mode
-        if status.mode == "hosting" then
-            text = text .. string.format(" (Port %d)", config.port)
-        end
-        imgui.text_colored(text, status.mode == "connected" and GREEN or YELLOW)
+        imgui.text_colored(mode_text(status), status.mode == "connected" and GREEN or YELLOW)
         if status.error then
-            imgui.text_colored("Fehler: " .. status.error, 0xFF4040FF)
+            imgui.text_colored(tr("status.error", { error = status.error }), 0xFF4040FF)
         end
         for _, peer in ipairs(status.peers or {}) do
             local p = session.peers[peer.id]
-            imgui.text(string.format("Mitspieler: %s  (Ping %d ms)", p and p.name or "...", peer.rtt))
+            imgui.text(tr("status.peer_short", { name = p and p.name or "...", ms = peer.rtt }))
         end
         if session.is_host and #session:ready_peers() > 0 then
-            imgui.text("Lade jetzt deinen Spielstand. Dein Freund kommt automatisch nach.")
+            imgui.text(tr("title.host_hint"))
         end
         draw_join_ui(status)
-        imgui.text_colored("Mehr Einstellungen: Taste Einfg -> RE2 Koop", GREY)
+        draw_language_ui()
+        imgui.text_colored(tr("title.more_settings"), GREY)
     end)
     imgui.end_window()
     if not ok then
@@ -589,18 +659,18 @@ end
 
 local function draw_debug_ui(status)
     local changed
-    changed, config.show_ghosts = imgui.checkbox("Mitspieler-Markierung anzeigen", config.show_ghosts)
+    changed, config.show_ghosts = imgui.checkbox(tr("opt.show_ghosts") .. "##show_ghosts", config.show_ghosts)
     if changed then save_config() end
-    changed, config.show_puppets = imgui.checkbox("Mitspieler als Spielfigur anzeigen", config.show_puppets)
+    changed, config.show_puppets = imgui.checkbox(tr("opt.show_puppets") .. "##show_puppets", config.show_puppets)
     if changed then save_config() end
-    changed, config.real_partner = imgui.checkbox("VERSUCH: Mitspieler als echte Spielfigur (vorher speichern!)", config.real_partner)
+    changed, config.real_partner = imgui.checkbox(tr("opt.real_partner") .. "##real_partner", config.real_partner)
     if changed then save_config() end
-    changed, config.title_window = imgui.checkbox("Multiplayer-Fenster im Titelbildschirm", config.title_window)
+    changed, config.title_window = imgui.checkbox(tr("opt.title_window") .. "##title_window", config.title_window)
     if changed then save_config() end
-    changed, config.show_debug = imgui.checkbox("Debug-Infos", config.show_debug)
+    changed, config.show_debug = imgui.checkbox(tr("opt.show_debug") .. "##show_debug", config.show_debug)
     if changed then save_config() end
 
-    changed, config.devconsole = imgui.checkbox("Entwickler-Konsole fuer Claude", config.devconsole)
+    changed, config.devconsole = imgui.checkbox(tr("opt.devconsole") .. "##devconsole", config.devconsole)
     if changed then
         devconsole.enabled = config.devconsole
         save_config()
@@ -608,57 +678,59 @@ local function draw_debug_ui(status)
     imgui.same_line()
     imgui.text("(" .. devconsole.status_text() .. ")")
 
-    changed, ui.diag_label = imgui.input_text("Situation (z. B. hauptmenue)", ui.diag_label)
-    if imgui.button("Diagnose speichern") then
+    changed, ui.diag_label = imgui.input_text(tr("diag.label") .. "##diag_label", ui.diag_label)
+    if imgui.button(tr("diag.save")) then
         local ok, result = diag.write({ coop_status = status, mod_version = MOD_VERSION }, ui.diag_label)
-        ui.diag_result = ok and ("Gespeichert: " .. result) or ("Fehler: " .. result)
+        ui.diag_result = ok and tr("diag.saved", { file = result }) or tr("status.error", { error = result })
     end
     if not coopnet.find_types then
-        imgui.text("(Erweiterte Klassensuche nicht verfuegbar - altes Plugin?)")
+        imgui.text(tr("diag.no_find_types"))
     end
     if ui.diag_result then
         imgui.text(ui.diag_result)
     end
 
     if config.show_debug then
-        imgui.text("Titelmenue-Eintrag: " .. (titlemenu.installed and "aktiv" or "aus") .. (titlemenu.error and (" - " .. titlemenu.error) or ""))
+        imgui.text(tr("debug.titlemenu", { state = tr(titlemenu.installed and "debug.active" or "debug.console_off") })
+            .. (titlemenu.error and (" - " .. titlemenu.error) or ""))
         local ls = state.local_state
         if ls then
-            imgui.text(string.format("Spieler: %s  via %s", tostring(ls.object_name), tostring(game.player_source)))
-            imgui.text(string.format("Position: %.2f  %.2f  %.2f", ls.x, ls.y, ls.z))
-            imgui.text(string.format("Rotation: %.3f  %.3f  %.3f  %.3f", ls.qx, ls.qy, ls.qz, ls.qw))
+            imgui.text(tr("debug.player", { name = tostring(ls.object_name), source = tostring(game.player_source) }))
+            imgui.text(tr("debug.position", { x = f2(ls.x), y = f2(ls.y), z = f2(ls.z) }))
+            imgui.text(tr("debug.rotation", { x = f3(ls.qx), y = f3(ls.qy), z = f3(ls.qz), w = f3(ls.qw) }))
             local c = ls.condition
             if c then
-                imgui.text(string.format("Figur: %s (%s, %s)", game.character_name(ls.character), c.survivor_name, tostring(c.survivor_type)))
-                imgui.text(string.format("Bereich (Scene): %s (%s)", c.scene_area_name, tostring(c.scene_area_id)))
-                imgui.text(string.format("Bereich (Space): %s (%s)", c.space_area_name, tostring(c.space_area_id)))
-                imgui.text(string.format("Map-Area: %s (%s)", c.map_area_name, tostring(c.map_area)))
+                imgui.text(tr("debug.character", { name = game.character_name(ls.character),
+                    survivor = tostring(c.survivor_name), type = tostring(c.survivor_type) }))
+                imgui.text(tr("debug.area_scene", { name = tostring(c.scene_area_name), id = tostring(c.scene_area_id) }))
+                imgui.text(tr("debug.area_space", { name = tostring(c.space_area_name), id = tostring(c.space_area_id) }))
+                imgui.text(tr("debug.map_area", { name = tostring(c.map_area_name), id = tostring(c.map_area) }))
             else
-                imgui.text("PlayerCondition: nicht gefunden")
+                imgui.text(tr("debug.no_condition"))
             end
         else
-            imgui.text("Spieler: nicht gefunden (Menue/Ladebildschirm?)")
+            imgui.text(tr("debug.no_player"))
         end
         for id, r in pairs(ghost.remote) do
-            imgui.text(string.format("Remote %d (%s): %.2f %.2f %.2f  seq %d  Figur %s  Bereich %s",
-                id, tostring(r.name), r.pos.x, r.pos.y, r.pos.z, r.seq or 0,
-                game.character_name(r.character), tostring(r.area)))
-            imgui.text("  Figur im Spiel: " .. puppet.status_text(id))
-            imgui.text("  Echte Figur: " .. partner.status_text(id))
+            imgui.text(tr("debug.remote", { id = id, name = tostring(r.name), x = f2(r.pos.x), y = f2(r.pos.y), z = f2(r.pos.z),
+                seq = r.seq or 0, character = game.character_name(r.character), area = tostring(r.area) }))
+            imgui.text(tr("debug.remote_puppet", { text = puppet.status_text(id) }))
+            imgui.text(tr("debug.remote_partner", { text = partner.status_text(id) }))
         end
         local st = status.stats or {}
-        imgui.text(string.format("Gesendet: %d Nachr. / %d B   Empfangen: %d Nachr. / %d B",
-            st.messages_sent or 0, st.bytes_sent or 0, st.messages_received or 0, st.bytes_received or 0))
-        imgui.text("coopnet " .. coopnet.version() .. "   Mod " .. MOD_VERSION)
+        imgui.text(tr("debug.stats", { sent = st.messages_sent or 0, sent_bytes = st.bytes_sent or 0,
+            received = st.messages_received or 0, received_bytes = st.bytes_received or 0 }))
+        imgui.text(tr("debug.versions", { coopnet = coopnet.version(), mod = MOD_VERSION }))
     end
 end
 
 re.on_draw_ui(function()
-    if not imgui.tree_node("RE2 Koop") then
+    if not imgui.tree_node(tr("re2r.menu_title") .. MENU_ID) then
         return
     end
     local ok, err = pcall(function()
         local status = session:status()
+        draw_language_ui()
         draw_connection_ui(status)
         imgui.separator()
         draw_status_ui(status)
@@ -666,7 +738,7 @@ re.on_draw_ui(function()
         imgui.separator()
         draw_debug_ui(status)
 
-        if imgui.tree_node("Log") then
+        if imgui.tree_node(tr("ui.log") .. "##log") then
             for i = math.max(1, #session.log_lines - 25), #session.log_lines do
                 imgui.text(session.log_lines[i])
             end
@@ -674,9 +746,9 @@ re.on_draw_ui(function()
         end
     end)
     if not ok then
-        imgui.text_colored("UI-Fehler: " .. tostring(err), 0xFF4040FF)
+        imgui.text_colored(tr("ui.error", { error = tostring(err) }), 0xFF4040FF)
     end
     imgui.tree_pop()
 end)
 
-session:log("RE2 Koop %s geladen (coopnet %s)", MOD_VERSION, coopnet.version())
+session:logt("re2r.loaded", { version = MOD_VERSION, coopnet = coopnet.version() })

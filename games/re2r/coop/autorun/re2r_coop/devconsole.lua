@@ -20,6 +20,7 @@
 --                   es, in BeginRendering nicht.
 
 local game = require("re2r_coop.game")
+local tr = require("re2r_coop.text")
 
 local M = {}
 
@@ -195,14 +196,14 @@ end
 
 function M.status_text()
     if not M.enabled then
-        return "aus"
+        return tr("debug.console_off")
     end
-    local s = string.format("an, %d Befehl(e) ausgefuehrt", M.run_count)
+    local s = tr("debug.console_on", { count = M.run_count })
     if current_task then
-        s = s .. ", Aufgabe laeuft"
+        s = s .. tr("debug.console_task")
     end
     if M.camera_view then
-        s = s .. ", eigene Kamera an"
+        s = s .. tr("debug.console_camera")
     end
     return s
 end

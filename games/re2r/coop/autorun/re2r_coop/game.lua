@@ -208,15 +208,16 @@ end
 
 -- --- Spielsprache (fuer remultiplayer_coop.i18n, Einstellung "Automatisch") ---
 --
--- UNBESTAETIGT (Forschungspunkt "Wo speichert RE2 die Spielsprache?"):
--- Kandidat ist die native Singleton via.gui.GUISystem mit get_MessageLanguage
--- (Enum via.Language, Zahlen unten aus anderen RE-Engine-Mods, in RE2 nicht
--- geprueft). Solange game.LANGUAGE_CONFIRMED false ist, liefert
--- get_game_language() nil und "Automatisch" zeigt Englisch.
+-- Forschungspunkt L1 "Wo speichert RE2 die Spielsprache?":
+-- native Singleton via.gui.GUISystem, get_MessageLanguage (Textsprache, Enum
+-- via.Language). Bestaetigt am 4. November 2026 (Konsole, RT-Version):
+-- deutscher Spieltext -> 4. get_SubtitleLanguage/get_SpeechLanguage gibt es
+-- so nicht (nil). UNBESTAETIGT: alle anderen Werte (1 = Englisch erwartet).
+-- Nur bestaetigte Werte werden benutzt, alles andere -> nil -> Englisch.
 -- Pruefen ueber die Entwickler-Konsole: out(game.read_game_language_raw())
-game.LANGUAGE_CONFIRMED = false
+game.LANGUAGE_CONFIRMED = { [4] = true }
 
--- via.Language -> Sprachcode (UNBESTAETIGT, siehe oben)
+-- via.Language -> Sprachcode (nur 4 bestaetigt, Rest aus anderen RE-Engine-Mods)
 game.LANGUAGE_CODES = {
     [0] = "ja", [1] = "en", [2] = "fr", [3] = "it", [4] = "de", [5] = "es",
     [6] = "ru", [7] = "pl", [8] = "nl", [9] = "pt", [10] = "pt-br",
@@ -240,11 +241,11 @@ end
 
 -- Sprachcode der Spielsprache ("de", "en", ...) oder nil, wenn unbekannt.
 function game.get_game_language()
-    if not game.LANGUAGE_CONFIRMED then
+    local raw = tonumber((game.read_game_language_raw()))
+    if raw == nil or not game.LANGUAGE_CONFIRMED[raw] then
         return nil
     end
-    local raw = game.read_game_language_raw()
-    return raw ~= nil and game.LANGUAGE_CODES[tonumber(raw)] or nil
+    return game.LANGUAGE_CODES[raw]
 end
 
 return game

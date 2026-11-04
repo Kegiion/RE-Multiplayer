@@ -25,6 +25,7 @@
 -- eigene Zeilen, Umlaute in der Spielschrift.
 
 local game = require("re2r_coop.game")
+local tr = require("re2r_coop.text")
 
 local M = {}
 
@@ -32,8 +33,7 @@ M.VALUE = 7               -- MenuMainBehavior.DecidedResult.MAX, im Spiel ungenu
 M.CANCEL = 8              -- MenuMainBehavior.DecidedResult.CANCEL
 M.ROW_BASE = 100          -- eigene Zeilen: 100, 101, ...
 M.POSITION = 1            -- Platz von "Multiplayer" (0 = ganz oben), unter "Kampagne"
-M.LABEL = "Multiplayer"
-M.HELP = "Gemeinsam mit einem Freund spielen (RE:Multiplayer)."
+-- Texte: tm.label und tm.label_help (re2r_coop/lang)
 M.STATE_MENU_MAIN = 10    -- TitleFlow.State.TITLE_MENU_MAIN
 
 -- Vom Hauptskript gesetzt:
@@ -158,7 +158,7 @@ local function patch_main(b)
         local v = values[i]
         if t ~= nil and v ~= nil then
             if v == M.VALUE then
-                set_text(t, M.LABEL)
+                set_text(t, tr("tm.label"))
             elseif ids[v] ~= nil then
                 t:call("set_MessageId", ids[v])
             end
@@ -190,7 +190,7 @@ local function refresh(b)
     if g ~= nil then
         local help
         if edit ~= nil then
-            help = edit.problem or "Eintippen, Enter = übernehmen, Esc = abbrechen."
+            help = edit.problem or tr("tm.edit_help")
         else
             local row = shown[selector:call("get_CursorIndex") + 1]
             help = row and row.help or ""
@@ -388,11 +388,11 @@ end
 function M.ip_valid(s)
     local a, b, c, d = s:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
     if a == nil then
-        return "Bitte eine vollständige IP eingeben, z. B. 192.168.0.10."
+        return tr("tm.ip_incomplete")
     end
     for _, x in ipairs({ a, b, c, d }) do
         if tonumber(x) > 255 then
-            return "Jede Zahl der IP darf höchstens 255 sein."
+            return tr("tm.ip_too_big")
         end
     end
     return true
@@ -408,7 +408,7 @@ M.fields = {
             return buffer .. c
         end,
         valid = function(s)
-            return s:match("%S") ~= nil or "Bitte einen Namen eingeben."
+            return s:match("%S") ~= nil or tr("tm.name_missing")
         end,
     },
 }
@@ -494,7 +494,7 @@ function M.update(main)
         if ok and v == M.VALUE then
             local g = guide_text()
             if g ~= nil then
-                set_text(g, M.HELP)
+                set_text(g, tr("tm.label_help"))
             end
         end
         return

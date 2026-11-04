@@ -19,6 +19,7 @@
 -- UNBESTAETIGT: Kamera, HUD, Inventar, Gegner, Treffer.
 
 local game = require("re2r_coop.game")
+local tr = require("re2r_coop.text")
 local remote_input = require("re2r_coop.remote_input")
 
 local partner = {}
@@ -203,13 +204,13 @@ end
 function partner.status_text(peer_id)
     local inst = partner.instances[peer_id]
     if inst == nil then
-        return "keine"
+        return tr("debug.none")
     end
     if inst.state == "failed" then
-        return "Fehler: " .. tostring(inst.error)
+        return tr("status.error", { error = tostring(inst.error) })
     end
     if inst.state == "ready" then
-        return string.format("ready, Abweichung %.2f m, %d Spruenge", inst.drift or 0, inst.corrections or 0)
+        return tr("debug.partner_ready", { drift = string.format("%.2f", inst.drift or 0), jumps = inst.corrections or 0 })
     end
     return inst.state
 end

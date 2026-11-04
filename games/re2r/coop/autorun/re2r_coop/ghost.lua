@@ -4,6 +4,8 @@
 -- und Entfernung an seiner Position. Noch keine echte Spielfigur; die kommt
 -- in Meilenstein 2, sobald die Positionsdaten zuverlaessig fliessen.
 
+local tr = require("re2r_coop.text")
+
 local ghost = {}
 
 -- remote[peer_id] = { name=, target={...}, pos={x,y,z}, rot={x,y,z,w}, seq=, last_update=, area=, character= }
@@ -135,9 +137,9 @@ function ghost.draw(local_state, now)
                 label = string.format("%s  %.1fm", label, math.sqrt(dx * dx + dy * dy + dz * dz))
             end
             if stale then
-                label = label .. "  (keine Daten)"
+                label = label .. tr("ghost.stale")
             elseif ghost.other_area(r, local_state) then
-                label = label .. "  (anderer Bereich: " .. r.area .. ")"
+                label = label .. tr("ghost.other_area", { area = r.area })
             end
             shadow_text(label, head.x - 4 * #label, head.y - 18, color)
         end

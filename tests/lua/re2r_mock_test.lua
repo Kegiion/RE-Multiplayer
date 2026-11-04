@@ -15,13 +15,16 @@ log = { info = function() end }
 -- Gespeicherte Konfiguration: Konsolen-Haken an, eigener Port, damit der Test
 -- auch laeuft, waehrend das echte Spiel auf 27350 hostet.
 local TEST_PORT = 27351
-local files = { ["re2r_coop_config.json"] = { devconsole = true, port = TEST_PORT } }
+-- Sprache fest Deutsch: die Pruefungen unten suchen deutsche Texte.
+local files = { ["re2r_coop_config.json"] = { devconsole = true, port = TEST_PORT, language = "de" } }
 json = {
     load_file = function(p) return files[p] end,
     dump_file = function(p, t) files[p] = t; return true end,
 }
 
 local pending_clicks = {}
+local pending_combo = {} -- pending_combo[label] = neuer Index
+local combo_items = {}
 local ui_texts = {}
 imgui = {
     tree_node = function() return true end,
@@ -36,6 +39,12 @@ imgui = {
     end,
     input_text = function(_, v) return false, v end,
     checkbox = function(_, v) return false, v end,
+    combo = function(label, v, items)
+        combo_items[label] = items
+        local nv = pending_combo[label]
+        if nv then pending_combo[label] = nil; return true, nv end
+        return false, v
+    end,
 }
 
 local drawn = {}
@@ -320,6 +329,47 @@ end
 run_ui()
 assert(find_text("Nicht verbunden"), "Status fehlt")
 assert(not find_text("UI%-Fehler"), find_text("UI%-Fehler"))
+
+-- Sprache umschalten: Automatisch / English / Deutsch, gespeichert in der Konfiguration
+do
+    local label = "Sprache / Language##language"
+    local items = assert(combo_items[label], "Sprach-Umschalter fehlt")
+    local index = {}
+    for i, name in ipairs(items) do index[name] = i end
+    assert(index["Automatisch (Spielsprache)"] and index["English"] and index["Deutsch"], "Sprachen fehlen")
+    pending_combo[label] = index["English"]
+    run_ui()
+    run_ui()
+    assert(files["re2r_coop_config.json"].language == "en", "Sprache nicht gespeichert")
+    assert(find_text("Not connected"), "englischer Status fehlt")
+    assert(not find_text("Nicht verbunden"))
+    -- Automatisch ohne bekannte Spielsprache = Englisch
+    pending_combo["Language / Sprache##language"] = 1
+    run_ui()
+    run_ui()
+    assert(files["re2r_coop_config.json"].language == "auto")
+    assert(find_text("Not connected"), "Automatisch muss ohne Spielsprache Englisch sein")
+    pending_combo["Language / Sprache##language"] = index["Deutsch"]
+    run_ui()
+    run_ui()
+    assert(files["re2r_coop_config.json"].language == "de" and find_text("Nicht verbunden"))
+
+    -- Titelmenue "Multiplayer": Zeilen uebersetzt, Zeile "Sprache" schaltet weiter
+    local tm = require("re2r_coop.titlemenu")
+    local function row(id)
+        for _, r in ipairs(tm.rows()) do if r.id == id then return r end end
+    end
+    assert(row("host").label == "Spiel hosten" and row("back").label == "Zurück")
+    assert(row("language").label == "Sprache: Deutsch", row("language").label)
+    tm.on_action("language") -- Deutsch -> Automatisch (Liste: auto, en, de)
+    assert(files["re2r_coop_config.json"].language == "auto")
+    assert(row("host").label == "Host game" and row("language").label == "Language: Automatic", row("language").label)
+    tm.on_action("language") -- -> English
+    assert(files["re2r_coop_config.json"].language == "en" and row("address").label:find("^Host IP: "))
+    assert(tm.ip_valid("1.2.3") == "Please enter a complete IP, e.g. 192.168.0.10.")
+    tm.on_action("language") -- -> Deutsch
+    assert(files["re2r_coop_config.json"].language == "de" and row("join").label == "Beitreten")
+end
 
 -- "Hosten" klicken
 pending_clicks["Hosten"] = true

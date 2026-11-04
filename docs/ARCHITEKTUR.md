@@ -62,10 +62,22 @@ Definiert in `shared/re-engine/lua/remultiplayer_coop/protocol.lua`. Jede Nachri
 | 9 | INPUT_STATE | unreliable | Eingaben (Knopfmaske, Sticks, Kamera), steuert die Partner-Figur |
 | 10–26 | ENEMY_*, PLAYER_HIT, PLAYER_DOWN, REVIVE_*, GAME_OVER, ITEM_*, HOST_SAVED | gemischt | Gegner, Tod und Items (RE2), **noch nicht aktiv**, siehe `docs/re2r-konzept-gegner-tod-items.md` |
 
+## Übersetzung (i18n)
+
+Alle sichtbaren Texte der RE-Engine-Mods laufen über `shared/re-engine/lua/remultiplayer_coop/i18n.lua`:
+
+- Texte über Schlüssel: `t("conn.host")`, Platzhalter in geschweiften Klammern: `t("status.ping", { ms = 40 })` → „Ping 40 ms“.
+- Sprachdateien sind Lua-Tabellen. Gemeinsame Texte (Sitzung, Verbindung, Status, Chat) liegen in `remultiplayer_coop/lang/`, Texte einer Mod in `<mod>/lang/` (RE2: `re2r_coop/lang/`, geladen über `re2r_coop/text.lua`).
+- Fehlt ein Schlüssel in der gewählten Sprache, kommt Englisch, fehlt er auch dort, der Schlüssel selbst.
+- Sprachwahl im Mod-Menü (Einfg-Menü und Titelmenü „Multiplayer“): Automatisch (Spielsprache), Deutsch, English. Gespeichert in der Mod-Konfiguration (`language`). Die Spielsprache liefert der Adapter `game.get_game_language()`. In RE2 liest er `via.gui.GUISystem.get_MessageLanguage`: Wert 4 = Deutsch ist im Spiel bestätigt, alle anderen Werte sind noch **unbestätigt** und ergeben vorerst Englisch.
+- **Neue Sprache:** `<code>.lua` neben `de.lua`/`en.lua` anlegen (gemeinsam und pro Mod) und in `languages.lua` eintragen. Der Test `lua_i18n` prüft, dass jede Sprachdatei dieselben Schlüssel hat wie Englisch.
+- imgui-Texte in den Sprachdateien wie bisher ohne Umlaute (ae, oe, ue, ss). Texte im Spielmenü (`tm.*`, Spielschrift) dürfen Umlaute haben.
+
 ## Neues Spiel hinzufügen (RE-Engine)
 
 1. `games/<spiel>/coop/autorun/` anlegen und `game.lua` mit derselben Schnittstelle wie `re2r_coop/game.lua` schreiben.
 2. Einstiegsskript kopieren und anpassen (Spiel-ID!).
 3. In `CMakeLists.txt` eine neue Install-Komponente ergänzen.
+4. Texte über `remultiplayer_coop.i18n` und eigene Sprachdateien `<mod>/lang/` (siehe „Übersetzung“).
 
 Für Spiele ohne RE Engine (RE4 2005, RE5/6, Klassiker) bleibt `netcore` gleich. Dort brauchen wir statt REFramework einen eigenen Weg ins Spiel, z. B. eine DLL mit Hooks.

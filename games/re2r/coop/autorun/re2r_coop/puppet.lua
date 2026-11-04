@@ -23,6 +23,7 @@
 -- UNBESTAETIGT: andere Figuren als Leon, Verhalten bei Szenenwechseln.
 
 local game = require("re2r_coop.game")
+local tr = require("re2r_coop.text")
 local anim = require("re2r_coop.anim")
 local weapon = require("re2r_coop.weapon")
 
@@ -277,20 +278,20 @@ end
 function puppet.status_text(peer_id)
     local inst = puppet.instances[peer_id]
     if inst == nil then
-        return "keine"
+        return tr("debug.none")
     end
     if inst.state == "failed" then
-        return "Fehler: " .. tostring(inst.error)
+        return tr("status.error", { error = tostring(inst.error) })
     end
     if inst.state == "ready" then
         if inst.anim_error ~= nil then
-            return "ready, Animationsfehler: " .. inst.anim_error
+            return tr("debug.puppet_anim_error", { error = inst.anim_error })
         elseif inst.weapon_error ~= nil then
-            return "ready, Waffenfehler: " .. inst.weapon_error
+            return tr("debug.puppet_weapon_error", { error = inst.weapon_error })
         elseif inst.banks_key ~= nil then
-            return string.format("ready, animiert (%d Wechsel, %d x neu erzeugt)", inst.anim_changes or 0, inst.respawns or 0)
+            return tr("debug.puppet_animated", { changes = inst.anim_changes or 0, respawns = inst.respawns or 0 })
         end
-        return "ready, keine Animationsdaten"
+        return tr("debug.puppet_no_anim")
     end
     return inst.state
 end

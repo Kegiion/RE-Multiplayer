@@ -40,7 +40,7 @@ function ghost.on_state(peer, msg, now)
     elseif not is_newer(msg.seq, r.seq) then
         return -- veraltetes Paket (UDP kann Reihenfolge vertauschen)
     end
-    r.name = peer.name or ("Peer " .. peer.id)
+    r.name = peer.name or tr("ghost.peer", { id = peer.id })
     r.seq = msg.seq
     r.target = msg
     r.area = msg.area

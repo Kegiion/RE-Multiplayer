@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.11.0"
+local MOD_VERSION = "0.11.1"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -692,7 +692,7 @@ local function draw_debug_ui(status)
 
     if config.show_debug then
         imgui.text(tr("debug.titlemenu", { state = tr(titlemenu.installed and "debug.active" or "debug.console_off") })
-            .. (titlemenu.error and (" - " .. titlemenu.error) or ""))
+            .. (titlemenu.error and (" - " .. tr(titlemenu.error)) or ""))
         local ls = state.local_state
         if ls then
             imgui.text(tr("debug.player", { name = tostring(ls.object_name), source = tostring(game.player_source) }))

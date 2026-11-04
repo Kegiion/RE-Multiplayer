@@ -93,7 +93,9 @@ function Sync.new(opts)
     self.storage = opts.storage or M.memory_storage()
     self.session_id = opts.session_id or 0
     self.taken = {}       -- Host: item_key -> 0 (Host) | 1 (Mitspieler)
-    self.notices = {}     -- Hinweise fuer die Anzeige
+    -- Hinweise fuer die Anzeige: { key = Textschluessel, params = {...} },
+    -- anzeigen mit tr(n.key, n.params) (re2r_coop.text), damit die Sprache passt
+    self.notices = {}
     self.last_saved = nil -- Mitspieler: { session_id, slot }
     self.stats = { pickups = 0, conflicts = 0, granted = 0, boxed = 0, failed = 0 }
     return self
@@ -147,12 +149,12 @@ function Sync:_grant(item_id, count, extra)
         local okb = a.put_in_box(item_id, count, extra)
         if okb then
             self.stats.boxed = self.stats.boxed + 1
-            self.notices[#self.notices + 1] = "Schluessel-Item liegt in der Itemkiste (Inventar voll)"
+            self.notices[#self.notices + 1] = { key = "items.in_box" }
             return true
         end
     end
     self.stats.failed = self.stats.failed + 1
-    self.notices[#self.notices + 1] = "Schluessel-Item konnte nicht uebernommen werden: " .. tostring(err)
+    self.notices[#self.notices + 1] = { key = "items.failed", params = { error = tostring(err) } }
     return false
 end
 

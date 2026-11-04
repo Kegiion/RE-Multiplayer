@@ -369,7 +369,8 @@ do
     CA.put_in_box = function(...) CA.calls[#CA.calls + 1] = { "put_in_box", ... }; return true end
     HA.hooks.hook_item_pickup("w4", 3, 1, 112)
     L.deliver("client", client, 3)
-    check(calls(CA, "put_in_box")[1][2] == 3 and #client.notices == 1, "in die Kiste")
+    check(calls(CA, "put_in_box")[1][2] == 3 and #client.notices == 1
+        and client.notices[1].key == "items.in_box", "in die Kiste")
 
     -- Schluessel nicht mehr benoetigt
     HA.hooks.hook_item_discard(3)

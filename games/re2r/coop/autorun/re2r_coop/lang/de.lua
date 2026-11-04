@@ -61,10 +61,25 @@ return {
     ["debug.console_on"] = "an, {count} Befehl(e) ausgefuehrt",
     ["debug.console_task"] = ", Aufgabe laeuft",
     ["debug.console_camera"] = ", eigene Kamera an",
+    ["debug.state_loading"] = "laedt",
+    ["debug.state_deleted"] = "vom Spiel geloescht, wird neu erzeugt",
+    ["debug.err_no_actor"] = "keine Actor-Figur fuer ID {id}",
+    ["debug.err_no_character"] = "keine Spielfigur fuer ID {id}",
+    ["debug.err_no_prefab"] = "via.Prefab nicht erzeugt",
+    ["debug.err_instantiate"] = "instantiate lieferte nil",
+    ["debug.err_costume"] = "SurvivorCostumeChanger fehlt",
+    ["debug.err_prefab_timeout"] = "Prefab laedt nicht: {path}",
+    ["debug.err_no_player_folder"] = "Ordner des Spielers nicht gefunden",
+    ["debug.err_menu_methods"] = "Menue-Methoden nicht gefunden",
 
     -- Markierung des Mitspielers
     ["ghost.stale"] = "  (keine Daten)",
     ["ghost.other_area"] = "  (anderer Bereich: {area})",
+    ["ghost.peer"] = "Spieler {id}",
+
+    -- Schluessel-Items (items_net, noch nicht geladen)
+    ["items.in_box"] = "Schluessel-Item liegt in der Itemkiste (Inventar voll)",
+    ["items.failed"] = "Schluessel-Item konnte nicht uebernommen werden: {error}",
 
     -- Titelmenue "Multiplayer" (Spielschrift, Umlaute erlaubt)
     ["tm.label"] = "Multiplayer",

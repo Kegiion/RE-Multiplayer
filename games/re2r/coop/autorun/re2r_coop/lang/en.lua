@@ -61,10 +61,25 @@ return {
     ["debug.console_on"] = "on, {count} command(s) run",
     ["debug.console_task"] = ", task running",
     ["debug.console_camera"] = ", own camera on",
+    ["debug.state_loading"] = "loading",
+    ["debug.state_deleted"] = "removed by the game, will be recreated",
+    ["debug.err_no_actor"] = "no actor model for ID {id}",
+    ["debug.err_no_character"] = "no player character for ID {id}",
+    ["debug.err_no_prefab"] = "via.Prefab not created",
+    ["debug.err_instantiate"] = "instantiate returned nil",
+    ["debug.err_costume"] = "SurvivorCostumeChanger missing",
+    ["debug.err_prefab_timeout"] = "prefab does not load: {path}",
+    ["debug.err_no_player_folder"] = "player's folder not found",
+    ["debug.err_menu_methods"] = "menu methods not found",
 
     -- Markierung des Mitspielers
     ["ghost.stale"] = "  (no data)",
     ["ghost.other_area"] = "  (other area: {area})",
+    ["ghost.peer"] = "Player {id}",
+
+    -- Schluessel-Items (items_net, noch nicht geladen)
+    ["items.in_box"] = "Key item was put in the item box (inventory full)",
+    ["items.failed"] = "Key item could not be taken over: {error}",
 
     -- Titelmenue "Multiplayer" (Spielschrift)
     ["tm.label"] = "Multiplayer",

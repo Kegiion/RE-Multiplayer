@@ -69,11 +69,13 @@ local function destroy_go(go)
     end
 end
 
-local function fail(inst, now, err)
+-- err: Textschluessel (debug.err_*) oder rohe Fehlermeldung; uebersetzt
+-- wird erst in status_text, damit ein Sprachwechsel sofort wirkt.
+local function fail(inst, now, err, params)
     drop_weapon(inst)
     destroy_go(inst.go)
     inst.go, inst.transform = nil, nil
-    inst.state, inst.error, inst.since = "failed", tostring(err), now
+    inst.state, inst.error, inst.error_params, inst.since = "failed", tostring(err), params, now
 end
 
 local function start_loading(inst, now)
@@ -86,11 +88,11 @@ local function start_loading(inst, now)
     inst.since = now
     local path = puppet.prefab_path(inst.character)
     if path == nil then
-        return fail(inst, now, "keine Actor-Figur fuer ID " .. tostring(inst.character))
+        return fail(inst, now, "debug.err_no_actor", { id = tostring(inst.character) })
     end
     local prefab = sdk.create_instance("via.Prefab", true)
     if prefab == nil then
-        return fail(inst, now, "via.Prefab nicht erzeugt")
+        return fail(inst, now, "debug.err_no_prefab")
     end
     if prefab.add_ref then
         prefab = prefab:add_ref()
@@ -112,7 +114,7 @@ local function spawn(inst, r, now)
         go = inst.prefab:call("instantiate(via.vec3, via.Quaternion)", pos, rot)
     end
     if go == nil then
-        return fail(inst, now, "instantiate lieferte nil")
+        return fail(inst, now, "debug.err_instantiate")
     end
     inst.go = go
     -- In den Ordner des Spielers, sonst raeumt das Spiel sie beim Nachladen auf.
@@ -126,7 +128,7 @@ local function spawn(inst, r, now)
 
     local changer = try_call(go, "getComponent(System.Type)", sdk.typeof(game.ns("survivor.SurvivorCostumeChanger")))
     if changer == nil then
-        return fail(inst, now, "SurvivorCostumeChanger fehlt")
+        return fail(inst, now, "debug.err_costume")
     end
     changer:call("change(app.ropeway.SurvivorDefine.SurvivorType, app.ropeway.SurvivorDefine.Costume)",
         inst.character, puppet.COSTUME)
@@ -218,7 +220,7 @@ local function sync(peer_id, r, visible, now, a)
         if try_call(inst.prefab, "get_Ready") then
             spawn(inst, r, now)
         elseif now - inst.since > puppet.LOAD_TIMEOUT then
-            fail(inst, now, "Prefab laedt nicht: " .. tostring(inst.path))
+            fail(inst, now, "debug.err_prefab_timeout", { path = tostring(inst.path) })
         end
         return
     end
@@ -275,13 +277,15 @@ function puppet.clear()
 end
 
 -- Kurzer Status fuer die Debug-Anzeige.
+local STATE_TEXT = { loading = "debug.state_loading", deleted = "debug.state_deleted" }
+
 function puppet.status_text(peer_id)
     local inst = puppet.instances[peer_id]
     if inst == nil then
         return tr("debug.none")
     end
     if inst.state == "failed" then
-        return tr("status.error", { error = tostring(inst.error) })
+        return tr("status.error", { error = tr(tostring(inst.error), inst.error_params) })
     end
     if inst.state == "ready" then
         if inst.anim_error ~= nil then
@@ -293,7 +297,8 @@ function puppet.status_text(peer_id)
         end
         return tr("debug.puppet_no_anim")
     end
-    return inst.state
+    local key = STATE_TEXT[inst.state]
+    return key and tr(key) or tostring(inst.state)
 end
 
 return puppet

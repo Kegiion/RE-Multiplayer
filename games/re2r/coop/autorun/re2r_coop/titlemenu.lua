@@ -48,7 +48,7 @@ M.set_field = function() end
 
 M.installed = false
 M.mode = "main"           -- main | mp (unser Untermenue) | edit (Texteingabe)
-M.error = nil
+M.error = nil             -- Textschluessel (debug.err_*) oder rohe Fehlermeldung
 
 local behavior = nil      -- aktuelles MenuMainBehavior
 local shown = nil         -- Zeilen, die gerade im Menue stehen
@@ -307,7 +307,7 @@ function M.install()
     local init_list = mm and mm:get_method("initList")
     local decide = tf and tf:get_method("<update>b__39_19")
     if init_list == nil or decide == nil then
-        M.error = "Menue-Methoden nicht gefunden"
+        M.error = "debug.err_menu_methods"
         return false
     end
     local current

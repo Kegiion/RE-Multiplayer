@@ -85,4 +85,65 @@ if AUTORUN then
     check_group("re2r_coop.lang")
 end
 
+-- Jeder Schluessel, der im Code vorkommt, muss es in der Sprachdatei geben.
+-- Ausgehend von den Einstiegsmodulen werden alle require-ten Module gelesen
+-- und alle Zeichenketten der Form "<gruppe>.<name>" geprueft, deren Gruppe
+-- es in den Sprachdateien gibt (z. B. "tm.host", "status.error").
+local function check_used_keys(roots)
+    i18n.reset()
+    assert(#i18n.load("remultiplayer_coop.lang") == 0)
+    if AUTORUN then
+        assert(#i18n.load("re2r_coop.lang") == 0)
+    end
+    local known, prefixes = i18n.strings.en or {}, {}
+    for key in pairs(known) do
+        prefixes[key:match("^([^.]+)%.") or key] = true
+    end
+    assert(next(known), "keine Schluessel geladen")
+
+    local seen, queue, problems, files = {}, {}, {}, 0
+    for _, r in ipairs(roots) do queue[#queue + 1] = r end
+    while #queue > 0 do
+        local name = table.remove(queue, 1)
+        if not seen[name] and not name:find("%.lang") then
+            seen[name] = true
+            local path = package.searchpath(name, package.path)
+            if path then
+                files = files + 1
+                local fh = assert(io.open(path, "r"))
+                local line_no = 0
+                for line in fh:lines() do
+                    line_no = line_no + 1
+                    if not line:match("^%s*%-%-") then
+                        for dep in line:gmatch("require%s*%(?%s*\"([%w_.]+)\"") do
+                            queue[#queue + 1] = dep
+                        end
+                        for lit in line:gmatch("\"([^\"]*)\"") do
+                            local prefix = lit:match("^(%l[%w_]*)%.[%w_.]*[%w_]$")
+                            if prefix and prefixes[prefix] and not known[lit] then
+                                problems[#problems + 1] = path:match("[^/\\]+$") .. ":" .. line_no .. " " .. lit
+                            end
+                        end
+                    end
+                end
+                fh:close()
+            end
+        end
+    end
+    assert(files >= #roots, "Module nicht gefunden (" .. files .. ")")
+    assert(#problems == 0, "Schluessel fehlen in der Sprachdatei: " .. table.concat(problems, "; "))
+    return files
+end
+local roots = { "remultiplayer_coop.session" }
+if AUTORUN then
+    -- Hauptdatei plus Module, die (noch) nicht geladen werden
+    for _, m in ipairs({ "re2r_coop", "re2r_coop.revive", "re2r_coop.enemy_net", "re2r_coop.items_net",
+        "re2r_coop.game_adapter", "re2r_coop.savejoin", "re2r_coop.savestate" }) do
+        roots[#roots + 1] = m
+    end
+end
+local checked = check_used_keys(roots)
+assert(not AUTORUN or checked >= 15, "zu wenige Module geprueft: " .. checked)
+print("i18n_test: Schluessel in " .. checked .. " Modulen geprueft")
+
 print("i18n_test: alles ok")

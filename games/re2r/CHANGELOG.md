@@ -2,6 +2,18 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.1
+
+### Deutsch
+
+- Auch die letzten Texte der Debug-Infos sind jetzt übersetzt: Zustand und Fehler der Mitspieler-Figur, Fehler des Titelmenüs und der Ersatzname über der Markierung des Mitspielers („Spieler 2“).
+- Ein neuer Test prüft, dass jeder Text, den die Mod anzeigt, in beiden Sprachen vorhanden ist.
+
+### English
+
+- The last remaining texts in the debug info are now translated as well: state and errors of the partner character, title menu errors and the fallback name above the partner marker ("Player 2").
+- A new test checks that every text the mod shows exists in both languages.
+
 ## 0.11.0
 
 ### Deutsch

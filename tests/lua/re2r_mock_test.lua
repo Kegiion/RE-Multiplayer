@@ -532,6 +532,16 @@ sleep_ms(20)
 pup.destroyed = true
 for _ = 1, 4 do run_frame() end
 assert(#spawned == 1, "Puppe ohne Wartezeit neu erzeugt")
+do -- Zustand in der Debug-Anzeige uebersetzt, auch nach Sprachwechsel
+    local puppet_mod, i18n = require("re2r_coop.puppet"), require("remultiplayer_coop.i18n")
+    local pid = next(puppet_mod.instances)
+    local de_text = puppet_mod.status_text(pid)
+    assert(de_text == "vom Spiel geloescht, wird neu erzeugt", "Status geloescht falsch: " .. de_text)
+    i18n.set_setting("en")
+    local en_text = puppet_mod.status_text(pid)
+    i18n.set_setting("de")
+    assert(en_text == "removed by the game, will be recreated", "englischer Status falsch: " .. en_text)
+end
 sleep_ms(1100) -- puppet.RESPAWN_DELAY
 for _ = 1, 4 do run_frame() end
 assert(#spawned == 2 and spawned[2].draw == true, "Puppe nicht neu erzeugt")

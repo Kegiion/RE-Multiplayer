@@ -60,20 +60,21 @@ local function destroy(inst)
     remote_input.attach(nil)
 end
 
-local function fail(inst, now, err)
+-- err: Textschluessel (debug.err_*) oder rohe Fehlermeldung, siehe puppet.lua
+local function fail(inst, now, err, params)
     destroy(inst)
-    inst.state, inst.error, inst.since = "failed", tostring(err), now
+    inst.state, inst.error, inst.error_params, inst.since = "failed", tostring(err), params, now
 end
 
 local function start_loading(inst, now)
     inst.error, inst.since = nil, now
     local path = partner.prefab_path(inst.character)
     if path == nil then
-        return fail(inst, now, "keine Spielfigur fuer ID " .. tostring(inst.character))
+        return fail(inst, now, "debug.err_no_character", { id = tostring(inst.character) })
     end
     local prefab = sdk.create_instance("via.Prefab", true)
     if prefab == nil then
-        return fail(inst, now, "via.Prefab nicht erzeugt")
+        return fail(inst, now, "debug.err_no_prefab")
     end
     prefab = prefab:add_ref()
     prefab:call("set_Path", path)
@@ -90,18 +91,18 @@ local function spawn(inst, r, now)
     local player = game.get_player()
     local folder = player and try_call(player, "get_Folder")
     if folder == nil then
-        return fail(inst, now, "Ordner des Spielers nicht gefunden")
+        return fail(inst, now, "debug.err_no_player_folder")
     end
     local go = inst.prefab:call("instantiate(via.vec3, via.Quaternion, via.Folder)",
         Vector3f.new(r.pos.x, r.pos.y, r.pos.z), rotation_of(r), folder)
     if go == nil then
-        return fail(inst, now, "instantiate lieferte nil")
+        return fail(inst, now, "debug.err_instantiate")
     end
     inst.go = go
     inst.transform = try_call(go, "get_Transform")
     local changer = try_call(go, "getComponent(System.Type)", sdk.typeof(game.ns("survivor.SurvivorCostumeChanger")))
     if changer == nil then
-        return fail(inst, now, "SurvivorCostumeChanger fehlt")
+        return fail(inst, now, "debug.err_costume")
     end
     changer:call("change(app.ropeway.SurvivorDefine.SurvivorType, app.ropeway.SurvivorDefine.Costume)",
         inst.character, partner.COSTUME)
@@ -141,7 +142,7 @@ local function sync(peer_id, r, enabled, now)
         if try_call(inst.prefab, "get_Ready") then
             spawn(inst, r, now)
         elseif now - inst.since > partner.LOAD_TIMEOUT then
-            fail(inst, now, "Prefab laedt nicht: " .. tostring(inst.path))
+            fail(inst, now, "debug.err_prefab_timeout", { path = tostring(inst.path) })
         end
         return
     end
@@ -207,12 +208,12 @@ function partner.status_text(peer_id)
         return tr("debug.none")
     end
     if inst.state == "failed" then
-        return tr("status.error", { error = tostring(inst.error) })
+        return tr("status.error", { error = tr(tostring(inst.error), inst.error_params) })
     end
     if inst.state == "ready" then
         return tr("debug.partner_ready", { drift = string.format("%.2f", inst.drift or 0), jumps = inst.corrections or 0 })
     end
-    return inst.state
+    return inst.state == "loading" and tr("debug.state_loading") or tostring(inst.state)
 end
 
 return partner

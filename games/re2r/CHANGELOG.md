@@ -2,6 +2,22 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.4
+
+### Deutsch
+
+- Beitreten: Der Mitspieler spielt jetzt die andere Hauptfigur als der Host (Host Leon → Mitspieler Claire und umgekehrt) in der Welt des Hosts. Sein eigenes Kostüm bleibt.
+- Startausstattung beim ersten Beitreten: eigene Start-Pistole (Leon Matilda, Claire JMB Hp3), dazu alle Items des Hosts außer Waffen. Munition gibt es nur, wenn sie zu den eigenen Waffen passt. Die eigene Itemkiste ist leer.
+- Speichert der Host, sichert der Mitspieler sein Inventar und seine Kiste. Tritt er demselben Host-Spiel erneut bei (z. B. nach einem Game Over), bekommt er sie zurück statt der Startausstattung.
+- Die Meldung nach dem Beitreten nennt die eigene Figur.
+
+### English
+
+- Joining: the joining player now plays the other main character than the host (host Leon → partner Claire and vice versa) in the host's world. Their own costume stays.
+- Starting kit on the first join: your own starting handgun (Leon Matilda, Claire JMB Hp3) plus all of the host's items except weapons. Ammo is only included if it fits your own weapons. Your own item box is empty.
+- When the host saves, the partner backs up their inventory and item box. Rejoining the same host game (e.g. after a game over) restores them instead of the starting kit.
+- The message after joining names your character.
+
 ## 0.11.3
 
 ### Deutsch

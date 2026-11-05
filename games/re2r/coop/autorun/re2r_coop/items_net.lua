@@ -55,6 +55,64 @@ function M.starting_kit(host_inventory, character, adapter)
     return { inventory = inventory, box = {} }
 end
 
+-- --- Inventar beim Beitreten (savejoin.lua) -----------------------------------
+--
+-- Bestaetigt am 5. November 2026 im Spiel (Claire in Leons Welt):
+-- Items als { item = Item.ID, weapon = EquipmentDefine.WeaponType,
+-- bullet = Item.ID der Munition, count = Anzahl bzw. Schuss im Magazin,
+-- parts = WeaponParts }. Waffen haben item = 0 und weapon ~= -1.
+-- WeaponType 1 = Matilda, 2 = M19, 3 = JMB Hp3, 4 = Quickdraw Army.
+-- JMB Hp3 und Matilda laden mit Pistolenmunition (Item 15). Claire kann
+-- Leons Waffen ausruesten und damit schiessen.
+
+M.LEON, M.CLAIRE = 0, 1  -- SurvivorDefine.SurvivorType
+
+-- Startwaffen je Figur (User, 5. November 2026: Claire JMB Hp3).
+-- UNBESTAETIGT: Magazin der Matilda (12), ein Messer fehlt noch (Kandidaten
+-- WeaponType 182/192/202 sind ungueltig).
+M.DEFAULT_WEAPONS = {
+    [M.LEON] = { { item = 0, weapon = 1, bullet = 15, count = 12, parts = 0 } },
+    [M.CLAIRE] = { { item = 0, weapon = 3, bullet = 15, count = 13, parts = 0 } },
+}
+
+-- Munition: Item-IDs mit Modell sm70_1xx (15..30). UNBESTAETIGT ausser 15.
+M.AMMO_FIRST, M.AMMO_LAST = 15, 30
+
+function M.is_ammo(item_id)
+    return type(item_id) == "number" and item_id >= M.AMMO_FIRST and item_id <= M.AMMO_LAST
+end
+
+-- Figur des Mitspielers: die andere Hauptfigur (User, 4. November 2026).
+function M.partner_character(host_character)
+    return host_character == M.CLAIRE and M.LEON or M.CLAIRE
+end
+
+local function copy_item(it)
+    return { item = it.item or 0, weapon = it.weapon or -1, bullet = it.bullet or 0, count = it.count or 1, parts = it.parts or 0 }
+end
+
+-- Startausstattung beim ersten Beitreten (User, 5. November 2026): eigene
+-- Startwaffen, vom Host alles ausser Waffen, Munition aber nur, wenn sie zu
+-- den eigenen Waffen passt. Hoechstens size Plaetze.
+function M.join_inventory(host_items, character, size)
+    local inventory, bullets = {}, {}
+    for _, w in ipairs(M.DEFAULT_WEAPONS[character] or {}) do
+        inventory[#inventory + 1] = copy_item(w)
+        bullets[w.bullet] = true
+    end
+    for _, it in ipairs(host_items or {}) do
+        local weapon = it.weapon ~= nil and it.weapon ~= -1
+        if not weapon and (it.item or 0) ~= 0 and (not M.is_ammo(it.item) or bullets[it.item]) then
+            inventory[#inventory + 1] = copy_item(it)
+        end
+    end
+    size = size or #inventory
+    while #inventory > size do
+        table.remove(inventory)
+    end
+    return inventory
+end
+
 -- Speicher fuer Inventar-Kopien (Standard: nur im Speicher; im Spiel z. B.
 -- json/serial-Datei unter reframework/data).
 function M.memory_storage()

@@ -40,7 +40,7 @@ game.ENUM_LOCATION_ID = ns("gamemastering.Location.ID")
 -- SurvivorType-Namen (aus dem Spiel) -> Anzeigename.
 game.CHARACTER_NAMES = {
     PL0000 = "Leon",   -- bestaetigt 2. November 2026
-    PL1000 = "Claire", -- UNBESTAETIGT
+    PL1000 = "Claire", -- bestaetigt 5. November 2026 (Modell pl1000)
 }
 
 -- PLAYER_STATE.character ist ein Byte. Werte ausserhalb 0..254 senden wir

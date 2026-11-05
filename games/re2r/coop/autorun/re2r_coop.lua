@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.11.3"
+local MOD_VERSION = "0.11.4"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -184,6 +184,13 @@ end)
 
 session:on("SAVE_CHUNK", function(s, _, msg)
     savejoin.on_chunk(s, msg)
+end)
+
+-- Host hat gespeichert: Mitspieler sichert Inventar und Kiste (Game Over)
+session:on("HOST_SAVED", function(s)
+    if not s.is_host then
+        pcall(savejoin.on_host_saved, s)
+    end
 end)
 
 session:on("CHAT", function(s, peer, msg)

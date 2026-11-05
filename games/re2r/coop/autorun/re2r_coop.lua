@@ -14,7 +14,7 @@
 --   re2r_coop/diag.lua Diagnose-Datei fuer die Entwicklung
 --   re2r_coop/devconsole.lua Entwickler-Konsole fuer Claude (standardmaessig aus)
 
-local MOD_VERSION = "0.11.5"
+local MOD_VERSION = "0.11.6"
 local CONFIG_FILE = "re2r_coop_config.json"
 local SEND_INTERVAL = 0.05 -- Sekunden -> 20 Positionsupdates pro Sekunde
 local BANKS_CHECK_INTERVAL = 0.5 -- Sekunden: eigene Animationsdateien auf Aenderung pruefen
@@ -419,6 +419,8 @@ local function frame()
         local present = state.local_state ~= nil and r.target ~= nil
             and not ghost.is_stale(r, now) and not ghost.other_area(r, state.local_state)
         local real = config.real_partner and present
+        local own = state.local_state and state.local_state.character
+        r.figure = partner.figure_for(r.character, own, session.is_host)
         partner.sync(id, r, real, now)
         local visible = config.show_puppets and present and not partner.has(id)
         puppet.sync(id, r, visible, now, remote_anim[id])

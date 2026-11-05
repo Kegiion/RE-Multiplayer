@@ -2,6 +2,16 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.6
+
+### Deutsch
+
+- Der Partner erscheint jetzt immer als die richtige Figur: Der Host sieht seinen Mitspieler als die andere Hauptfigur (Host Leon → Partner Claire und umgekehrt), der Mitspieler sieht die Figur des Hosts. Das gilt unabhängig vom Spielstand des Gegenübers (im Spiel geprüft).
+
+### English
+
+- Your partner now always appears as the right character: the host sees the other player as the other main character (host Leon → partner Claire and vice versa), and the joining player sees the host's character. This no longer depends on the other player's save (verified in game).
+
 ## 0.11.5
 
 ### Deutsch

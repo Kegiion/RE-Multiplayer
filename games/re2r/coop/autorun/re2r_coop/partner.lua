@@ -37,6 +37,30 @@ partner.instances = {}
 
 local try_call = game.try_call
 
+local items_net = require("re2r_coop.items_net")
+
+-- A2: Figur des Partners folgt aus der Rolle, nicht aus dessen Spielstand.
+-- Host: Partner = die andere Hauptfigur (Leon <-> Claire). Mitspieler: Partner
+-- ist der Host und behaelt dessen gesendete Figur. Nur Leon/Claire werden
+-- abgeleitet, sonst (HUNK usw.) bleibt die gesendete Figur.
+local function is_main(c) return c == items_net.LEON or c == items_net.CLAIRE end
+
+function partner.figure_for(remote_character, own_character, is_host)
+    if is_host then
+        if is_main(own_character) then
+            return items_net.partner_character(own_character)
+        end
+        return remote_character
+    end
+    if is_main(remote_character) then
+        return remote_character
+    end
+    if is_main(own_character) then
+        return items_net.partner_character(own_character)
+    end
+    return remote_character
+end
+
 function partner.prefab_path(character)
     if character == nil or character == game.CHARACTER_UNKNOWN then
         return nil
@@ -113,7 +137,7 @@ end
 
 local function sync(peer_id, r, enabled, now)
     local inst = partner.instances[peer_id]
-    if inst ~= nil and inst.character ~= r.character then
+    if inst ~= nil and inst.character ~= (r.figure or r.character) then
         partner.remove(peer_id)
         inst = nil
     end
@@ -124,10 +148,10 @@ local function sync(peer_id, r, enabled, now)
         return
     end
     if inst == nil then
-        if partner.prefab_path(r.character) == nil or r.target == nil then
+        if partner.prefab_path(r.figure or r.character) == nil or r.target == nil then
             return
         end
-        inst = { character = r.character }
+        inst = { character = r.figure or r.character }
         partner.instances[peer_id] = inst
         start_loading(inst, now)
     end

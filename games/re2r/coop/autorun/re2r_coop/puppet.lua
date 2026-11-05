@@ -187,7 +187,7 @@ end
 
 local function sync(peer_id, r, visible, now, a)
     local inst = puppet.instances[peer_id]
-    local character = r.character
+    local character = r.figure or r.character
 
     if inst ~= nil and inst.character ~= character then
         puppet.remove(peer_id)

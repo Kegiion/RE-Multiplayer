@@ -2,6 +2,16 @@
 
 Neueste Version oben. Der Release-Workflow (`.github/workflows/release.yml`) übernimmt den Abschnitt `## <MOD_VERSION>` als Patch Notes, der Mod-Manager zeigt ihn an. Vor jedem Release hier einen Abschnitt für die neue Version anlegen.
 
+## 0.11.5
+
+### Deutsch
+
+- Sprache „Automatisch“ erkennt jetzt auch englischen Spieltext sicher (im Spiel geprüft). Die Sprache folgt der Spielsprache, auch beim Umstellen im laufenden Spiel.
+
+### English
+
+- Language “Automatic” now reliably detects English game text too (verified in game). The mod language follows the game language, including when it is changed during play.
+
 ## 0.11.4
 
 ### Deutsch

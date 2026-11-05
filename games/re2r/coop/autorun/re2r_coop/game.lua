@@ -215,7 +215,7 @@ end
 -- so nicht (nil). UNBESTAETIGT: alle anderen Werte (1 = Englisch erwartet).
 -- Nur bestaetigte Werte werden benutzt, alles andere -> nil -> Englisch.
 -- Pruefen ueber die Entwickler-Konsole: out(game.read_game_language_raw())
-game.LANGUAGE_CONFIRMED = { [4] = true }
+game.LANGUAGE_CONFIRMED = { [1] = true, [4] = true }
 
 -- via.Language -> Sprachcode (nur 4 bestaetigt, Rest aus anderen RE-Engine-Mods)
 game.LANGUAGE_CODES = {

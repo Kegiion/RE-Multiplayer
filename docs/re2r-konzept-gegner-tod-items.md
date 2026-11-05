@@ -286,6 +286,25 @@ Hier gibt es eine Spannung zum aktuellen Join-Fehler „Der Beitretende behält 
 | I7 | **Weltitem-Kennung:** Hat jedes Weltitem eine stabile Kennung, die in beiden Spielen gleich ist (wie E1)? | In derselben Zone zweimal vom selben Platz laden und vergleichen. |
 | I8 | **„Wird nicht mehr benötigt“:** Wann und wo wirft das Spiel ein Schlüssel-Item weg (Methode, Flag)? | Schlüssel benutzen, bis die Meldung kommt. |
 | I9 | **Speichern erkennen:** Welche Methode läuft, wenn der Host an der Schreibmaschine speichert (für `HOST_SAVED`)? Auch beim automatischen Speichern? | Hook auf `SaveDataManager`-Methoden, speichern. |
+| I10 | **Slotzahl:** Wie erhöhen Hüfttaschen die Slots (Feld/Methode am `InventoryManager`)? Lässt sich das um 6 erhöhen, und wo liegt die Obergrenze der GUI (Raster)? (Story-Fach, Meilenstein E-2) | Hüfttasche aufnehmen, Felder vorher/nachher vergleichen. |
+| I11 | **Slots reservieren:** Kann man die Zusatz-Slots für Story-Items sperren (Hook beim Ablegen/Verschieben), oder liegen Story-Items im Spiel ohnehin getrennt? | Item in einen Zusatz-Slot legen, Hook mitzählen. |
+| I12 | **Benutzen:** Welche Methode prüft an Tür/Gimmick „hat Item X“ und entfernt es? Beim „Spiegel“ genügt ein Ereignis an den anderen (`ITEM_DISCARD`), beim Overlay müsste man die Prüfung abfangen. | Schlüssel an einer Tür benutzen, Hooks auf Kandidaten. |
+| I13 | **Kombinieren/Untersuchen:** Lassen sich Items aus dem Fach kombinieren (Teile eines Rätselgegenstands)? Das Ergebnis muss in beiden Fächern landen. | Zwei kombinierbare Items kombinieren, Aufrufe mitschreiben. |
+
+
+### Im Spiel zu erforschen: Welt und Story (alles unbestätigt, Meilenstein E)
+
+| ID | Frage | Prüfen |
+|---|---|---|
+| W1 | **Türen/Gimmicks:** Wo steht der Zustand einer Tür bzw. eines Schlosses (Teil des `GimmickSetManager`?), kann man ihn live setzen? | Zustand vor/nach dem Öffnen vergleichen (`capture_live`). |
+| W2 | **Story-Flags:** Welcher Manager hält den Story-Fortschritt? | Diff vor/nach einem Story-Ereignis per `capture_live`. |
+| W3 | **Sequenz beim Mitspieler:** Wie verhindert man, dass der Mitspieler durch einen Trigger eine eigene Story-Sequenz auslöst, und wie startet man eine Sequenz von außen? | Ansehen, wenn es vorkommt. |
+| W4 | **Ada-/Sherry-Abschnitte:** Was passiert mit der Partner-Figur und dem Mitspieler, wenn der Host Ada bzw. Sherry steuert? | Erst im Abschnitt. |
+| W5 | **Speichern beim Mitspieler:** In welchen Platz schreibt der Join, und kann der Mitspieler an der Schreibmaschine seine eigenen Plätze überschreiben? | Join und Speichern mit Platz-Anzeige mitschreiben. |
+| W6 | **Schwierigkeit:** Steht sie im Spielstand und kommt über den Join mit? | Spielstand-Teile vergleichen. |
+| W7 | **Szenario:** Was macht Claire als Mitspielerin in Leons Szenario (Claire als NPC doppelt, Claire-/Leon-only-Türen und -Items)? | Im Spiel beobachten. |
+| W8 | **Autosave/Checkpoint:** Lädt „Fortsetzen“ nach Game Over einen Autosave? Dann reicht `HOST_SAVED` an der Schreibmaschine nicht, die Inventar-Kopie des Mitspielers muss auch bei Autosave/Zonenwechsel erneuert werden (siehe T3). | Absichtlich sterben, geladenen Stand prüfen. |
+| W9 | **Waffenfunde:** Welche Waffen liegen in Leon A in der Welt, und gibt es Claire-Entsprechungen (Item-IDs für die Tabelle in `items.lua`)? | Durchgang mit Itemliste. |
 
 ---
 
@@ -359,3 +378,14 @@ Die Forschung ersetzt nur den Rumpf in `game_adapter.lua` (oder ruft `game_adapt
 3. **Zwischensequenz, während jemand liegt:** Der Liegende steht automatisch auf, mit 30 % der Lebenspunkte.
 4. **Startwerte** 30 s Frist und 3 s Taste halten bleiben vorerst. Feinschliff nach dem ersten Test im Spiel.
 5. **Erstes Beitreten:** Waffen passend zur eigenen Figur, Munition, Heilung und Schlüssel-Items vom Host, eigene Itemkiste leer.
+
+## Entscheidungen des Users (5. November 2026)
+
+Alle zwölf Empfehlungen aus dem Feature-Plan wurden übernommen (Übersicht in `docs/ROADMAP.md`, Abschnitt „Plan bis zum spielbaren Durchlauf“):
+
+6. **Waffen:** Findet einer eine Leon-Waffe, bekommt der Mitspieler die Claire-Entsprechung (Tabelle in `items.lua`, W9).
+7. **Ada/Sherry:** Der Mitspieler schaut zu, kein eigenes Steuern (W4).
+8. **Speichern:** Nur der Host speichert, die Schreibmaschine beim Mitspieler ist gesperrt, seine Plätze werden nie überschrieben (W5).
+9. **„Welt nachziehen“** früh bauen. **Vorabversion** (`prerelease=true`) für den Kollegen nach Auftrag 2 und L1.
+10. **Umfang:** erster Durchlauf nur Leon A. **Zwei Mr. X** bis F2 hinnehmen. **Friendly Fire** aus. **Claire doppelt** in Leons Sequenzen hinnehmen.
+11. **Story-Fach (ersetzt „Schlüssel-Items für beide“):** gemeinsames Fach mit 6 Zusatz-Slots nur für Story-Items („Spiegel“: Item in beiden echten Inventaren, Overlay nur als Ersatz, falls I10/I11 scheitern). Überlauf (mehr als 6) ins eigene Inventar, beide bekommen es dort. Story-Items nicht in die Kiste. Hüfttaschen nicht im Fach, beide +2 eigene Slots. Benutzen beide gleichzeitig, gewinnt der Host.

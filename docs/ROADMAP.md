@@ -2,7 +2,7 @@
 
 ## RE2 Remake: Story-Koop
 
-### Design-Entscheidungen (User, 4. November 2026)
+### Design-Entscheidungen (User, 4. und 5. November 2026)
 
 | Thema | Entscheidung |
 |---|---|
@@ -12,6 +12,14 @@
 | Mr. X | Verfolgt den näheren Spieler (bzw. den, den er hört). Das Ziel wechselt dynamisch. |
 | Tod | Wer stirbt, liegt am Boden und kann vom anderen innerhalb einer Frist wiederbelebt werden. Sterben beide oder läuft die Frist ab: Game Over für beide, weiter am letzten Speicherpunkt des Hosts. |
 | Schwierigkeit | Standard wie Solo. Der Host kann später mehr Gegner-Leben bzw. weniger Munition einschalten (Meilenstein 5). |
+| Story-Fach (5. Nov.) | Gemeinsames Fach mit 6 Zusatz-Slots nur für Story-Items, beide sehen und nutzen es. Technisch „Spiegel“: das Item liegt in beiden echten Inventaren, nur in den 6 Zusatz-Slots (ein eigenes Overlay nur als Ersatz, falls I10/I11 scheitern). Mehr als 6: Überlauf ins eigene Inventar, beide bekommen es dort. Story-Items nicht in die Kiste. Hüfttaschen gehören nicht ins Fach (beide +2 eigene Slots). Benutzen beide gleichzeitig: der Host gewinnt. Ersetzt „eigenes Exemplar für beide“. |
+| Waffen (5. Nov.) | Findet einer eine Leon-Waffe, bekommt der Mitspieler die Claire-Entsprechung (Tabelle in `items.lua`, Forschung W9). |
+| Ada/Sherry (5. Nov.) | Der Mitspieler schaut zu (wartet bzw. Kamera beim Host), kein eigenes Steuern. |
+| Speichern (5. Nov.) | Nur der Host speichert. Schreibmaschine beim Mitspieler gesperrt, seine eigenen Spielstand-Plätze werden nie überschrieben. |
+| Welt nachziehen (5. Nov.) | Knopf „Welt nachziehen“ früh bauen (Notnagel, Meilenstein B). |
+| Vorabversion (5. Nov.) | Nach Auftrag 2 und L1 eine Vorabversion (`prerelease=true`, nicht nach Discord) für den Kollegen-Test. |
+| Umfang (5. Nov.) | Erster spielbarer Durchlauf nur Leon A (Host Leon, Mitspieler Claire). Claire A, 2nd Run und Hardcore später. |
+| Zwischenstände (5. Nov.) | Zwei Mr. X bis F2 hinnehmen. Friendly Fire aus (Schalter später). Claire doppelt in Leons Sequenzen hinnehmen. |
 
 ### Meilenstein 0: Grundgerüst ✅
 - Netzwerk-Kern, REFramework-Plugin, gemeinsame Lua-Bibliothek
@@ -50,6 +58,22 @@
 - Verbindung ohne Portfreigabe (z. B. Steam-Netzwerk oder Relay)
 - Wiederverbinden nach Absturz
 - Einstellungen: Friendly Fire, Schwierigkeit, Item-Teilung
+
+### Plan bis zum spielbaren Durchlauf (Stand 5. November 2026, alles ungetestet im Spiel)
+
+Ziel: Leon A von der Tankstelle bis zum Abspann, Host Leon, Mitspieler Claire, mit dem Kollegen über das Internet. Die Meilensteine 1–5 oben bleiben das grobe Raster, die Buchstaben A–G sind die Reihenfolge der Umsetzung. Forschungs-IDs (E/T/I/W) stehen in `docs/re2r-konzept-gegner-tod-items.md`.
+
+- **A: Zwei Figuren im echten Test** (direkt nach Auftrag 2): L1 Englisch-Gegenprobe, Partner als richtige Figur (Host sieht Claire, Mitspieler sieht Leon), Zielen/Schießen/Nachladen/Drehen, Kollision mit dem Partner, dann Vorabversion und erster Kollegen-Test (mit minimaler Abbruchbehandlung aus G1). Bis Meilenstein C spielt jeder gegen die Gegner seiner eigenen Welt („paralleles Spiel“).
+- **B: Welt nachziehen** (früh): Inventar-Kopie des Mitspielers bei `HOST_SAVED` (I9), Knopf „Welt nachziehen“ (lädt den Host-Stand, Inventar bleibt), Spielstände des Mitspielers schützen (W5). Überbrückt Türen, Rätsel und Story, bis E fertig ist.
+- **C: Gegner gemeinsam:** Gegner-Forschung am Host (E1–E5, E7, E13), Testbot-Erweiterung (`ENEMY_HIT`, Abspielen von `ENEMY_STATE`, Flag „am Boden“), dann Treffer des Mitspielers beim Host (vor den Puppen, weil per Testbot prüfbar), Partner-Schaden unterdrücken, Gegner als Puppen beim Mitspieler, Angriffe auf beide. `protocol.VERSION` wird 4.
+- **D: Tod und Wiederbeleben:** Lebenspunkte und Tod abfangen (T1, T4, T6), Liegen und Aufheben (T2, T7), Game Over für beide (T3, I9, W8), Zwischensequenz während Liegen (T5).
+- **E: Items und Welt:** E-7 Gebietswechsel/Partner in anderer Zone, E-1 Aufheben „wer zuerst kommt“, **E-2 gemeinsames Story-Fach** (I2, I10–I13), E-3 Claires Waffen (I6, W9), E-4 Türen/Schlösser/Rätsel (W1, W2), E-5 Zwischensequenzen (T5, W3), E-6 Ada-/Sherry-Abschnitte (W4).
+- **F: Getrennte Zonen und Mr. X:** geliehene Zonen (E8, E10), dann Mr. X, der nur einmal existiert und den Näheren jagt (E9, E14).
+- **G: Komfort und Stabilität** (teilweise vorziehen): Verbindungsabbruch und Wiederverbinden, Schwierigkeit (W6), Friendly Fire aus, Verbindung ohne Portfreigabe (Relay/Steam, XL), mehrere `task()` in der Konsole, Release 1.0.
+
+Reihenfolge: Auftrag 2 → A (Vorabversion + Kollegen-Test) → B → C (Testbot parallel zur Forschung; zweiter Kollegen-Test) → D → E → F (nebenbei Schwierigkeit, Friendly Fire, Konsole) → Durchlauf Leon A → Release 1.0.
+
+Hinweise: Das Story-Fach blockiert Auftrag 2 nicht. Der Join-Code behandelt Story-Items an einer Stelle (`items_net.starting_kit`), damit E-2 sie später ins Fach umleiten kann; vorläufig werden Schlüssel per Handliste erkannt. Bei Autosave/Zonenwechsel muss die Inventar-Kopie ebenfalls erneuert werden, falls „Fortsetzen“ nach Game Over einen Autosave lädt (W8). Unbestätigt: alle Forschungs-IDs und der Englisch-Wert von `get_MessageLanguage` (L1).
 
 ## RE0 HD: Koop mit eigenem Bild für jeden (Weg B)
 

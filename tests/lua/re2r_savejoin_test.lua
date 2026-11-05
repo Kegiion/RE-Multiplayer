@@ -197,6 +197,10 @@ local kit = items_net.join_inventory(savejoin.read_inventory(host_parts(0), 0), 
 assert(#kit == 4 and kit[1].weapon == 3 and kit[1].bullet == 15, "Startwaffe falsch")
 assert(kit[2].item == 77 and kit[3].item == 15 and kit[3].count == 24 and kit[4].item == 2, "Host-Items falsch")
 assert(#items_net.join_inventory(kit, items_net.CLAIRE, 2) == 2, "Platzgrenze")
+-- Story-Items stehen vor den anderen, die Platzgrenze schneidet sie nicht ab
+local k2 = items_net.join_inventory({ { item = 2 }, { item = 15, count = 5 }, { item = 120 } }, items_net.CLAIRE, 2)
+assert(#k2 == 2 and k2[2].item == 120, "Story-Item abgeschnitten")
+assert(items_net.is_story_item(77) and not items_net.is_story_item(15))
 assert(items_net.partner_character(0) == 1 and items_net.partner_character(1) == 0)
 
 -- Join Leon -> Claire: Header, PlayerType, Inventar, Kiste, Kostuem

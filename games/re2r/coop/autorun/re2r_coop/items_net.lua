@@ -91,20 +91,46 @@ local function copy_item(it)
     return { item = it.item or 0, weapon = it.weapon or -1, bullet = it.bullet or 0, count = it.count or 1, parts = it.parts or 0 }
 end
 
+-- Story-/Schluessel-Items: Modell sm73_xxx (Item.ID 77..249). UNBESTAETIGT,
+-- bisher nur Item 77 im Inventar gesehen.
+M.STORY_FIRST, M.STORY_LAST = 77, 249
+
+function M.is_story_item(item_id)
+    return type(item_id) == "number" and item_id >= M.STORY_FIRST and item_id <= M.STORY_LAST
+end
+
+-- Einzige Stelle fuer Story-/Schluessel-Items beim Beitreten. Heute kommen
+-- sie ins normale Inventar (vor allen anderen Items, damit die Platzgrenze
+-- sie nicht abschneidet). Hier dockt spaeter das gemeinsame Story-Fach an
+-- (Plan E-2, RE2-feature-plan.md).
+function M.join_story_items(story, inventory)
+    for _, it in ipairs(story or {}) do
+        inventory[#inventory + 1] = copy_item(it)
+    end
+end
+
 -- Startausstattung beim ersten Beitreten (User, 5. November 2026): eigene
 -- Startwaffen, vom Host alles ausser Waffen, Munition aber nur, wenn sie zu
 -- den eigenen Waffen passt. Hoechstens size Plaetze.
 function M.join_inventory(host_items, character, size)
-    local inventory, bullets = {}, {}
+    local inventory, bullets, story, rest = {}, {}, {}, {}
     for _, w in ipairs(M.DEFAULT_WEAPONS[character] or {}) do
         inventory[#inventory + 1] = copy_item(w)
         bullets[w.bullet] = true
     end
     for _, it in ipairs(host_items or {}) do
         local weapon = it.weapon ~= nil and it.weapon ~= -1
-        if not weapon and (it.item or 0) ~= 0 and (not M.is_ammo(it.item) or bullets[it.item]) then
-            inventory[#inventory + 1] = copy_item(it)
+        if not weapon and (it.item or 0) ~= 0 then
+            if M.is_story_item(it.item) then
+                story[#story + 1] = it
+            elseif not M.is_ammo(it.item) or bullets[it.item] then
+                rest[#rest + 1] = it
+            end
         end
+    end
+    M.join_story_items(story, inventory)
+    for _, it in ipairs(rest) do
+        inventory[#inventory + 1] = copy_item(it)
     end
     size = size or #inventory
     while #inventory > size do

@@ -4,7 +4,7 @@ Erst das hier lesen, dann nur die im Auftrag genannten Dateien. Begriffe zuerst 
 
 ## Befehle und Pfade
 
-- **Konsole im Spiel (RE2):** Haken „Entwickler-Konsole“ im Mod-Menü, dann `python tools/re2r_console.py "out(game.get_local_state())"` oder `-f befehl.lua`. Ausgabe klein halten, große Dumps in Datei + grep. → [tools/re2r_console.py](../tools/re2r_console.py), [games/re2r/research/README.md](../games/re2r/research/README.md)
+- **Konsole im Spiel (RE2):** Haken „Entwickler-Konsole“ im Mod-Menü, dann `python tools/re2r_console.py "out(game.get_local_state())"` oder `-f befehl.lua`. Log-Ende: `--log 40 [--grep Muster]`. Zweite Instanz (VM): `--game \<VM-IP>\RE2` (Spielordner als SMB-Freigabe, Konsole läuft nur über Dateien). Ausgabe klein halten, große Dumps in Datei + grep. → [tools/re2r_console.py](../tools/re2r_console.py), [games/re2r/research/README.md](../games/re2r/research/README.md)
 - **Testbot (simulierter Mitspieler):** `REMODS_LUA_PATH=<repo>/shared/re-engine/lua/?.lua dist/REMods-Tools/remods_luarun.exe tools/testbot/testbot.lua --host 27352 re2r`. Nach Protokolländerungen Bot neu starten. → [HANDOVER.md](../HANDOVER.md)
 - **Ports:** UDP 27350 = Standard (Mod), 27352 = Host-Port des Testbots/Tests mit dem Freund. → [protocol.lua](../shared/re-engine/lua/remultiplayer_coop/protocol.lua)
 - **Spielordner:** RE2 `C:\Program Files (x86)\Steam\steamapps\common\RESIDENT EVIL 2  BIOHAZARD RE2\`, RE0 `...\common\Resident Evil 0\` (App-ID 339340). → [.claude/CLAUDE.md](../.claude/CLAUDE.md)
